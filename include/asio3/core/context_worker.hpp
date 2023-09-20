@@ -23,6 +23,7 @@ namespace asio
 
 		~context_worker()
 		{
+			guard.reset();
 			thread.join();
 		}
 
@@ -49,6 +50,8 @@ namespace asio
 		{
 			asio::post(thread.get_executor(), [this]() mutable
 			{
+				guard.emplace(context.get_executor());
+
 				context.run();
 			});
 		}
@@ -73,5 +76,7 @@ namespace asio
 		asio::thread_pool thread{ 1 };
 
 		asio::io_context  context;
+
+		std::optional<asio::executor_guard> guard{};
 	};
 }
