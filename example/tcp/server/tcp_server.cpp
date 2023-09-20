@@ -1,5 +1,5 @@
-#include <asio3/tcp/accept.hpp>
-#include <asio3/tcp/read.hpp>
+#include <asio3/tcp/tcp_server.hpp>
+#include <asio3/core/fmt.hpp>
 
 namespace net = ::asio;
 
@@ -19,27 +19,23 @@ net::awaitable<void> echo(net::tcp_socket sock)
 	}
 }
 
-net::awaitable<void> do_accept()
-{
-	auto executor = co_await net::this_coro::executor;
-
-	auto [e1, acceptor] = co_await net::async_create_acceptor(executor, "0.0.0.0", 20801);
-
-	for (;;)
-	{
-		auto [e2, client] = co_await acceptor.async_accept();
-		if (e2)
-			co_await net::delay(std::chrono::milliseconds(100));
-		else
-			net::co_spawn(executor, echo(std::move(client)), net::detached);
-	}
-}
-
 int main()
 {
-	net::io_context ctx(1);
+	net::context_worker worker;
 
-	net::co_spawn(ctx, do_accept(), net::detached);
+	net::tcp_server server(worker.get_executor(), {
+		.listen_address = "127.0.0.1",
+		.listen_port = 8028,
+		.accept_function = echo,
+	});
 
-	ctx.run();
+	server.async_start([](net::error_code ec)
+	{
+		if (ec)
+			fmt::print("listen success: {}\n", ec.message());
+		else
+			fmt::print("listen failure: {}\n", ec.message());
+	});
+
+	worker.run();
 }

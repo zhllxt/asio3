@@ -20,7 +20,8 @@ namespace asio::detail
 	struct async_create_acceptor_op
 	{
 		template<typename String, typename StrOrInt>
-		auto operator()(auto state, auto&& executor, String&& listen_address, StrOrInt&& listen_port) -> void
+		auto operator()(auto state, auto&& executor,
+			String&& listen_address, StrOrInt&& listen_port, bool reuse_addr) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -42,7 +43,7 @@ namespace asio::detail
 
 			try
 			{
-				asio::tcp_acceptor acceptor(executor, *eps);
+				asio::tcp_acceptor acceptor(executor, *eps, reuse_addr);
 
 				co_return{ asio::error_code{}, std::move(acceptor) };
 			}
@@ -61,7 +62,8 @@ namespace asio
 	 * @param executor - The executor.
 	 * @param listen_address - The listen ip. 
 	 * @param listen_port - The listen port. 
-	 * @param token - The completion handler to invoke when the operation completes. 
+     * @param reuse_addr  - Whether set the socket option socket_base::reuse_address.
+	 * @param token - The completion handler to invoke when the operation completes.
 	 *	  The equivalent function signature of the handler must be:
      *    @code
      *    void handler(const asio::error_code& ec, asio::tcp_acceptor acceptor);
@@ -76,11 +78,13 @@ namespace asio
 	async_create_acceptor(
 		Executor&& executor,
 		String&& listen_address, StrOrInt&& listen_port,
+		bool reuse_addr = true,
 		CreateToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_acceptor::executor_type))
 	{
 		return async_initiate<CreateToken, void(asio::error_code, asio::tcp_acceptor)>(
 			experimental::co_composed<void(asio::error_code, asio::tcp_acceptor)>(
 				detail::async_create_acceptor_op{}, executor),
-			token, executor, std::forward<String>(listen_address), std::forward<StrOrInt>(listen_port));
+			token, executor,
+			std::forward<String>(listen_address), std::forward<StrOrInt>(listen_port), reuse_addr);
 	}
 }

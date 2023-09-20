@@ -10,17 +10,18 @@
 
 #pragma once
 
+#include <asio3/tcp/accept.hpp>
 #include <asio3/tcp/connect.hpp>
 #include <asio3/socks5/handshake.hpp>
 
 namespace asio::detail
 {
-	struct tcp_async_start_op
+	struct tcp_client_async_start_op
 	{
-		template<typename AsyncStream, typename StartOption>
+		template<typename AsyncStream, typename ClientOption>
 		auto operator()(auto state,
 			std::reference_wrapper<AsyncStream> sock_ref,
-			std::reference_wrapper<StartOption> option_ref) -> void
+			std::reference_wrapper<ClientOption> option_ref) -> void
 		{
 			auto& sock = sock_ref.get();
 			auto& opt = option_ref.get();
@@ -59,24 +60,80 @@ namespace asio::detail
 			co_return asio::error_code{};
 		}
 	};
+
+	struct tcp_acceptor_async_start_op
+	{
+		template<typename AsyncAcceptor, typename AcceptorOption>
+		auto operator()(auto state,
+			std::reference_wrapper<AsyncAcceptor> acceptor_ref,
+			std::reference_wrapper<AcceptorOption> option_ref) -> void
+		{
+			auto& acceptor = acceptor_ref.get();
+			auto& opt = option_ref.get();
+
+			co_await asio::dispatch(acceptor.get_executor(), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+			auto [e1, a1] = co_await asio::async_create_acceptor(acceptor.get_executor(),
+				opt.listen_address, opt.listen_port, opt.socket_option.reuse_address, asio::use_nothrow_deferred);
+			if (e1)
+				co_return e1;
+
+			acceptor = std::move(a1);
+
+			while (acceptor.is_open())
+			{
+				auto [e2, client] = co_await acceptor.async_accept(asio::use_nothrow_deferred);
+				if (e2)
+				{
+					co_await asio::async_sleep(acceptor.get_executor(),
+						std::chrono::milliseconds(100), asio::use_nothrow_deferred);
+				}
+				else
+				{
+					asio::co_spawn(acceptor.get_executor(), opt.accept_function(std::move(client)), asio::detached);
+				}
+			}
+
+			co_return e1;
+		}
+	};
 }
 
 namespace asio
 {
-	template<typename AsyncStream, typename StartOption,
+	template<typename AsyncStream, typename ClientOption,
 		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) StartToken
 		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	requires std::same_as<typename std::remove_cvref_t<AsyncStream>::protocol_type, asio::ip::tcp>
+	requires detail::is_template_instance_of<asio::basic_stream_socket, typename std::remove_cvref_t<AsyncStream>>
 	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(StartToken, void(asio::error_code))
 	async_start(
 		AsyncStream& sock,
-		StartOption& option,
+		ClientOption& option,
 		StartToken&& token
 		ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
 	{
 		return asio::async_initiate<StartToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(
-				detail::tcp_async_start_op{}, sock),
+				detail::tcp_client_async_start_op{}, sock),
 			token, std::ref(sock), std::ref(option));
+	}
+
+	template<typename AsyncAcceptor, typename AcceptorOption,
+		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) StartToken
+		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncAcceptor::executor_type)>
+	requires detail::is_template_instance_of<asio::basic_socket_acceptor, typename std::remove_cvref_t<AsyncAcceptor>>
+	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(StartToken, void(asio::error_code))
+	async_start(
+		AsyncAcceptor& acceptor,
+		AcceptorOption& option,
+		StartToken&& token
+		ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncAcceptor::executor_type))
+	{
+		return asio::async_initiate<StartToken, void(asio::error_code)>(
+			asio::experimental::co_composed<void(asio::error_code)>(
+				detail::tcp_acceptor_async_start_op{}, acceptor),
+			token, std::ref(acceptor), std::ref(option));
 	}
 }

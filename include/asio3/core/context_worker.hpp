@@ -19,6 +19,7 @@ namespace asio
 	public:
 		explicit context_worker(int concurrency_hint = 1) : context(concurrency_hint)
 		{
+			started.clear();
 		}
 
 		~context_worker()
@@ -32,14 +33,19 @@ namespace asio
 		 */
 		inline void run() noexcept
 		{
-			asio::post(thread.get_executor(), [this]() mutable
+			if (!started.test_and_set())
 			{
-				context.run();
+				asio::post(thread.get_executor(), [this]() mutable
+				{
+					thread_id = std::this_thread::get_id();
 
-				thread.stop();
-			});
+					context.run();
 
-			thread.attach();
+					thread.stop();
+				});
+
+				thread.attach();
+			}
 		}
 
 		/**
@@ -47,12 +53,17 @@ namespace asio
 		 */
 		inline void start() noexcept
 		{
-			asio::post(thread.get_executor(), [this]() mutable
+			if (!started.test_and_set())
 			{
-				guard.emplace(context.get_executor());
+				asio::post(thread.get_executor(), [this]() mutable
+				{
+					thread_id = std::this_thread::get_id();
 
-				context.run();
-			});
+					guard.emplace(context.get_executor());
+
+					context.run();
+				});
+			}
 		}
 
 		/**
@@ -60,8 +71,16 @@ namespace asio
 		 */
 		inline void stop() noexcept
 		{
-			guard.reset();
-			thread.join();
+			if (started.test())
+			{
+				asio::dispatch(thread.get_executor(), [this]() mutable
+				{
+					guard.reset();
+				});
+				thread.join();
+				thread_id = {};
+				started.clear();
+			}
 		}
 
 		/**
@@ -72,10 +91,30 @@ namespace asio
 			return context.get_executor();
 		}
 
+		/**
+		 * @brief Determine whether the object is running in the current thread.
+		 */
+		inline bool running_in_this_thread() const noexcept
+		{
+			return thread_id == std::this_thread::get_id();
+		}
+
+		/**
+		 * @brief return the thread id of the current object running in.
+		 */
+		inline std::thread::id get_thread_id() const noexcept
+		{
+			return thread_id;
+		}
+
 	public:
 		asio::thread_pool thread{ 1 };
 
 		asio::io_context  context;
+
+		std::atomic_flag  started{};
+
+		std::thread::id   thread_id{};
 
 		std::optional<asio::executor_guard> guard{};
 	};

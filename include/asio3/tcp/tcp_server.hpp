@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/context_worker.hpp>
+#include <asio3/tcp/accept.hpp>
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
 #include <asio3/tcp/send.hpp>
@@ -19,44 +20,43 @@
 
 namespace asio
 {
-	struct tcp_client_option
+	struct tcp_server_option
 	{
-		std::string           server_address{};
-		std::uint16_t         server_port{};
+		std::string           listen_address{};
+		std::uint16_t         listen_port{};
 
 		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
 		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
 
 		tcp_socket_option     socket_option{};
 
-		socks5::option        socks5_option{};
+		std::function<awaitable<void>(tcp_socket)> accept_function{};
 	};
 
-	class tcp_client
+	class tcp_server
 	{
 	public:
 		template<class Executor>
-		explicit tcp_client(const Executor& ex, tcp_client_option opt)
+		explicit tcp_server(const Executor& ex, tcp_server_option opt)
 			: option(std::move(opt))
-			, socket(ex)
+			, acceptor(ex)
 		{
-			aborted.clear();
 		}
 
-		~tcp_client()
+		~tcp_server()
 		{
 			stop();
 		}
 
 		template<
 			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) StartToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_socket::executor_type)>
+			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_acceptor::executor_type)>
 		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(StartToken, void(asio::error_code))
 		async_start(
 			StartToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_socket::executor_type))
+			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_acceptor::executor_type))
 		{
-			return asio::async_start(socket, option, std::forward<StartToken>(token));
+			return asio::async_start(acceptor, option, std::forward<StartToken>(token));
 		}
 
 		/**
@@ -64,26 +64,22 @@ namespace asio
 		 */
 		inline void stop() noexcept
 		{
-			if (!aborted.test_and_set())
+			if (acceptor.is_open())
 			{
-				asio::async_disconnect(socket, option.disconnect_timeout, [](auto) {});
+				asio::dispatch(acceptor.get_executor(), [this]() mutable
+				{
+					asio::error_code ec{};
+					acceptor.close(ec);
+				});
 			}
 		}
 
 		/**
-		 * @brief Set the aborted flag to false.
+		 * @brief Check whether the acceptor is stopped or not.
 		 */
-		inline void restart() noexcept
+		inline bool is_stopped() const noexcept
 		{
-			aborted.clear();
-		}
-
-		/**
-		 * @brief Check whether the client is aborted or not.
-		 */
-		inline bool is_aborted() const noexcept
-		{
-			return aborted.test();
+			return !acceptor.is_open();
 		}
 
 		/**
@@ -94,25 +90,23 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename Token = default_tcp_write_token>
-		inline auto async_send(Data&& data, Token&& token = default_tcp_write_token{})
-		{
-			return asio::async_send(socket, std::forward<Data>(data), std::forward<Token>(token));
-		}
+		//template<typename Data, typename Token = default_tcp_write_token>
+		//inline auto async_send(Data&& data, Token&& token = default_tcp_write_token{})
+		//{
+		//	return asio::async_send(acceptor, std::forward<Data>(data), std::forward<Token>(token));
+		//}
 
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
 		inline const auto& get_executor() noexcept
 		{
-			return socket.get_executor();
+			return acceptor.get_executor();
 		}
 
 	public:
-		tcp_client_option option;
+		tcp_server_option  option;
 
-		asio::tcp_socket  socket;
-
-		std::atomic_flag  aborted{};
+		asio::tcp_acceptor acceptor;
 	};
 }
