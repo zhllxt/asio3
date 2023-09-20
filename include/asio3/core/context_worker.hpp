@@ -23,8 +23,7 @@ namespace asio
 
 		~context_worker()
 		{
-			guard.reset();
-			thread.join();
+			stop();
 		}
 
 		/**
@@ -59,8 +58,9 @@ namespace asio
 		/**
 		 * @brief Blocks until the thread has no more outstanding work.
 		 */
-		inline void join() noexcept
+		inline void stop() noexcept
 		{
+			guard.reset();
 			thread.join();
 		}
 
