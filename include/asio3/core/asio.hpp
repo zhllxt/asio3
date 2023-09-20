@@ -398,6 +398,8 @@ namespace boost::asio
 	//
 	constexpr auto use_nothrow_deferred  = asio::as_tuple(asio::deferred);
 	constexpr auto use_nothrow_awaitable = asio::as_tuple(asio::use_awaitable);
+
+	using executor_guard = asio::executor_work_guard<asio::io_context::executor_type>;
 }
 
 using namespace asio::experimental::awaitable_operators;

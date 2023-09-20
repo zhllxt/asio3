@@ -61,19 +61,21 @@ namespace asio::socks5
 
 	struct option
 	{
+		// input params
 		std::string        proxy_address{};
 		std::uint16_t      proxy_port{};
 
-		std::string        dest_address{};
-		std::uint16_t      dest_port{};
+		auth_method_vector method{};
 
 		std::string        username{};
 		std::string        password{};
 
-		auth_method_vector method{};
+		std::string        dest_address{};
+		std::uint16_t      dest_port{};
 
 		command            cmd{};
 
+		// output params
 		std::string        bound_address{};
 		std::uint16_t      bound_port{};
 	};
@@ -109,8 +111,60 @@ namespace asio::socks5
 
 		auth_method_vector supported_method{};
 
-		std::function<bool(handshake_info&)> auth_function{};
+		std::function<asio::awaitable<bool>(handshake_info&)> auth_function{};
 	};
+
+	namespace
+	{
+		inline bool is_command_valid(command cmd) noexcept
+		{
+			return cmd == command::connect || cmd == command::bind || cmd == command::udp_associate;
+		}
+
+		inline bool is_method_valid(auth_method m) noexcept
+		{
+			return m == auth_method::anonymous || m == auth_method::gssapi || m == auth_method::password;
+		}
+
+		inline bool is_methods_valid(auth_method_vector& ms) noexcept
+		{
+			if (ms.empty())
+				return false;
+			for (auth_method m : ms)
+			{
+				if (!is_method_valid(m))
+					return false;
+			}
+			return true;
+		}
+
+		inline bool is_option_valid(socks5::option& opt) noexcept
+		{
+			if (opt.proxy_address.empty() || opt.proxy_port == 0 || opt.method.empty())
+				return false;
+			if (!is_command_valid(opt.cmd))
+				return false;
+			//if (opt.cmd == command::udp_associate && opt.dest_port == 0)
+			//	return false;
+			return true;
+		}
+	}
+}
+
+namespace asio
+{
+	namespace
+	{
+		const std::string& get_server_address(const std::string& server_address, socks5::option& s5opt)
+		{
+			return socks5::is_option_valid(s5opt) ? s5opt.proxy_address : server_address;
+		}
+
+		std::uint16_t get_server_port(std::uint16_t server_port, socks5::option& s5opt)
+		{
+			return socks5::is_option_valid(s5opt) ? s5opt.proxy_port : server_port;
+		}
+	}
 }
 
 namespace socks5 = ::asio::socks5;

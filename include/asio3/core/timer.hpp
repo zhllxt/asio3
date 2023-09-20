@@ -16,6 +16,46 @@
 namespace asio
 {
 	using timer = asio::as_tuple_t<::asio::deferred_t>::as_default_on_t<::asio::steady_timer>;
+	using timer_duration = std::chrono::steady_clock::duration;
+	using timeout_duration = std::chrono::steady_clock::duration;
+
+	inline void cancel_timer(asio::steady_timer& t) noexcept
+	{
+		try
+		{
+			t.cancel();
+		}
+		catch (system_error const&)
+		{
+		}
+	}
+
+	struct safe_timer
+	{
+		explicit safe_timer(const auto& executor) : t(executor)
+		{
+			canceled.clear();
+		}
+
+		inline void cancel()
+		{
+			canceled.test_and_set();
+
+			cancel_timer(t);
+		}
+
+		/// Timer impl
+		asio::steady_timer t;
+
+		/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
+		/// called after the timer cancel function has called already.
+		/// Before : need reset the "canceled" flag to false, otherwise after "client.stop();"
+		/// then call client.start(...) again, this reconnect timer will doesn't work .
+		/// can't put this "clear" code into the timer handle function, beacuse the stop timer
+		/// maybe called many times. so, when the "canceled" flag is set false in the timer handle
+		/// and the stop timer is called later, then the "canceled" flag will be set true again .
+		std::atomic_flag   canceled;
+	};
 }
 
 namespace asio::detail
@@ -26,7 +66,7 @@ namespace asio::detail
 
 	struct async_sleep_op
 	{
-		auto operator()(auto state, auto&& executor, std::chrono::steady_clock::duration duration) -> void
+		auto operator()(auto state, auto&& executor, timer_duration duration) -> void
 		{
 			co_await asio::dispatch(executor, use_nothrow_deferred);
 
@@ -60,7 +100,7 @@ namespace asio
 	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(SleepToken, void(asio::error_code))
 	async_sleep(
 		Executor&& executor,
-		std::chrono::steady_clock::duration duration,
+		timer_duration duration,
 		SleepToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::timer::executor_type))
 	{
 		return asio::async_initiate<SleepToken, void(asio::error_code)>(
@@ -73,7 +113,7 @@ namespace asio
 	 * @brief Asynchronously sleep for a duration.
 	 * @param duration - The duration. 
 	 */
-	asio::awaitable<asio::error_code> delay(std::chrono::steady_clock::duration duration)
+	asio::awaitable<asio::error_code> delay(timer_duration duration)
 	{
 		asio::steady_timer t(co_await asio::this_coro::executor);
 
@@ -88,8 +128,7 @@ namespace asio
 	 * @brief Asynchronously wait a timeout for the duration.
 	 * @param duration - The duration. 
 	 */
-	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(
-		std::chrono::steady_clock::duration duration)
+	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(timer_duration duration)
 	{
 		asio::steady_timer t(co_await asio::this_coro::executor);
 
@@ -99,6 +138,41 @@ namespace asio
 
 		co_return std::tuple{ ec, detail::timer_tag };
 	}
+
+	/**
+	 * @brief Asynchronously wait for a timer, if timeout, close the socket.
+	 */
+	asio::awaitable<asio::error_code> timeout(asio::steady_timer& t, auto& socket)
+	{
+		auto [ec] = co_await t.async_wait(use_nothrow_awaitable);
+		if (!ec)
+		{
+			socket.close(ec);
+		}
+		co_return ec;
+	}
+
+	struct timeout_guard
+	{
+		asio::steady_timer t;
+
+		timeout_guard(auto& socket, timeout_duration val) noexcept
+			: t(socket.get_executor(), val)
+		{
+			asio::co_spawn(t.get_executor(), timeout(t, socket), asio::detached);
+		}
+
+		~timeout_guard()
+		{
+			try
+			{
+				t.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
+		}
+	};
 
 	/**
 	 * @brief Check whether the result of the awaitable_operators is timeout.

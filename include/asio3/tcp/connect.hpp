@@ -16,14 +16,6 @@
 
 namespace asio::detail
 {
-	struct default_set_option_callback
-	{
-		inline void operator()(auto& sock) noexcept
-		{
-			detail::ignore_unused(sock);
-		}
-	};
-
 	struct async_connect_op
 	{
 		template<typename AsyncStream, typename String, typename StrOrInt, typename SetOptionCallback>
@@ -75,10 +67,6 @@ namespace asio::detail
 					if (ec)
 						continue;
 
-					sock.set_option(asio::socket_base::reuse_address(true), ec);
-					sock.set_option(asio::socket_base::keep_alive(true), ec);
-					sock.set_option(asio::ip::tcp::no_delay(true), ec);
-
 					cb_set_option(sock);
 
 					auto [e2] = co_await sock.async_connect(ep, use_nothrow_deferred);
@@ -111,7 +99,7 @@ namespace asio
 	template<
 		typename AsyncStream,
 		typename String, typename StrOrInt,
-		typename SetOptionCallback = detail::default_set_option_callback,
+		typename SetOptionCallback = asio::default_tcp_socket_option_setter,
 		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::tcp::endpoint)) ConnectToken
 		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
 	requires 
@@ -120,7 +108,7 @@ namespace asio
 	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint))
 	async_connect(
 		AsyncStream& sock, String&& host, StrOrInt&& port,
-		SetOptionCallback&& cb_set_option = detail::default_set_option_callback{},
+		SetOptionCallback&& cb_set_option = asio::default_tcp_socket_option_setter{},
 		ConnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
 	{
 		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(

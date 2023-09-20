@@ -257,9 +257,9 @@ net::awaitable<void> listen(std::string listen_address, std::uint16_t listen_por
 	}
 }
 
-bool do_auth(socks5::handshake_info& info)
+net::awaitable<bool> do_auth(socks5::handshake_info& info)
 {
-	return info.username == "admin" && info.password == "123456";
+	co_return info.username == "admin" && info.password == "123456";
 }
 
 int main()
@@ -274,7 +274,7 @@ int main()
 	socks5::auth_config auth_cfg
 	{
 		.supported_method = { socks5::auth_method::anonymous, socks5::auth_method::password },
-		.auth_function = std::bind_front(do_auth),
+		.auth_function = do_auth,
 	};
 
 	net::signal_set signals(ctx, SIGINT, SIGTERM);

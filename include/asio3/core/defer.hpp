@@ -18,14 +18,6 @@ namespace asio
 {
 	class defer
 	{
-	protected:
-		template<typename F, typename Void, typename... Args>
-		struct is_callable : std::false_type {};
-
-		template<typename F, typename... Args>
-		struct is_callable<F, std::void_t<decltype(std::declval<std::decay_t<F>&>()
-			((std::declval<Args>())...)), char>, Args...> : std::true_type {};
-
 	public:
 		defer() noexcept = default;
 
