@@ -25,9 +25,11 @@ namespace asio::detail
 		template<typename AsyncWriteStream, typename Data>
 		auto operator()(auto state, std::reference_wrapper<AsyncWriteStream> stream_ref, Data&& data) -> void
 		{
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			auto& s = stream_ref.get();
+
+			co_await asio::dispatch(s.get_executor(), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			Data msg = std::forward<Data>(data);
 

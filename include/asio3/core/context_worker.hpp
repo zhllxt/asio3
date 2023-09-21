@@ -14,7 +14,7 @@
 
 namespace asio
 {
-	class context_worker
+	class context_worker : public std::enable_shared_from_this<context_worker>
 	{
 	public:
 		explicit context_worker(int concurrency_hint = 1) : context(concurrency_hint)
@@ -73,10 +73,7 @@ namespace asio
 		{
 			if (started.test())
 			{
-				asio::dispatch(thread.get_executor(), [this]() mutable
-				{
-					guard.reset();
-				});
+				guard.reset();
 				thread.join();
 				thread_id = {};
 				started.clear();

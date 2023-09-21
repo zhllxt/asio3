@@ -142,9 +142,9 @@ namespace asio
 	/**
 	 * @brief Asynchronously wait for a timer, if timeout, close the socket.
 	 */
-	asio::awaitable<asio::error_code> timeout(asio::steady_timer& t, auto& socket)
+	asio::awaitable<asio::error_code> timeout(std::shared_ptr<asio::steady_timer> t, auto& socket)
 	{
-		auto [ec] = co_await t.async_wait(use_nothrow_awaitable);
+		auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
 		if (!ec)
 		{
 			socket.close(ec);
@@ -154,19 +154,20 @@ namespace asio
 
 	struct timeout_guard
 	{
-		asio::steady_timer t;
+		std::shared_ptr<asio::steady_timer> t;
 
 		timeout_guard(auto& socket, timeout_duration val) noexcept
-			: t(socket.get_executor(), val)
 		{
-			asio::co_spawn(t.get_executor(), timeout(t, socket), asio::detached);
+			t = std::make_shared<asio::steady_timer>(socket.get_executor(), val);
+
+			asio::co_spawn(socket.get_executor(), timeout(t, socket), asio::detached);
 		}
 
 		~timeout_guard()
 		{
 			try
 			{
-				t.cancel();
+				t->cancel();
 			}
 			catch (system_error const&)
 			{

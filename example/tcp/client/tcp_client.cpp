@@ -7,7 +7,7 @@ net::awaitable<void> work(net::tcp_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [e1] = co_await client.async_start();
+		auto [e1] = co_await client.async_connect();
 		if (e1)
 		{
 			co_await net::delay(std::chrono::seconds(1));

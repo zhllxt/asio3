@@ -14,8 +14,9 @@
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
 #include <asio3/tcp/send.hpp>
-#include <asio3/tcp/start.hpp>
+#include <asio3/tcp/connect.hpp>
 #include <asio3/tcp/disconnect.hpp>
+#include <asio3/socks5/handshake.hpp>
 
 namespace asio
 {
@@ -32,8 +33,51 @@ namespace asio
 		socks5::option        socks5_option{};
 	};
 
-	class tcp_client
+	class tcp_client : public std::enable_shared_from_this<tcp_client>
 	{
+	protected:
+		struct async_connect_op
+		{
+			auto operator()(auto state, tcp_client& client) -> void
+			{
+				auto& sock = client.socket;
+				auto& opt = client.option;
+
+				co_await asio::dispatch(sock.get_executor(), use_nothrow_deferred);
+
+				state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+				asio::timeout_guard tg(sock, opt.connect_timeout);
+
+				if (asio::to_underlying(opt.socks5_option.cmd) == 0)
+					opt.socks5_option.cmd = socks5::command::connect;
+
+				auto [e1, ep] = co_await asio::async_connect(
+					sock,
+					asio::get_server_address(opt.server_address, opt.socks5_option),
+					asio::get_server_port(opt.server_port, opt.socks5_option),
+					asio::default_tcp_socket_option_setter{ opt.socket_option },
+					use_nothrow_deferred);
+				if (e1)
+					co_return e1;
+
+				if (socks5::is_option_valid(opt.socks5_option))
+				{
+					if (opt.socks5_option.dest_address.empty())
+						opt.socks5_option.dest_address = opt.server_address;
+					if (opt.socks5_option.dest_port == 0)
+						opt.socks5_option.dest_port = opt.server_port;
+
+					auto [e2] = co_await socks5::async_handshake(
+						sock, opt.socks5_option, use_nothrow_deferred);
+					if (e2)
+						co_return e2;
+				}
+
+				co_return asio::error_code{};
+			}
+		};
+
 	public:
 		template<class Executor>
 		explicit tcp_client(const Executor& ex, tcp_client_option opt)
@@ -49,14 +93,17 @@ namespace asio
 		}
 
 		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) StartToken
+			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) ConnectToken
 			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_socket::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(StartToken, void(asio::error_code))
-		async_start(
-			StartToken&& token
+		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code))
+		async_connect(
+			ConnectToken&& token
 			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_socket::executor_type))
 		{
-			return asio::async_start(socket, option, std::forward<StartToken>(token));
+			return asio::async_initiate<ConnectToken, void(asio::error_code)>(
+				asio::experimental::co_composed<void(asio::error_code)>(
+					async_connect_op{}, socket),
+				token, std::ref(*this));
 		}
 
 		/**
@@ -87,7 +134,7 @@ namespace asio
 		}
 
 		/**
-		 * @brief Safety start an asynchronous operation to write all of the supplied data to a stream.
+		 * @brief Safety start an asynchronous operation to write all of the supplied data.
 		 * @param data - The written data.
 		 * @param token - The completion handler to invoke when the operation completes.
 		 *	  The equivalent function signature of the handler must be:

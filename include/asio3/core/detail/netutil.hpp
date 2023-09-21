@@ -32,10 +32,10 @@ namespace asio::detail
 	static long constexpr  udp_connect_timeout   = 30 * 1000;
 	static long constexpr http_connect_timeout   = 30 * 1000;
 
-	static long constexpr  tcp_silence_timeout   = 60 * 60 * 1000;
-	static long constexpr  udp_silence_timeout   = 60 * 1000;
-	static long constexpr http_silence_timeout   = 85 * 1000;
-	static long constexpr mqtt_silence_timeout   = 90 * 1000; // 60 * 1.5
+	static long constexpr  tcp_idle_timeout   = 60 * 60 * 1000;
+	static long constexpr  udp_idle_timeout   = 60 * 1000;
+	static long constexpr http_idle_timeout   = 85 * 1000;
+	static long constexpr mqtt_idle_timeout   = 90 * 1000; // 60 * 1.5
 
 	static long constexpr http_execute_timeout   = 15 * 1000;
 	static long constexpr icmp_execute_timeout   =  4 * 1000;
