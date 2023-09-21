@@ -16,6 +16,8 @@ net::awaitable<void> client_join(std::shared_ptr<net::tcp_connection> connection
 		auto [e2, n2] = co_await net::async_write(connection->socket, net::buffer(data, n1));
 		if (e2)
 			break;
+
+		fmt::print("{} {}\n", std::chrono::system_clock::now(), std::string_view{ data.data(), n2 });
 	}
 
 	connection->stop();
@@ -43,15 +45,15 @@ int main()
 
 	net::co_spawn(server.get_executor(), start_server(server), net::detached);
 
-	net::signal_set sigset(worker.get_executor(), SIGINT);
-	sigset.async_wait([&server](net::error_code, int) mutable
-	{
-		server.stop();
-	});
-	
-	worker.run();
+	//net::signal_set sigset(worker.get_executor(), SIGINT);
+	//sigset.async_wait([&server](net::error_code, int) mutable
+	//{
+	//	server.stop();
+	//});
+	//worker.run();
 
-	//worker.start();
-
-	//while (std::getchar() != '\n');
+	worker.start();
+	while (std::getchar() != '\n');
+	server.stop();
+	worker.stop();
 }

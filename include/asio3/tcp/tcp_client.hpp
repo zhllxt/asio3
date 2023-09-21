@@ -155,6 +155,42 @@ namespace asio
 			return socket.get_executor();
 		}
 
+		/**
+		 * @brief Get the local address.
+		 */
+		inline std::string get_local_address() noexcept
+		{
+			error_code ec{};
+			return socket.local_endpoint(ec).address().to_string(ec);
+		}
+
+		/**
+		 * @brief Get the local port number.
+		 */
+		inline ip::port_type get_local_port() noexcept
+		{
+			error_code ec{};
+			return socket.local_endpoint(ec).port();
+		}
+
+		/**
+		 * @brief Get the remote address.
+		 */
+		inline std::string get_remote_address() noexcept
+		{
+			error_code ec{};
+			return socket.remote_endpoint(ec).address().to_string(ec);
+		}
+
+		/**
+		 * @brief Get the remote port number.
+		 */
+		inline ip::port_type get_remote_port() noexcept
+		{
+			error_code ec{};
+			return socket.remote_endpoint(ec).port();
+		}
+
 	public:
 		tcp_client_option option;
 

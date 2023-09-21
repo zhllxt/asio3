@@ -10,9 +10,13 @@ net::awaitable<void> work(net::tcp_client& client)
 		auto [e1] = co_await client.async_connect();
 		if (e1)
 		{
+			client.socket.close();
+			fmt::print("connect failure: {}\n", e1.message());
 			co_await net::delay(std::chrono::seconds(1));
 			continue;
 		}
+
+		fmt::print("connect success: {} {}\n", client.get_remote_address(),client.get_remote_port());
 
 		client.async_send("<0123456789>");
 
@@ -28,7 +32,7 @@ net::awaitable<void> work(net::tcp_client& client)
 			if (e3)
 				break;
 
-			fmt::print("{}\n", std::string_view{ data.data(), n3 });
+			fmt::print("{} {}\n", std::chrono::system_clock::now(), std::string_view{ data.data(), n3 });
 		}
 	}
 
@@ -57,10 +61,10 @@ int main()
 	//{
 	//	client.stop();
 	//});
-	//
 	//worker.run();
 
 	worker.start();
-
 	while (std::getchar() != '\n');
+	client.stop();
+	worker.stop();
 }

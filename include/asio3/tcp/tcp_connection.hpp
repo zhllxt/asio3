@@ -72,9 +72,12 @@ namespace asio
 		{
 			if (socket.is_open())
 			{
-				error_code ec{};
-				socket.shutdown(socket_base::shutdown_both, ec);
-				socket.close(ec);
+				asio::dispatch(socket.get_executor(), [this]() mutable
+				{
+					error_code ec{};
+					socket.shutdown(socket_base::shutdown_both, ec);
+					socket.close(ec);
+				});
 			}
 		}
 
