@@ -53,9 +53,9 @@ namespace asio::detail
 	 * refrenced from beast stream.hpp
 	 */
 	// udp MTU : https://zhuanlan.zhihu.com/p/301276548
-	static std::size_t constexpr  tcp_frame_size = 1536;
-	static std::size_t constexpr  udp_frame_size = 1024;
-	static std::size_t constexpr http_frame_size = 1536;
+	static std::size_t constexpr  tcp_frame_size = 1480;
+	static std::size_t constexpr  udp_frame_size = 548; // LAN:1472 WAN:548
+	static std::size_t constexpr http_frame_size = 1480;
 
 	static std::size_t constexpr max_buffer_size = (std::numeric_limits<std::size_t>::max)();
 

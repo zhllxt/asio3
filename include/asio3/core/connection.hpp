@@ -11,16 +11,21 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
+#include <asio3/core/timer.hpp>
+#include <asio3/tcp/disconnect.hpp>
+#include <asio3/udp/disconnect.hpp>
 
 namespace asio::detail
 {
-	asio::awaitable<void> check_error(auto& sock)
+	asio::awaitable<void> check_error(auto& sock, timeout_duration disconnect_timeout)
 	{
 		co_await sock.async_wait(socket_base::wait_error, use_nothrow_awaitable);
+
+		async_disconnect(sock, disconnect_timeout, [](auto) {});
 	}
 
-	asio::awaitable<void> check_read(auto& sock,
-		std::chrono::steady_clock::time_point& deadline, std::chrono::steady_clock::duration idle_timeout)
+	asio::awaitable<void> check_read(auto& sock, timeout_duration disconnect_timeout,
+		std::chrono::steady_clock::time_point& deadline, timeout_duration idle_timeout)
 	{
 		while (sock.is_open())
 		{
@@ -30,9 +35,12 @@ namespace asio::detail
 			if (e1)
 				break;
 		}
+
+		async_disconnect(sock, disconnect_timeout, [](auto) {});
 	}
 
-	asio::awaitable<void> check_idle(auto& sock, std::chrono::steady_clock::time_point& deadline)
+	asio::awaitable<void> check_idle(auto& sock, timeout_duration disconnect_timeout,
+		std::chrono::steady_clock::time_point& deadline)
 	{
 		steady_timer t(sock.get_executor());
 
@@ -48,5 +56,7 @@ namespace asio::detail
 
 			now = std::chrono::steady_clock::now();
 		}
+
+		async_disconnect(sock, disconnect_timeout, [](auto) {});
 	}
 }

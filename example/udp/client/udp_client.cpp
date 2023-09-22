@@ -1,17 +1,15 @@
-#include <asio3/tcp/tcp_client.hpp>
+#include <asio3/udp/udp_client.hpp>
 #include <asio3/core/fmt.hpp>
 
 namespace net = ::asio;
 
-net::awaitable<void> do_work(net::tcp_client& client)
+net::awaitable<void> do_work(net::udp_client& client)
 {
 	while (!client.is_aborted())
 	{
 		auto [e0] = co_await client.async_connect();
 		if (e0)
 		{
-			// connect failed, reconnect...
-			client.socket.close();
 			fmt::print("connect failure: {}\n", e0.message());
 			co_await net::delay(std::chrono::seconds(1));
 			continue;
@@ -22,23 +20,21 @@ net::awaitable<void> do_work(net::tcp_client& client)
 		// connect success, send some message to the server...
 		client.async_send("<0123456789>");
 
-		net::streambuf strbuf{ 1024 * 1024 };
+		std::vector<char> recv_buffer(1024);
 
 		for (;;)
 		{
-			auto [e1, n1] = co_await net::async_read_until(client.socket, strbuf, '\n');
+			auto [e1, n1] = co_await client.socket.async_receive(asio::buffer(recv_buffer));
 			if (e1)
 				break;
 
-			auto data = asio::buffer(strbuf.data().data(), n1);
+			auto data = std::string_view{ recv_buffer.data(), n1 };
 
 			fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
-			auto [e2, n2] = co_await net::async_write(client.socket, data);
+			auto [e2, n2] = co_await client.socket.async_send(asio::buffer(data));
 			if (e2)
 				break;
-
-			strbuf.consume(n1);
 		}
 	}
 
@@ -50,11 +46,11 @@ int main()
 {
 	net::io_context ctx;
 
-	net::tcp_client client(ctx.get_executor(), {
+	net::udp_client client(ctx.get_executor(), {
 		.server_address = "127.0.0.1",
-		.server_port = 8028,
-		.bind_address = "127.0.0.1",
-		.bind_port = 55555,
+		.server_port = 8038,
+		//.bind_address = "127.0.0.1",
+		//.bind_port = 55555,
 		//.socks5_option =
 		//{
 		//	.proxy_address = "127.0.0.1",

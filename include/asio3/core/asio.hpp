@@ -395,6 +395,64 @@ namespace boost::asio
 		return asio::buffer(std::basic_string_view<CharT>(data));
 	}
 
+	template<typename = void>
+	inline std::string to_string(const asio::const_buffer& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string to_string(const asio::mutable_buffer& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+	template<typename = void>
+	inline std::string to_string(const asio::const_buffers_1& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string to_string(const asio::mutable_buffers_1& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+#endif
+
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::const_buffer& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::mutable_buffer& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::const_buffers_1& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::mutable_buffers_1& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+#endif
+
+	template<typename SocketT>
+	concept is_tcp_socket = std::is_same_v<typename SocketT::lowest_layer_type::protocol_type, asio::ip::tcp>;
+
+	template<typename SocketT>
+	concept is_udp_socket = std::is_same_v<typename SocketT::lowest_layer_type::protocol_type, asio::ip::udp>;
+
 	//
 	constexpr auto use_nothrow_deferred  = asio::as_tuple(asio::deferred);
 	constexpr auto use_nothrow_awaitable = asio::as_tuple(asio::use_awaitable);

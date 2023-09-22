@@ -12,36 +12,32 @@
 
 #include <asio3/core/connection.hpp>
 #include <asio3/core/detail/netutil.hpp>
-#include <asio3/tcp/read.hpp>
-#include <asio3/tcp/write.hpp>
-#include <asio3/tcp/send.hpp>
-#include <asio3/tcp/disconnect.hpp>
+#include <asio3/udp/read.hpp>
+#include <asio3/udp/write.hpp>
+#include <asio3/udp/send.hpp>
 
 namespace asio
 {
-	struct tcp_connection_option
+	struct udp_connection_option
 	{
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
-		timeout_duration      idle_timeout{ std::chrono::milliseconds(detail::tcp_idle_timeout) };
-
-		tcp_socket_option     socket_option{};
+		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::udp_connect_timeout) };
+		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::udp_handshake_timeout) };
+		timeout_duration      idle_timeout{ std::chrono::milliseconds(detail::udp_idle_timeout) };
 	};
 
-	class tcp_connection : public std::enable_shared_from_this<tcp_connection>
+	class udp_connection : public std::enable_shared_from_this<udp_connection>
 	{
 	public:
-		using key_type = std::size_t;
+		using key_type = ip::udp::endpoint;
 
 	public:
-		explicit tcp_connection(tcp_socket sock, tcp_connection_option opt)
-			: socket(std::move(sock))
+		explicit udp_connection(udp_socket& sock, udp_connection_option opt)
+			: socket(sock)
 			, option(std::move(opt))
 		{
-			default_tcp_socket_option_setter{ option.socket_option }(socket);
 		}
 
-		~tcp_connection()
+		~udp_connection()
 		{
 			stop();
 		}
@@ -51,7 +47,7 @@ namespace asio
 		 */
 		inline key_type hash_key() const noexcept
 		{
-			return reinterpret_cast<key_type>(this);
+			return remote_endpoint;
 		}
 
 		/**
@@ -59,10 +55,7 @@ namespace asio
 		 */
 		inline void disconnect() noexcept
 		{
-			if (socket.is_open())
-			{
-				asio::async_disconnect(socket, option.disconnect_timeout, [](auto) {});
-			}
+			stop();
 		}
 
 		/**
@@ -89,8 +82,8 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename Token = default_tcp_write_token>
-		inline auto async_send(Data&& data, Token&& token = default_tcp_write_token{})
+		template<typename Data, typename Token = default_udp_write_token>
+		inline auto async_send(Data&& data, Token&& token = default_udp_write_token{})
 		{
 			return asio::async_send(socket, std::forward<Data>(data), std::forward<Token>(token));
 		}
@@ -127,7 +120,7 @@ namespace asio
 		inline std::string get_remote_address() noexcept
 		{
 			error_code ec{};
-			return socket.remote_endpoint(ec).address().to_string(ec);
+			return remote_endpoint.address().to_string(ec);
 		}
 
 		/**
@@ -135,13 +128,14 @@ namespace asio
 		 */
 		inline ip::port_type get_remote_port() noexcept
 		{
-			error_code ec{};
-			return socket.remote_endpoint(ec).port();
+			return remote_endpoint.port();
 		}
 
 	public:
-		tcp_connection_option option{};
+		udp_connection_option option{};
 
-		asio::tcp_socket      socket;
+		asio::udp_socket&     socket;
+
+		ip::udp::endpoint     remote_endpoint{};
 	};
 }

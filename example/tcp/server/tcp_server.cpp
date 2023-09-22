@@ -5,19 +5,23 @@ namespace net = ::asio;
 
 net::awaitable<void> client_join(std::shared_ptr<net::tcp_connection> connection)
 {
-	std::array<char, 1024> data;
+	net::streambuf strbuf{ 1024 * 1024 };
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_read_some(connection->socket, net::buffer(data));
+		auto [e1, n1] = co_await net::async_read_until(connection->socket, strbuf, '\n');
 		if (e1)
 			break;
 
-		auto [e2, n2] = co_await net::async_write(connection->socket, net::buffer(data, n1));
+		auto data = asio::buffer(strbuf.data().data(), n1);
+
+		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
+
+		auto [e2, n2] = co_await net::async_write(connection->socket, data);
 		if (e2)
 			break;
 
-		fmt::print("{} {}\n", std::chrono::system_clock::now(), std::string_view{ data.data(), n2 });
+		strbuf.consume(n1);
 	}
 
 	connection->stop();
@@ -35,25 +39,21 @@ net::awaitable<void> start_server(net::tcp_server& server)
 
 int main()
 {
-	net::context_worker worker;
+	net::io_context_thread ctx;
 
-	net::tcp_server server(worker.get_executor(), {
+	net::tcp_server server(ctx.get_executor(), {
 		.listen_address = "127.0.0.1",
 		.listen_port = 8028,
-		.new_connection_handler = client_join,
+		.on_accept = client_join,
 	});
 
 	net::co_spawn(server.get_executor(), start_server(server), net::detached);
 
-	//net::signal_set sigset(worker.get_executor(), SIGINT);
-	//sigset.async_wait([&server](net::error_code, int) mutable
-	//{
-	//	server.stop();
-	//});
-	//worker.run();
+	net::signal_set sigset(ctx.get_executor(), SIGINT);
+	sigset.async_wait([&server](net::error_code, int) mutable
+	{
+		server.stop();
+	});
 
-	worker.start();
-	while (std::getchar() != '\n');
-	server.stop();
-	worker.stop();
+	ctx.join();
 }

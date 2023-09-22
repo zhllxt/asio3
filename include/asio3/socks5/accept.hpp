@@ -219,7 +219,7 @@ namespace asio::socks5::detail
 
 				password.assign(p, plen);
 
-				bool result = co_await auth_cfg.auth_function(hdshak_info);
+				bool result = co_await auth_cfg.on_auth(hdshak_info);
 
 				// compare username and password
 				if (!result)

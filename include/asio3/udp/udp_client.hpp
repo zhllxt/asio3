@@ -11,16 +11,17 @@
 #pragma once
 
 #include <asio3/core/io_context_thread.hpp>
-#include <asio3/tcp/read.hpp>
-#include <asio3/tcp/write.hpp>
-#include <asio3/tcp/send.hpp>
+#include <asio3/core/timer.hpp>
+#include <asio3/udp/read.hpp>
+#include <asio3/udp/write.hpp>
+#include <asio3/udp/send.hpp>
+#include <asio3/udp/connect.hpp>
 #include <asio3/tcp/connect.hpp>
-#include <asio3/tcp/disconnect.hpp>
 #include <asio3/socks5/handshake.hpp>
 
 namespace asio
 {
-	struct tcp_client_option
+	struct udp_client_option
 	{
 		std::string           server_address{};
 		std::uint16_t         server_port{};
@@ -28,20 +29,20 @@ namespace asio
 		std::string           bind_address{};
 		std::uint16_t         bind_port{ 0 };
 
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
+		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::udp_connect_timeout) };
+		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::udp_handshake_timeout) };
 
-		tcp_socket_option     socket_option{};
+		udp_socket_option     socket_option{};
 
 		socks5::option        socks5_option{};
 	};
 
-	class tcp_client : public std::enable_shared_from_this<tcp_client>
+	class udp_client : public std::enable_shared_from_this<udp_client>
 	{
 	protected:
 		struct async_connect_op
 		{
-			auto operator()(auto state, tcp_client& client) -> void
+			auto operator()(auto state, udp_client& client) -> void
 			{
 				auto& sock = client.socket;
 				auto& opt = client.option;
@@ -53,36 +54,76 @@ namespace asio
 				asio::timeout_guard tg(sock, opt.connect_timeout);
 
 				if (asio::to_underlying(opt.socks5_option.cmd) == 0)
-					opt.socks5_option.cmd = socks5::command::connect;
+					opt.socks5_option.cmd = socks5::command::udp_associate;
 
 				if (socks5::is_option_valid(opt.socks5_option))
 				{
-					auto [e1, ep] = co_await asio::async_connect(
-						sock,
+					asio::error_code ec{};
+
+					ip::udp::endpoint bnd_endpoint{};
+
+					if (!opt.bind_address.empty())
+					{
+						bnd_endpoint.address(asio::ip::address::from_string(opt.bind_address, ec));
+						if (ec)
+							co_return ec;
+					}
+
+					bnd_endpoint.port(opt.bind_port);
+
+					udp_socket tmp_sock(sock.get_executor());
+
+					tmp_sock.open(bnd_endpoint.protocol(), ec);
+					if (ec)
+						co_return ec;
+
+					default_udp_socket_option_setter{ opt.socket_option }(tmp_sock);
+
+					tmp_sock.bind(bnd_endpoint, ec);
+					if (ec)
+						co_return ec;
+
+					if (opt.socks5_option.dest_address.empty())
+						opt.socks5_option.dest_address = opt.server_address;
+
+					opt.socks5_option.dest_port = tmp_sock.local_endpoint(ec).port();
+					if (ec)
+						co_return ec;
+
+					sock = std::move(tmp_sock);
+
+					tcp_socket s5_sock(sock.get_executor());
+
+					auto [e1, ep1] = co_await asio::async_connect(
+						s5_sock,
 						opt.socks5_option.proxy_address, opt.socks5_option.proxy_port,
-						opt.bind_address, opt.bind_port,
-						asio::default_tcp_socket_option_setter{ opt.socket_option },
+						asio::default_tcp_socket_option_setter{},
 						use_nothrow_deferred);
 					if (e1)
 						co_return e1;
 
-					if (opt.socks5_option.dest_address.empty())
-						opt.socks5_option.dest_address = opt.server_address;
-					if (opt.socks5_option.dest_port == 0)
-						opt.socks5_option.dest_port = opt.server_port;
-
 					auto [e2] = co_await socks5::async_handshake(
-						sock, opt.socks5_option, use_nothrow_deferred);
+						s5_sock, opt.socks5_option, use_nothrow_deferred);
 					if (e2)
 						co_return e2;
+
+					auto [e3, ep3] = co_await asio::async_connect(
+						sock,
+						opt.server_address, opt.socks5_option.bound_port,
+						asio::default_udp_socket_option_setter{ opt.socket_option },
+						use_nothrow_deferred);
+					if (e3)
+						co_return e3;
+
+					client.socks5_socket = std::move(s5_sock);
 				}
 				else
 				{
-					auto [e1, ep] = co_await asio::async_connect(
+					auto [e1, ep1] = co_await asio::async_connect(
 						sock,
 						opt.server_address, opt.server_port,
 						opt.bind_address, opt.bind_port,
-						asio::default_tcp_socket_option_setter{ opt.socket_option },
+						asio::default_udp_socket_option_setter{ opt.socket_option },
 						use_nothrow_deferred);
 					if (e1)
 						co_return e1;
@@ -94,25 +135,25 @@ namespace asio
 
 	public:
 		template<class Executor>
-		explicit tcp_client(const Executor& ex, tcp_client_option opt)
+		explicit udp_client(const Executor& ex, udp_client_option opt)
 			: option(std::move(opt))
 			, socket(ex)
 		{
 			aborted.clear();
 		}
 
-		~tcp_client()
+		~udp_client()
 		{
 			stop();
 		}
 
 		template<
 			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) ConnectToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_socket::executor_type)>
+			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
 		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code))
 		async_connect(
 			ConnectToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_socket::executor_type))
+			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
 		{
 			return asio::async_initiate<ConnectToken, void(asio::error_code)>(
 				asio::experimental::co_composed<void(asio::error_code)>(
@@ -127,7 +168,17 @@ namespace asio
 		{
 			if (!aborted.test_and_set())
 			{
-				asio::async_disconnect(socket, option.disconnect_timeout, [](auto) {});
+				asio::post(socket.get_executor(), [this]() mutable
+				{
+					error_code ec{};
+					socket.shutdown(socket_base::shutdown_both, ec);
+					socket.close(ec);
+					if (socks5_socket)
+					{
+						socks5_socket->shutdown(socket_base::shutdown_both, ec);
+						socks5_socket->close(ec);
+					}
+				});
 			}
 		}
 
@@ -155,9 +206,16 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename Token = default_tcp_write_token>
-		inline auto async_send(Data&& data, Token&& token = default_tcp_write_token{})
+		template<typename Data, typename Token = default_udp_write_token>
+		inline auto async_send(Data&& data, Token&& token = default_udp_write_token{})
 		{
+			if (socks5_socket)
+			{
+				auto msg = detail::must_data_persist(std::forward<Data>(data));
+				msg.insert(msg.cbegin(), "");
+				return asio::async_send(socket, std::move(msg), std::forward<Token>(token));
+			}
+
 			return asio::async_send(socket, std::forward<Data>(data), std::forward<Token>(token));
 		}
 
@@ -206,10 +264,12 @@ namespace asio
 		}
 
 	public:
-		tcp_client_option option;
+		udp_client_option option;
 
-		asio::tcp_socket  socket;
+		asio::udp_socket  socket;
 
 		std::atomic_flag  aborted{};
+
+		std::optional<tcp_socket> socks5_socket;
 	};
 }

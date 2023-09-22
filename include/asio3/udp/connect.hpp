@@ -12,11 +12,11 @@
 
 #include <asio3/core/asio.hpp>
 #include <asio3/core/strutil.hpp>
-#include <asio3/tcp/core.hpp>
+#include <asio3/udp/core.hpp>
 
 namespace asio::detail
 {
-	struct tcp_async_connect_op
+	struct udp_async_connect_op
 	{
 		template<typename AsyncStream,
 			typename String1, typename StrOrInt1, typename String2, typename StrOrInt2,
@@ -128,28 +128,28 @@ namespace asio
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
-     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+     *    void handler(const asio::error_code& ec, asio::ip::udp::endpoint ep);
 	 */
 	template<
 		typename AsyncStream,
 		typename String, typename StrOrInt,
-		typename SetOptionCallback = asio::default_tcp_socket_option_setter,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::tcp::endpoint)) ConnectToken
+		typename SetOptionCallback = asio::default_udp_socket_option_setter,
+		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::udp::endpoint)) ConnectToken
 		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
 	requires 
-		(detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncStream>> &&
+		(detail::is_template_instance_of<asio::basic_datagram_socket, std::remove_cvref_t<AsyncStream>> &&
 		(std::constructible_from<std::string, String>) &&
 		(std::constructible_from<std::string, StrOrInt> || std::integral<std::remove_cvref_t<StrOrInt>>))
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint))
+	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::udp::endpoint))
 	async_connect(
 		AsyncStream& sock,
 		String&& server_address, StrOrInt&& server_port,
-		SetOptionCallback&& cb_set_option = asio::default_tcp_socket_option_setter{},
+		SetOptionCallback&& cb_set_option = asio::default_udp_socket_option_setter{},
 		ConnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
 	{
-		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
-			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
-				detail::tcp_async_connect_op{}, sock),
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::udp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::udp::endpoint)>(
+				detail::udp_async_connect_op{}, sock),
 			token, std::ref(sock),
 			std::forward<String>(server_address), std::forward<StrOrInt>(server_port),
 			"", 0,
@@ -165,32 +165,32 @@ namespace asio
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
-     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+     *    void handler(const asio::error_code& ec, asio::ip::udp::endpoint ep);
 	 */
 	template<
 		typename AsyncStream,
 		typename String1, typename StrOrInt1,
 		typename String2, typename StrOrInt2,
-		typename SetOptionCallback = asio::default_tcp_socket_option_setter,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::tcp::endpoint)) ConnectToken
+		typename SetOptionCallback = asio::default_udp_socket_option_setter,
+		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::udp::endpoint)) ConnectToken
 		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
 	requires 
-		(detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncStream>> &&
+		(detail::is_template_instance_of<asio::basic_datagram_socket, std::remove_cvref_t<AsyncStream>> &&
 		(std::constructible_from<std::string, String1>) &&
 		(std::constructible_from<std::string, StrOrInt1> || std::integral<std::remove_cvref_t<StrOrInt1>>) &&
 		(std::constructible_from<std::string, String2>) &&
 		(std::constructible_from<std::string, StrOrInt2> || std::integral<std::remove_cvref_t<StrOrInt2>>))
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint))
+	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::udp::endpoint))
 	async_connect(
 		AsyncStream& sock,
 		String1&& server_address, StrOrInt1&& server_port,
 		String2&& bind_address, StrOrInt2&& bind_port,
-		SetOptionCallback&& cb_set_option = asio::default_tcp_socket_option_setter{},
+		SetOptionCallback&& cb_set_option = asio::default_udp_socket_option_setter{},
 		ConnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
 	{
-		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
-			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
-				detail::tcp_async_connect_op{}, sock),
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::udp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::udp::endpoint)>(
+				detail::udp_async_connect_op{}, sock),
 			token, std::ref(sock),
 			std::forward<String1>(server_address), std::forward<StrOrInt1>(server_port),
 			std::forward<String2>(bind_address), std::forward<StrOrInt2>(bind_port),

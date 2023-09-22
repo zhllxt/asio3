@@ -25,13 +25,13 @@ namespace asio::detail
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			std::string host = asio::to_string(std::forward<String>(listen_address));
+			std::string addr = asio::to_string(std::forward<String>(listen_address));
 			std::string port = asio::to_string(std::forward<StrOrInt>(listen_port));
 
 			ip::tcp::resolver resolver(executor);
 
 			auto [e1, eps] = co_await resolver.async_resolve(
-				host, port, asio::ip::tcp::resolver::passive, use_nothrow_deferred);
+				addr, port, asio::ip::tcp::resolver::passive, use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, asio::tcp_acceptor{executor} };
 

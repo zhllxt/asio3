@@ -16,11 +16,11 @@
 #include <asio3/core/timer.hpp>
 #include <asio3/core/strutil.hpp>
 #include <asio3/core/data_persist.hpp>
-#include <asio3/tcp/core.hpp>
+#include <asio3/udp/core.hpp>
 
 namespace asio::detail
 {
-	struct tcp_async_send_op
+	struct udp_async_send_op
 	{
 		template<typename AsyncWriteStream, typename Data>
 		auto operator()(auto state, std::reference_wrapper<AsyncWriteStream> stream_ref, Data&& data) -> void
@@ -43,7 +43,7 @@ namespace asio::detail
 				}
 			}
 
-			auto [e1, n1] = co_await asio::async_write(s, asio::buffer(msg), asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await s.async_send(asio::buffer(msg), asio::use_nothrow_deferred);
 
 			if constexpr (has_member_channel_lock<std::remove_cvref_t<AsyncWriteStream>>)
 			{
@@ -70,17 +70,17 @@ namespace asio
 	 */
 	template<typename AsyncWriteStream, typename Data,
 		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_socket::executor_type)>
-	requires detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncWriteStream>>
+		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
+	requires detail::is_template_instance_of<asio::basic_datagram_socket, std::remove_cvref_t<AsyncWriteStream>>
 	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
 	async_send(
 		AsyncWriteStream& s,
 		Data&& data,
-		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_socket::executor_type))
+		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
 	{
 		return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
-				detail::tcp_async_send_op{}, s),
+				detail::udp_async_send_op{}, s),
 			token, std::ref(s), detail::data_persist(std::forward<Data>(data)));
 	}
 }

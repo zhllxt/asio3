@@ -30,6 +30,7 @@
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 #include <fmt/compile.h>
+#include <fmt/core.h>
 #include <fmt/os.h>
 #include <fmt/ostream.h>
 #include <fmt/printf.h>
@@ -42,7 +43,6 @@
 // Custom format for MFC/ATL CString
 #if defined(__AFXSTR_H__) || defined(__ATLSTR_H__)
 #if __has_include(<afxstr.h>) || __has_include(<atlstr.h>)
-
 template <>
 struct fmt::formatter<CStringA, char>
 {
@@ -138,7 +138,6 @@ struct fmt::formatter<CStringW, wchar_t>
 		return format_to(ctx.out(), L"{}", (LPCWSTR)s);
 	}
 };
-
 #endif
 #endif
 
@@ -147,7 +146,6 @@ struct fmt::formatter<CStringW, wchar_t>
 // so the wxString can be use fmt::format("{}", wxString()); directly.
 #if defined(_WX_WXSTRING_H__) && defined(ASIO3_ENABLE_WXSTRING_FORMATTER)
 #if __has_include(<wx/string.h>)
-
 template <>
 struct fmt::formatter<wxString, char>
 {
@@ -193,7 +191,49 @@ struct fmt::formatter<wxString, wchar_t>
 		return format_to(ctx.out(), L"{}", (const wchar_t*)s);
 	}
 };
+#endif
+#endif
 
+// Custom format for asio::buffer
+#if __has_include(<asio3/core/asio.hpp>)
+#include <asio3/core/asio.hpp>
+template <>
+struct fmt::formatter<asio::const_buffer> : formatter<std::string_view>
+{
+	auto format(const asio::const_buffer& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::const_pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+template <>
+struct fmt::formatter<asio::mutable_buffer> : formatter<std::string_view>
+{
+	auto format(const asio::mutable_buffer& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+template <>
+struct fmt::formatter<asio::const_buffers_1> : formatter<std::string_view>
+{
+	auto format(const asio::const_buffers_1& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::const_pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+template <>
+struct fmt::formatter<asio::mutable_buffers_1> : formatter<std::string_view>
+{
+	auto format(const asio::mutable_buffers_1& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
 #endif
 #endif
 

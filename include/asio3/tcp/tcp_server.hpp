@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <asio3/core/context_worker.hpp>
+#include <asio3/core/io_context_thread.hpp>
 #include <asio3/tcp/accept.hpp>
 #include <asio3/tcp/tcp_connection.hpp>
 
@@ -27,7 +27,7 @@ namespace asio
 
 		tcp_socket_option     socket_option{};
 
-		std::function<awaitable<void>(std::shared_ptr<tcp_connection>)> new_connection_handler{};
+		std::function<awaitable<void>(std::shared_ptr<tcp_connection>)> on_accept{};
 	};
 
 	template<typename ConnectionT = tcp_connection>
@@ -55,13 +55,13 @@ namespace asio
 				co_await
 				(
 					(
-						server.option.new_connection_handler(conn)
+						server.option.on_accept(conn)
 					)
 					&&
 					(
-						detail::check_error(conn->socket) ||
-						detail::check_read(conn->socket, deadline, conn_opt.idle_timeout) ||
-						detail::check_idle(conn->socket, deadline)
+						detail::check_error(conn->socket, conn_opt.disconnect_timeout) ||
+						detail::check_read (conn->socket, conn_opt.disconnect_timeout, deadline, conn_opt.idle_timeout) ||
+						detail::check_idle (conn->socket, conn_opt.disconnect_timeout, deadline)
 					)
 				);
 
@@ -105,7 +105,7 @@ namespace asio
 
 				acp = std::move(a1);
 
-				if (opt.new_connection_handler)
+				if (opt.on_accept)
 					asio::co_spawn(acp.get_executor(), do_accept(server), asio::detached);
 
 				co_return e1;
@@ -191,14 +191,14 @@ namespace asio
 		{
 			if (acceptor.is_open())
 			{
-				asio::dispatch(acceptor.get_executor(), [this]() mutable
+				asio::post(acceptor.get_executor(), [this]() mutable
 				{
 					asio::error_code ec{};
 					acceptor.close(ec);
 
 					for (auto& [key, conn] : connection_map)
 					{
-						conn->stop();
+						conn->disconnect();
 					}
 				});
 			}

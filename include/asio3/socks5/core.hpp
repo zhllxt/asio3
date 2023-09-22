@@ -111,7 +111,7 @@ namespace asio::socks5
 
 		auth_method_vector supported_method{};
 
-		std::function<asio::awaitable<bool>(handshake_info&)> auth_function{};
+		std::function<asio::awaitable<bool>(handshake_info&)> on_auth{};
 	};
 
 	namespace
