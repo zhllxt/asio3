@@ -82,10 +82,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename Token = default_udp_write_token>
-		inline auto async_send(Data&& data, Token&& token = default_udp_write_token{})
+		template<typename Data, typename WriteToken = default_udp_send_token>
+		inline auto async_send(Data&& data, WriteToken&& token = default_udp_send_token{})
 		{
-			return asio::async_send(socket, std::forward<Data>(data), std::forward<Token>(token));
+			return asio::async_send(socket, std::forward<Data>(data), std::forward<WriteToken>(token));
 		}
 
 		/**

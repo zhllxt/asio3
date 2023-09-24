@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
+#include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/tcp/core.hpp>
 
 namespace asio

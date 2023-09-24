@@ -40,7 +40,7 @@ namespace asio
 		}
 	};
 
-	struct default_udp_write_token
+	struct default_udp_send_token
 	{
 		inline void operator()(const asio::error_code&, std::size_t) noexcept
 		{

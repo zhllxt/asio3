@@ -36,7 +36,7 @@ int main()
 
 	net::udp_server server(ctx.get_executor(), {
 		.listen_address = "127.0.0.1",
-		.listen_port = 8038,
+		.listen_port = 8035,
 		.on_connect = client_join,
 		.on_disconnect = client_exit,
 		.on_recv = on_recv,

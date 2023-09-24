@@ -18,21 +18,19 @@ net::awaitable<void> do_work(net::udp_client& client)
 		fmt::print("connect success: {} {}\n", client.get_remote_address(),client.get_remote_port());
 
 		// connect success, send some message to the server...
-		client.async_send("<0123456789>");
+		client.async_send("<0123456789>", [](auto...) {});
 
 		std::vector<char> recv_buffer(1024);
 
 		for (;;)
 		{
-			auto [e1, n1] = co_await client.socket.async_receive(asio::buffer(recv_buffer));
+			auto [e1, data] = co_await client.async_receive(asio::buffer(recv_buffer));
 			if (e1)
 				break;
 
-			auto data = std::string_view{ recv_buffer.data(), n1 };
-
 			fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
-			auto [e2, n2] = co_await client.socket.async_send(asio::buffer(data));
+			auto [e2, n2] = co_await client.async_send(asio::buffer(data));
 			if (e2)
 				break;
 		}
@@ -48,15 +46,15 @@ int main()
 
 	net::udp_client client(ctx.get_executor(), {
 		.server_address = "127.0.0.1",
-		.server_port = 8038,
+		.server_port = 8035,
 		//.bind_address = "127.0.0.1",
 		//.bind_port = 55555,
-		//.socks5_option =
-		//{
-		//	.proxy_address = "127.0.0.1",
-		//	.proxy_port = 10808,
-		//	.method = {socks5::auth_method::anonymous}
-		//},
+		.socks5_option =
+		{
+			.proxy_address = "127.0.0.1",
+			.proxy_port = 10808,
+			.method = {socks5::auth_method::anonymous}
+		},
 	});
 
 	net::co_spawn(ctx.get_executor(), do_work(client), net::detached);

@@ -145,35 +145,4 @@ namespace asio::detail
 		return data_persist(asio::const_buffer(data));
 	}
 #endif
-
-	template<class T>
-	inline auto must_data_persist(T&& data)
-	{
-		auto msg = data_persist(std::forward<T>(data));
-
-		using msg_type = std::remove_cvref_t<decltype(msg)>;
-
-		if constexpr /**/ (
-			std::same_as<msg_type, const_buffer> || std::same_as<msg_type, mutable_buffer>
-		#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
-			|| std::same_as<msg_type, const_buffers_1> || std::same_as<msg_type, mutable_buffers_1>
-		#endif
-			)
-		{
-			return std::string(reinterpret_cast<std::string::const_pointer>(
-				const_cast<const void*>(msg.data())), msg.size());
-		}
-		// std::array ...
-		else if constexpr (!detail::has_member_insert<msg_type>)
-		{
-			std::string str;
-			str.resize(sizeof(typename msg_type::value_type) * msg.size());
-			std::memcpy((void*)str.data(), (const void*)msg.data(), str.size());
-			return str;
-		}
-		else
-		{
-			return msg;
-		}
-	}
 }

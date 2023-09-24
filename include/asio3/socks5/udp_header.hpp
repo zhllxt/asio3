@@ -70,6 +70,18 @@ auto make_udp_header(const asio::ip::address& dest_addr, std::uint16_t dest_port
 }
 
 template<std::integral I>
+auto make_udp_header(const asio::ip::udp::endpoint& dest_endpoint, I datalen = 0)
+{
+	return make_udp_header(dest_endpoint.address(), dest_endpoint.port(), datalen);
+}
+
+template<std::integral I>
+auto make_udp_header(const asio::ip::tcp::endpoint& dest_endpoint, I datalen = 0)
+{
+	return make_udp_header(dest_endpoint.address(), dest_endpoint.port(), datalen);
+}
+
+template<std::integral I>
 std::string make_udp_header(std::string domain, std::uint16_t dest_port, I datalen = 0)
 {
 	using value_type = typename std::string::value_type;

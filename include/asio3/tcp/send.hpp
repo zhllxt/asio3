@@ -16,6 +16,7 @@
 #include <asio3/core/timer.hpp>
 #include <asio3/core/strutil.hpp>
 #include <asio3/core/data_persist.hpp>
+#include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/tcp/core.hpp>
 
 namespace asio::detail

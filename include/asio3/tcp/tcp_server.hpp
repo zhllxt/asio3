@@ -220,10 +220,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename Token = default_tcp_write_token>
-		inline auto async_send(Data&& data, Token&& token = default_tcp_write_token{})
+		template<typename Data, typename WriteToken = default_tcp_write_token>
+		inline auto async_send(Data&& data, WriteToken&& token = default_tcp_write_token{})
 		{
-			return async_initiate<Token, void(asio::error_code, std::size_t)>(
+			return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 				experimental::co_composed<void(asio::error_code, std::size_t)>(
 					batch_async_send_op{}, acceptor),
 				token, std::ref(*this), detail::data_persist(std::forward<Data>(data)));

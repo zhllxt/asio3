@@ -18,6 +18,8 @@
 #include <asio3/udp/connect.hpp>
 #include <asio3/tcp/connect.hpp>
 #include <asio3/socks5/handshake.hpp>
+#include <asio3/socks5/parser.hpp>
+#include <asio3/socks5/udp_header.hpp>
 
 namespace asio
 {
@@ -177,6 +179,7 @@ namespace asio
 					{
 						socks5_socket->shutdown(socket_base::shutdown_both, ec);
 						socks5_socket->close(ec);
+						socks5_socket.reset();
 					}
 				});
 			}
@@ -199,6 +202,24 @@ namespace asio
 		}
 
 		/**
+		 * @brief Start an asynchronous receive on a connected socket. Remove the socks5 head if exists.
+		 * @param buffers - One or more buffers into which the data will be received.
+		 * @param token - The completion handler to invoke when the operation completes.
+		 *	  The equivalent function signature of the handler must be:
+		 *    @code
+		 *    void handler(const asio::error_code& ec, std::string_view data);
+		 */
+		template<typename MutableBufferSequence,
+			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::string_view)) ReadToken
+			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
+		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::string_view))
+		inline async_receive(const MutableBufferSequence& buffers, ReadToken&& token
+			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
+		{
+			return asio::async_receive(socket, buffers, socks5_socket.has_value(), std::forward<ReadToken>(token));
+		}
+
+		/**
 		 * @brief Safety start an asynchronous operation to write all of the supplied data.
 		 * @param data - The written data.
 		 * @param token - The completion handler to invoke when the operation completes.
@@ -206,17 +227,23 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename Token = default_udp_write_token>
-		inline auto async_send(Data&& data, Token&& token = default_udp_write_token{})
+		template<typename Data,
+			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
+			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
+		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
+		inline async_send(Data&& data, WriteToken&& token
+			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
 		{
+			ip::udp::endpoint target_endpoint{};
+
 			if (socks5_socket)
 			{
-				auto msg = detail::must_data_persist(std::forward<Data>(data));
-				msg.insert(msg.cbegin(), "");
-				return asio::async_send(socket, std::move(msg), std::forward<Token>(token));
+				error_code ec{};
+				target_endpoint.address(socket.remote_endpoint(ec).address());
+				target_endpoint.port(option.server_port);
 			}
 
-			return asio::async_send(socket, std::forward<Data>(data), std::forward<Token>(token));
+			return asio::async_send(socket, std::forward<Data>(data), target_endpoint, std::forward<WriteToken>(token));
 		}
 
 		/**
