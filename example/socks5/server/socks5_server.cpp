@@ -235,7 +235,8 @@ net::awaitable<void> proxy(net::tcp_socket front_client, socks5::auth_config& au
 net::awaitable<void> listen(std::string listen_address, std::uint16_t listen_port, socks5::auth_config auth_cfg)
 {
 	auto executor = co_await net::this_coro::executor;
-	auto [e1, acceptor] = co_await net::async_create_acceptor(executor, listen_address, listen_port);
+	net::tcp_acceptor acceptor(executor);
+	auto [e1, acceptor] = co_await net::async_start(acceptor, listen_address, listen_port);
 	if (e1)
 	{
 		fmt::print("Listen failure: {}\n", e1.message());

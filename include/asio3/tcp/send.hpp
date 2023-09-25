@@ -28,11 +28,11 @@ namespace asio::detail
 		{
 			auto& s = stream_ref.get();
 
+			Data msg = std::forward<Data>(data);
+
 			co_await asio::dispatch(s.get_executor(), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-			Data msg = std::forward<Data>(data);
 
 			if constexpr (has_member_channel_lock<std::remove_cvref_t<AsyncWriteStream>>)
 			{
@@ -71,13 +71,13 @@ namespace asio
 	 */
 	template<typename AsyncWriteStream, typename Data,
 		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_socket::executor_type)>
+		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncWriteStream::executor_type)>
 	requires detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncWriteStream>>
 	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
 	async_send(
 		AsyncWriteStream& s,
 		Data&& data,
-		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_socket::executor_type))
+		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
 	{
 		return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(

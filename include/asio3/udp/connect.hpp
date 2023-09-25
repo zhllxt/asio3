@@ -42,15 +42,13 @@ namespace asio::detail
 
 			resolver_type resolver(sock.get_executor());
 
+			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 			auto [e1, eps] = co_await resolver.async_resolve(srv_addr, srv_port, use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, endpoint_type{} };
-
-			if (eps.empty())
-				co_return{ asio::error::host_not_found, endpoint_type{} };
 
 			asio::error_code ec{};
 

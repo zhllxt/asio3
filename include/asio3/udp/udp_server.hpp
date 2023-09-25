@@ -12,6 +12,7 @@
 
 #include <asio3/core/io_context_thread.hpp>
 #include <asio3/udp/udp_connection.hpp>
+#include <asio3/udp/start.hpp>
 
 namespace asio
 {
@@ -29,9 +30,9 @@ namespace asio
 
 		udp_socket_option     socket_option{};
 
-		std::function<void(std::shared_ptr<udp_connection>)> on_connect{};
-		std::function<void(std::shared_ptr<udp_connection>)> on_disconnect{};
-		std::function<void(std::shared_ptr<udp_connection>, std::string_view)> on_recv{};
+		std::function<awaitable<void>(std::shared_ptr<udp_connection>)> on_connect{};
+		std::function<awaitable<void>(std::shared_ptr<udp_connection>)> on_disconnect{};
+		std::function<awaitable<void>(std::shared_ptr<udp_connection>, std::string_view)> on_recv{};
 	};
 
 	template<typename ConnectionT = udp_connection>
@@ -46,7 +47,11 @@ namespace asio
 				auto& conn_opt = conn->option;
 
 				if (opt.on_connect)
-					opt.on_connect(conn);
+				{
+					co_await opt.on_connect(conn);
+				}
+
+				server.connection_map[conn->hash_key()] = conn;
 
 				std::chrono::steady_clock::time_point deadline{};
 
@@ -60,13 +65,16 @@ namespace asio
 				server.connection_map.erase(conn->hash_key());
 
 				if (opt.on_disconnect)
-					opt.on_disconnect(conn);
+				{
+					co_await opt.on_disconnect(conn);
+				}
 			}
 
-			asio::awaitable<void> do_recv(udp_server_t& server)
+			asio::awaitable<void> do_accept(udp_server_t& server)
 			{
 				auto& sock = server.socket;
 				auto& opt = server.option;
+				auto& conn_map = server.connection_map;
 
 				std::vector<std::uint8_t> recv_buffer(opt.init_recv_buffer_size);
 
@@ -79,15 +87,31 @@ namespace asio
 					if (e1)
 						break;
 
-					auto [conn, inserted] = server.insert_or_find(remote_endpoint);
-					if (inserted)
+					std::shared_ptr<connection_type> conn;
+
+					if (auto it = conn_map.find(remote_endpoint); it == conn_map.end())
 					{
+						udp_connection_option conn_opt
+						{
+							.connect_timeout = opt.connect_timeout,
+							.disconnect_timeout = opt.disconnect_timeout,
+							.idle_timeout = opt.idle_timeout,
+						};
+
+						conn = std::make_shared<connection_type>(sock, conn_opt);
+
 						asio::co_spawn(sock.get_executor(), do_connection(server, conn), asio::detached);
 					}
+					else
+					{
+						conn = it->second;
+					}
 
-					std::string_view data{ (std::string_view::pointer)(recv_buffer.data()), n1 };
-
-					opt.on_recv(conn, data);
+					if (opt.on_recv)
+					{
+						std::string_view data{ (std::string_view::pointer)(recv_buffer.data()), n1 };
+						co_await opt.on_recv(conn, data);
+					}
 
 					if (n1 == recv_buffer.size())
 						recv_buffer.resize((std::min)(recv_buffer.size() * 3 / 2, opt.max_recv_buffer_size));
@@ -99,46 +123,14 @@ namespace asio
 				auto& sock = server.socket;
 				auto& opt = server.option;
 
-				co_await asio::dispatch(sock.get_executor(), use_nothrow_deferred);
-
-				state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-				std::string addr = asio::to_string(opt.listen_address);
-				std::string port = asio::to_string(opt.listen_port);
-
-				ip::udp::resolver resolver(sock.get_executor());
-
-				auto [e1, eps] = co_await resolver.async_resolve(
-					addr, port, asio::ip::udp::resolver::passive, use_nothrow_deferred);
+				auto [e1, ep1] = co_await asio::async_start(
+					sock, opt.listen_address, opt.listen_port,
+					default_udp_socket_option_setter{ opt.socket_option }, use_nothrow_deferred);
 				if (e1)
 					co_return e1;
 
-				if (!!state.cancelled())
-					co_return asio::error::operation_aborted;
-
-				if (eps.empty())
-					co_return asio::error::host_not_found;
-
-				ip::udp::endpoint bnd_endpoint = (*eps).endpoint();
-
-				asio::error_code ec;
-
-				udp_socket tmp_sock(sock.get_executor());
-
-				tmp_sock.open(bnd_endpoint.protocol(), ec);
-				if (ec)
-					co_return ec;
-
-				default_udp_socket_option_setter{ opt.socket_option }(tmp_sock);
-
-				tmp_sock.bind(bnd_endpoint, ec);
-				if (ec)
-					co_return ec;
-
-				sock = std::move(tmp_sock);
-
-				if (opt.on_recv)
-					asio::co_spawn(sock.get_executor(), do_recv(server), asio::detached);
+				if (opt.on_connect || opt.on_disconnect || opt.on_recv)
+					asio::co_spawn(sock.get_executor(), do_accept(server), asio::detached);
 
 				co_return error_code{};
 			}
@@ -146,39 +138,35 @@ namespace asio
 
 		struct batch_async_send_op
 		{
-			asio::awaitable<void> do_send(auto& conn, auto msgbuf, std::size_t& total)
-			{
-				auto [e1, n1] = co_await conn->async_send(msgbuf, use_nothrow_deferred);
-				total += n1;
-			}
-
 			template<typename Data>
 			auto operator()(auto state, udp_server_t& server, Data&& data) -> void
 			{
-				auto& acp = server.socket;
+				auto& sock = server.socket;
 
-				co_await asio::dispatch(acp.get_executor(), use_nothrow_deferred);
+				Data msg = std::forward<Data>(data);
+
+				co_await asio::dispatch(sock.get_executor(), use_nothrow_deferred);
 
 				state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-				Data msg = std::forward<Data>(data);
+				error_code ec{};
 
 				auto msgbuf = asio::buffer(msg);
 
 				std::size_t total = 0;
 
-				//asio::awaitable<void> awaiter;
+				auto& lock = sock.get_executor().lock;
+				if (!lock->try_send())
+				{
+					co_await lock->async_send(asio::deferred);
+				}
 
 				for (auto& [key, conn] : server.connection_map)
 				{
-					auto [e1, n1] = co_await conn->async_send(msgbuf, use_nothrow_deferred);
-
-					total += n1;
-
-					//awaiter = (awaiter && do_send(conn, msgbuf, total));
+					total += sock.send_to(msgbuf, conn->remote_endpoint, 0, ec);
 				}
 
-				//co_await (awaiter);
+				lock->try_receive([](auto...) {});
 
 				co_return{ error_code{}, total };
 			}
@@ -286,29 +274,6 @@ namespace asio
 		{
 			error_code ec{};
 			return socket.local_endpoint(ec).port();
-		}
-
-		/**
-		 * @brief If a key equivalent to k already exists in the container. 
-		 * If the key does not exist, inserts the new value.
-		 * @return The bool component is true if the insertion took place and
-		 * false if the find took place. 
-		 */
-		std::pair<std::shared_ptr<connection_type>, bool> insert_or_find(
-			const ip::udp::endpoint& remote_endpoint)
-		{
-			if (auto it = connection_map.find(remote_endpoint); it != connection_map.end())
-				return { it->second, false };
-
-			udp_connection_option opt
-			{
-				.connect_timeout = option.connect_timeout,
-				.disconnect_timeout = option.disconnect_timeout,
-				.idle_timeout = option.idle_timeout,
-			};
-			std::shared_ptr<connection_type> conn = std::make_shared<connection_type>(socket, opt);
-			auto [it, inserted] = connection_map.try_emplace(remote_endpoint, std::move(conn));
-			return { it->second, inserted };
 		}
 
 	public:

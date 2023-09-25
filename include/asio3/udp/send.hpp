@@ -27,9 +27,11 @@ namespace asio::detail
 		template<typename AsyncWriteStream, typename Data>
 		auto operator()(auto state,
 			std::reference_wrapper<AsyncWriteStream> stream_ref, Data&& data,
-			const ip::udp::endpoint& dest_endpoint) -> void
+			ip::udp::endpoint dest_endpoint) -> void
 		{
 			auto& s = stream_ref.get();
+
+			Data msg = std::forward<Data>(data);
 
 			co_await asio::dispatch(s.get_executor(), asio::use_nothrow_deferred);
 
@@ -51,19 +53,17 @@ namespace asio::detail
 			if (dest_endpoint.port() != 0 && !dest_endpoint.address().is_unspecified())
 			{
 				auto head = socks5::make_udp_header(dest_endpoint, 0);
-				Data body = std::forward<Data>(data);
-				auto msg = std::array<asio::const_buffer, 2>
+				auto buffers = std::array<asio::const_buffer, 2>
 				{
 					asio::const_buffer(asio::buffer(head)),
-					asio::const_buffer(asio::buffer(body))
+					asio::const_buffer(asio::buffer(msg))
 				};
-				auto [e1, n1] = co_await s.async_send(msg, asio::use_nothrow_deferred);
+				auto [e1, n1] = co_await s.async_send(buffers, asio::use_nothrow_deferred);
 				ec = e1;
 				n = n1;
 			}
 			else
 			{
-				Data msg = std::forward<Data>(data);
 				auto [e1, n1] = co_await s.async_send(asio::buffer(msg), asio::use_nothrow_deferred);
 				ec = e1;
 				n = n1;
@@ -102,11 +102,10 @@ namespace asio
 		Data&& data,
 		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
 	{
-		const ip::udp::endpoint dest_endpoint{};
 		return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
 				detail::udp_async_send_op{}, s),
-			token, std::ref(s), detail::data_persist(std::forward<Data>(data)), dest_endpoint);
+			token, std::ref(s), detail::data_persist(std::forward<Data>(data)), ip::udp::endpoint{});
 	}
 
 	/**
@@ -127,12 +126,12 @@ namespace asio
 	async_send(
 		AsyncWriteStream& s,
 		Data&& data,
-		const ip::udp::endpoint& dest_endpoint,
+		ip::udp::endpoint dest_endpoint,
 		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
 	{
 		return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
 				detail::udp_async_send_op{}, s),
-			token, std::ref(s), detail::data_persist(std::forward<Data>(data)), dest_endpoint);
+			token, std::ref(s), detail::data_persist(std::forward<Data>(data)), std::move(dest_endpoint));
 	}
 }

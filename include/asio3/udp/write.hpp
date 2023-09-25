@@ -39,9 +39,6 @@ namespace asio::detail
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, 0 };
 
-			if (eps.empty())
-				co_return{ asio::error::host_not_found, 0 };
-
 			auto [e2, n2] = co_await sock.async_send_to(buffers, (*eps).endpoint(), use_nothrow_deferred);
 			co_return{ e2, n2 };
 		}

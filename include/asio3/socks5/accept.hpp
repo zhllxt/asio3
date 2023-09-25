@@ -394,10 +394,10 @@ namespace asio::socks5::detail
 
 				asio::ip::tcp::resolver resolver(sock.get_executor());
 				auto [er, eps] = co_await resolver.async_resolve(dst_addr, str_port, use_nothrow_deferred);
-				if (er || eps.empty())
+				if (er)
 				{
 					urep = std::uint8_t(socks5::connect_result::host_unreachable);
-					ec = er ? er : asio::error::host_not_found;
+					ec = er;
 				}
 				else
 				{
@@ -444,7 +444,7 @@ namespace asio::socks5::detail
 
 					asio::ip::udp::resolver resolver(sock.get_executor());
 					auto [er, eps] = co_await resolver.async_resolve(dst_addr, str_port, use_nothrow_deferred);
-					if (!er && !eps.empty())
+					if (!er)
 					{
 						if ((*eps).endpoint().address().is_v6())
 							bnd_protocol = asio::ip::udp::v6();

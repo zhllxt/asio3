@@ -504,12 +504,12 @@ namespace asio::socks5
 	template<
 		typename AsyncStream, typename Socks5Option,
 		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) HandshakeToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename tcp_socket::executor_type)>
+		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
 	requires std::derived_from<std::remove_cvref_t<Socks5Option>, socks5::option>
 	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(HandshakeToken, void(asio::error_code))
 	async_handshake(
 		AsyncStream& sock, Socks5Option& sock5_opt,
-		HandshakeToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename tcp_socket::executor_type))
+		HandshakeToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
 	{
 		return asio::async_initiate<HandshakeToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(

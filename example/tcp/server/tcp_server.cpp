@@ -3,7 +3,7 @@
 
 namespace net = ::asio;
 
-net::awaitable<void> client_join(std::shared_ptr<net::tcp_connection> connection)
+net::awaitable<void> do_recv(std::shared_ptr<net::tcp_connection> connection)
 {
 	net::streambuf strbuf{ 1024 * 1024 };
 
@@ -27,6 +27,22 @@ net::awaitable<void> client_join(std::shared_ptr<net::tcp_connection> connection
 	connection->stop();
 }
 
+net::awaitable<void> client_join(std::shared_ptr<net::tcp_connection> connection)
+{
+	net::co_spawn(connection->get_executor(), do_recv(connection), net::detached);
+
+	fmt::print("{} client join: {} {}\n", std::chrono::system_clock::now(),
+		connection->get_remote_address(), connection->get_remote_port());
+	co_return;
+}
+
+net::awaitable<void> client_exit(std::shared_ptr<net::tcp_connection> connection)
+{
+	fmt::print("{} client exit: {} {}\n", std::chrono::system_clock::now(),
+		connection->get_remote_address(), connection->get_remote_port());
+	co_return;
+}
+
 net::awaitable<void> start_server(net::tcp_server& server)
 {
 	auto [ec] = co_await server.async_start();
@@ -44,7 +60,8 @@ int main()
 	net::tcp_server server(ctx.get_executor(), {
 		.listen_address = "127.0.0.1",
 		.listen_port = 8028,
-		.on_accept = client_join,
+		.on_connect = client_join,
+		.on_disconnect = client_exit,
 	});
 
 	net::co_spawn(server.get_executor(), start_server(server), net::detached);

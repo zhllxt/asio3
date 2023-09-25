@@ -3,21 +3,24 @@
 
 namespace net = ::asio;
 
-void on_recv(std::shared_ptr<net::udp_connection> connection, std::string_view data)
+net::awaitable<void> on_recv(std::shared_ptr<net::udp_connection> connection, std::string_view data)
 {
 	fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
+	co_return;
 }
 
-void client_join(std::shared_ptr<net::udp_connection> connection)
+net::awaitable<void> client_join(std::shared_ptr<net::udp_connection> connection)
 {
 	fmt::print("{} client join: {} {}\n", std::chrono::system_clock::now(),
 		connection->get_remote_address(), connection->get_remote_port());
+	co_return;
 }
 
-void client_exit(std::shared_ptr<net::udp_connection> connection)
+net::awaitable<void> client_exit(std::shared_ptr<net::udp_connection> connection)
 {
 	fmt::print("{} client exit: {} {}\n", std::chrono::system_clock::now(),
 		connection->get_remote_address(), connection->get_remote_port());
+	co_return;
 }
 
 net::awaitable<void> start_server(net::udp_server& server)
