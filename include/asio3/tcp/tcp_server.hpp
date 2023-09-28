@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/io_context_thread.hpp>
+#include <asio3/core/connection_map.hpp>
 #include <asio3/tcp/start.hpp>
 #include <asio3/tcp/tcp_connection.hpp>
 
@@ -34,139 +35,18 @@ namespace asio
 	template<typename ConnectionT = tcp_connection>
 	class tcp_server_t : public std::enable_shared_from_this<tcp_server_t<ConnectionT>>
 	{
-	protected:
-		struct async_start_op
-		{
-			asio::awaitable<void> do_connection(tcp_server_t& server, tcp_socket client)
-			{
-				auto& opt = server.option;
-
-				tcp_connection_option conn_opt
-				{
-					.connect_timeout = opt.connect_timeout,
-					.disconnect_timeout = opt.disconnect_timeout,
-					.idle_timeout = opt.idle_timeout,
-					.socket_option = opt.socket_option,
-				};
-
-				auto conn = std::make_shared<connection_type>(std::move(client), conn_opt);
-
-				if (opt.on_connect)
-				{
-					co_await opt.on_connect(conn);
-				}
-
-				server.connection_map[conn->hash_key()] = conn;
-
-				std::chrono::steady_clock::time_point deadline{};
-				
-				co_await
-				(
-					detail::check_error(conn->socket, conn_opt.disconnect_timeout) ||
-					detail::check_read (conn->socket, conn_opt.disconnect_timeout, deadline, conn_opt.idle_timeout) ||
-					detail::check_idle (conn->socket, conn_opt.disconnect_timeout, deadline)
-				);
-
-				server.connection_map.erase(conn->hash_key());
-
-				if (opt.on_disconnect)
-				{
-					co_await opt.on_disconnect(conn);
-				}
-			}
-
-			asio::awaitable<void> do_accept(tcp_server_t& server)
-			{
-				auto& acp = server.acceptor;
-
-				while (acp.is_open())
-				{
-					auto [e1, client] = co_await acp.async_accept(use_nothrow_deferred);
-					if (e1 && acp.is_open())
-					{
-						co_await asio::async_sleep(acp.get_executor(),
-							std::chrono::milliseconds(100), use_nothrow_deferred);
-					}
-					else
-					{
-						asio::co_spawn(acp.get_executor(),
-							do_connection(server, std::move(client)), asio::detached);
-					}
-				}
-			}
-
-			auto operator()(auto state, tcp_server_t& server) -> void
-			{
-				auto& acp = server.acceptor;
-				auto& opt = server.option;
-
-				co_await asio::dispatch(acp.get_executor(), use_nothrow_deferred);
-
-				state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-				auto [e1, ep1] = co_await asio::async_start(acp,
-					opt.listen_address, opt.listen_port,
-					opt.socket_option.reuse_address, use_nothrow_deferred);
-				if (e1)
-					co_return e1;
-
-				if (opt.on_connect || opt.on_disconnect)
-					asio::co_spawn(acp.get_executor(), do_accept(server), asio::detached);
-
-				co_return e1;
-			}
-		};
-
-		struct batch_async_send_op
-		{
-			asio::awaitable<void> do_send(auto conn, auto msgbuf, std::size_t& total)
-			{
-				auto [e1, n1] = co_await conn->async_send(msgbuf, use_nothrow_deferred);
-				total += n1;
-			}
-
-			template<typename Data>
-			auto operator()(auto state, tcp_server_t& server, Data&& data) -> void
-			{
-				auto& acp = server.acceptor;
-
-				Data msg = std::forward<Data>(data);
-
-				co_await asio::dispatch(acp.get_executor(), use_nothrow_deferred);
-
-				state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-				auto msgbuf = asio::buffer(msg);
-
-				std::size_t total = 0;
-
-				//asio::awaitable<void> awaiter;
-
-				for (auto& [key, conn] : server.connection_map)
-				{
-					auto [e1, n1] = co_await conn->async_send(msgbuf, use_nothrow_deferred);
-
-					total += n1;
-
-					//awaiter = (awaiter && do_send(conn, msgbuf, total));
-				}
-
-				//co_await (awaiter);
-
-				co_return{ error_code{}, total };
-			}
-		};
-
 	public:
 		using connection_type = ConnectionT;
-		using connection_map_type = std::unordered_map<
-			typename connection_type::key_type, std::shared_ptr<connection_type>>;
+
+		struct async_start_op;
+		struct batch_async_send_op;
 
 	public:
 		template<class Executor>
 		explicit tcp_server_t(const Executor& ex, tcp_server_option opt)
 			: option(std::move(opt))
 			, acceptor(ex)
+			, connection_map(ex)
 		{
 		}
 
@@ -196,16 +76,7 @@ namespace asio
 		{
 			if (acceptor.is_open())
 			{
-				asio::post(acceptor.get_executor(), [this]() mutable
-				{
-					asio::error_code ec{};
-					acceptor.close(ec);
-
-					for (auto& [key, conn] : connection_map)
-					{
-						conn->disconnect();
-					}
-				});
+				asio::co_spawn(get_executor(), do_stop(*this), asio::detached);
 			}
 		}
 
@@ -260,13 +131,32 @@ namespace asio
 			return acceptor.local_endpoint(ec).port();
 		}
 
+	protected:
+		static asio::awaitable<void> do_disconnect_connection(std::shared_ptr<connection_type>& conn)
+		{
+			conn->disconnect();
+			co_return;
+		}
+
+		static asio::awaitable<void> do_stop(tcp_server_t& server)
+		{
+			co_await asio::post(server.get_executor(), use_nothrow_deferred);
+
+			asio::error_code ec{};
+			server.acceptor.close(ec);
+
+			co_await server.connection_map.async_for_each(do_disconnect_connection, use_nothrow_deferred);
+		}
+
 	public:
 		tcp_server_option   option;
 
 		asio::tcp_acceptor  acceptor;
 
-		connection_map_type connection_map;
+		connection_map_t<connection_type> connection_map;
 	};
 
 	using tcp_server = tcp_server_t<>;
 }
+
+#include <asio3/tcp/impl/tcp_server.ipp>

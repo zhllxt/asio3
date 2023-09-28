@@ -63,15 +63,7 @@ namespace asio
 		 */
 		inline void stop() noexcept
 		{
-			if (socket.is_open())
-			{
-				asio::post(socket.get_executor(), [this]() mutable
-				{
-					error_code ec{};
-					socket.shutdown(socket_base::shutdown_both, ec);
-					socket.close(ec);
-				});
-			}
+			asio::cancel_timer(idle_timer);
 		}
 
 		/**
@@ -137,5 +129,7 @@ namespace asio
 		asio::udp_socket&     socket;
 
 		ip::udp::endpoint     remote_endpoint{};
+
+		asio::steady_timer    idle_timer{ socket.get_executor() };
 	};
 }

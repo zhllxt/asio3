@@ -143,5 +143,7 @@ namespace asio
 		tcp_connection_option option{};
 
 		asio::tcp_socket      socket;
+
+		asio::steady_timer    idle_timer{ socket.get_executor()};
 	};
 }
