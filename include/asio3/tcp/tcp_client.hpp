@@ -25,6 +25,9 @@ namespace asio
 		std::string           server_address{};
 		std::uint16_t         server_port{};
 
+		bool                  auto_reconnect{ true };
+		timeout_duration      reconnect_delay{ std::chrono::seconds(1) };
+
 		std::string           bind_address{};
 		std::uint16_t         bind_port{ 0 };
 

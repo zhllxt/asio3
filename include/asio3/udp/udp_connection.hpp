@@ -29,6 +29,8 @@ namespace asio
 	{
 	public:
 		using key_type = ip::udp::endpoint;
+		using recv_channel_type = experimental::channel<void(asio::error_code)>;
+		using recv_notifier_type = as_tuple_t<deferred_t>::as_default_on_t<recv_channel_type>;
 
 	public:
 		explicit udp_connection(udp_socket& sock, udp_connection_option opt)
@@ -131,5 +133,7 @@ namespace asio
 		ip::udp::endpoint     remote_endpoint{};
 
 		asio::steady_timer    idle_timer{ socket.get_executor() };
+
+		recv_notifier_type    recv_notifier{ socket.get_executor(), 1 };
 	};
 }

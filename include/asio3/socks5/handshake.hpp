@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <asio3/core/error.hpp>
 #include <asio3/core/detail/netutil.hpp>
 

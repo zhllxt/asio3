@@ -34,24 +34,11 @@ namespace asio::detail
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			if constexpr (has_member_channel_lock<std::remove_cvref_t<AsyncWriteStream>>)
-			{
-				auto& lock = s.get_executor().lock;
+			co_await asio::async_lock(s, asio::use_nothrow_deferred);
 
-				if (!lock->try_send())
-				{
-					co_await lock->async_send(asio::deferred);
-				}
-			}
+			[[maybe_unused]] asio::unlock_guard ug{ s };
 
 			auto [e1, n1] = co_await asio::async_write(s, asio::buffer(msg), asio::use_nothrow_deferred);
-
-			if constexpr (has_member_channel_lock<std::remove_cvref_t<AsyncWriteStream>>)
-			{
-				auto& lock = s.get_executor().lock;
-
-				lock->try_receive([](auto...) {});
-			}
 
 			co_return{ e1, n1 };
 		}

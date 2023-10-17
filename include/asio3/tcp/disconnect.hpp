@@ -25,18 +25,14 @@ namespace asio::detail
 
 			auto& sock = sock_ref.get();
 
+			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+
 			if (!sock.is_open())
 				co_return asio::error::operation_aborted;
 
-			if constexpr (has_member_channel_lock<std::remove_cvref_t<AsyncStream>>)
-			{
-				auto& lock = sock.get_executor().lock;
+			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
 
-				if (!lock->try_send())
-				{
-					co_await lock->async_send(asio::deferred);
-				}
-			}
+			[[maybe_unused]] asio::unlock_guard ug{ sock };
 
 			asio::error_code ec{};
 
@@ -66,13 +62,6 @@ namespace asio::detail
 			{
 				sock.shutdown(asio::socket_base::shutdown_both, ec);
 				sock.close(ec);
-			}
-
-			if constexpr (has_member_channel_lock<std::remove_cvref_t<AsyncStream>>)
-			{
-				auto& lock = sock.get_executor().lock;
-
-				lock->try_receive([](auto...) {});
 			}
 
 			co_return ec;

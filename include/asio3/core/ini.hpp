@@ -86,7 +86,7 @@
  * Linux platform needs to add -lpthread option in link libraries
  */
 
-namespace asio
+namespace asio::detail::iniutil
 {
 	template<class T>
 	struct convert;
@@ -346,11 +346,20 @@ namespace asio
 
 namespace asio
 {
-	// use namespace asio::detail::util to avoid conflict with
+	// use namespace asio::detail::iniutil to avoid conflict with
 	// asio::detail in file "asio3/core/strutil.hpp"
 	// is_string_view ...
-	namespace detail::util
+	namespace detail::iniutil
 	{
+		enum class line_type : std::uint8_t
+		{
+			section = 1,
+			kv,
+			comment,
+			other,
+			eof,
+		};
+
 		template<typename T, typename U = std::remove_cvref_t<T>>
 		concept is_fstream = std::is_same_v<U, std::basic_fstream<
 			typename U::char_type, typename U::traits_type>>;
@@ -392,13 +401,13 @@ namespace asio
 		concept is_char_pointer =
 			std::is_pointer_v<U> &&
 			!std::is_pointer_v<std::remove_cvref_t<std::remove_pointer_t<U>>> &&
-			detail::util::is_char<std::remove_pointer_t<U>>;
+			detail::iniutil::is_char<std::remove_pointer_t<U>>;
 
 		// char[]
 		template<typename T, typename U = std::remove_cvref_t<T>>
 		concept is_char_array =
 			std::is_array_v<U> &&
-			detail::util::is_char<std::remove_all_extents_t<U>>;
+			detail::iniutil::is_char<std::remove_all_extents_t<U>>;
 
 		template<class R>
 		struct return_type
@@ -486,15 +495,15 @@ namespace asio
 					Stream f(filepath_, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 				}
 
-				if constexpr /**/ (detail::util::is_fstream<Stream>)
+				if constexpr /**/ (detail::iniutil::is_fstream<Stream>)
 				{
 					mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
 				}
-				else if constexpr (detail::util::is_ifstream<Stream>)
+				else if constexpr (detail::iniutil::is_ifstream<Stream>)
 				{
 					mode |= std::ios_base::in | std::ios_base::binary;
 				}
-				else if constexpr (detail::util::is_ofstream<Stream>)
+				else if constexpr (detail::iniutil::is_ofstream<Stream>)
 				{
 					mode |= std::ios_base::out | std::ios_base::binary;
 				}
@@ -606,64 +615,6 @@ namespace asio
 		#endif
 		}
 
-	protected:
-		template<class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
-		bool _get(
-			std::basic_string_view<char_type, Traits> sec,
-			std::basic_string_view<char_type, Traits> key,
-			std::basic_string<char_type, Traits, Allocator> & val)
-		{
-			std::shared_lock guard(this->mutex_);
-
-			Stream::clear();
-			if (Stream::operator bool())
-			{
-				std::basic_string<char_type, Traits, Allocator> line;
-				std::basic_string<char_type, Traits, Allocator> s, k, v;
-				pos_type posg;
-
-				Stream::seekg(0, std::ios::beg);
-
-				char ret;
-				while ((ret = this->_getline(line, s, k, v, posg)) != 'n')
-				{
-					switch (ret)
-					{
-					case 'a':break;
-					case 's':
-						if (s == sec)
-						{
-							do
-							{
-								ret = this->_getline(line, s, k, v, posg);
-								if (ret == 'k' && k == key)
-								{
-									val = std::move(v);
-									return true;
-								}
-							} while (ret == 'k' || ret == 'a' || ret == 'o');
-
-							return false;
-						}
-						break;
-					case 'k':
-						if (s == sec)
-						{
-							if (k == key)
-							{
-								val = std::move(v);
-								return true;
-							}
-						}
-						break;
-					case 'o':break;
-					default:break;
-					}
-				}
-			}
-			return false;
-		}
-
 	public:
 		/**
 		 * get the value associated with a key in the specified section of an ini file.
@@ -678,31 +629,31 @@ namespace asio
 		 */
 		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>,
 			class Allocator = std::allocator<char_type>>
-		inline typename detail::util::return_type<R>::type
+		inline typename detail::iniutil::return_type<R>::type
 			get(const Sec& sec, const Key& key, R default_val = R())
 		{
-			using return_t = typename detail::util::return_type<R>::type;
+			using return_t = typename detail::iniutil::return_type<R>::type;
 
 			try
 			{
 				std::basic_string<char_type, Traits, Allocator> val;
 
-				bool flag = this->_get(
+				bool flag = this->_get_impl(
 					std::basic_string_view<char_type, Traits>(sec),
 					std::basic_string_view<char_type, Traits>(key),
 					val);
 
-				if constexpr (detail::util::is_char_pointer<R> || detail::util::is_char_array<R>)
+				if constexpr (detail::iniutil::is_char_pointer<R> || detail::iniutil::is_char_array<R>)
 				{
 					return (flag ? val : return_t{ default_val });
 				}
-				else if constexpr (detail::util::is_string_view<R>)
+				else if constexpr (detail::iniutil::is_string_view<R>)
 				{
 					return (flag ? val : return_t{ default_val });
 				}
 				else
 				{
-					return (flag ? asio::convert<R>::stov(val) : default_val);
+					return (flag ? asio::detail::iniutil::convert<R>::stov(val) : default_val);
 				}
 			}
 			catch (std::invalid_argument const&)
@@ -784,7 +735,7 @@ namespace asio
 				std::basic_string<char_type, Traits, Allocator> line;
 				std::basic_string<char_type, Traits, Allocator> s, k, v;
 				pos_type posg = 0;
-				char ret;
+				detail::iniutil::line_type ret;
 
 				auto update_v = [&]() mutable -> bool
 				{
@@ -840,22 +791,32 @@ namespace asio
 
 				Stream::seekg(0, std::ios::beg);
 
-				while ((ret = this->_getline(line, s, k, v, posg)) != 'n')
+				for (;;)
 				{
+					ret = this->_getline(line, s, k, v, posg);
+
+					if (ret == detail::iniutil::line_type::eof)
+						break;
+
 					switch (ret)
 					{
-					case 'a':break;
-					case 's':
+					case detail::iniutil::line_type::section:
 						if (s == sec)
 						{
-							do
+							for (;;)
 							{
 								ret = this->_getline(line, s, k, v, posg);
-								if (ret == 'k' && k == key)
+
+								if (ret == detail::iniutil::line_type::section)
+									break;
+								if (ret == detail::iniutil::line_type::eof)
+									break;
+
+								if (ret == detail::iniutil::line_type::kv && k == key)
 								{
 									return update_v();
 								}
-							} while (ret == 'k' || ret == 'a' || ret == 'o');
+							}
 
 							// can't find the key, add a new key
 							std::basic_string<char_type, Traits, Allocator> content;
@@ -903,7 +864,7 @@ namespace asio
 							return true;
 						}
 						break;
-					case 'k':
+					case detail::iniutil::line_type::kv:
 						if (s == sec)
 						{
 							if (k == key)
@@ -912,7 +873,6 @@ namespace asio
 							}
 						}
 						break;
-					case 'o':break;
 					default:break;
 					}
 				}
@@ -983,7 +943,75 @@ namespace asio
 
 	protected:
 		template<class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
-		char _getline(
+		bool _get_impl(
+			std::basic_string_view<char_type, Traits> sec,
+			std::basic_string_view<char_type, Traits> key,
+			std::basic_string<char_type, Traits, Allocator>& val)
+		{
+			std::shared_lock guard(this->mutex_);
+
+			Stream::clear();
+			if (Stream::operator bool())
+			{
+				std::basic_string<char_type, Traits, Allocator> line;
+				std::basic_string<char_type, Traits, Allocator> s, k, v;
+				pos_type posg;
+
+				Stream::seekg(0, std::ios::beg);
+
+				detail::iniutil::line_type ret;
+				for (;;)
+				{
+					ret = this->_getline(line, s, k, v, posg);
+
+					if (ret == detail::iniutil::line_type::eof)
+						break;
+
+					switch (ret)
+					{
+					case detail::iniutil::line_type::kv:
+						if (s == sec)
+						{
+							if (k == key)
+							{
+								val = std::move(v);
+								return true;
+							}
+						}
+						break;
+					case detail::iniutil::line_type::section:
+						if (sec.empty() && !s.empty())
+							return false;
+						if (s == sec)
+						{
+							for (;;)
+							{
+								ret = this->_getline(line, s, k, v, posg);
+
+								if (ret == detail::iniutil::line_type::section)
+									break;
+								if (ret == detail::iniutil::line_type::eof)
+									break;
+
+								if (ret == detail::iniutil::line_type::kv && k == key)
+								{
+									val = std::move(v);
+									return true;
+								}
+							}
+
+							return false;
+						}
+						break;
+					default:break;
+					}
+				}
+			}
+			return false;
+		}
+
+		template<class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
+		detail::iniutil::line_type _getline(
 			std::basic_string<char_type, Traits, Allocator> & line,
 			std::basic_string<char_type, Traits, Allocator> & sec,
 			std::basic_string<char_type, Traits, Allocator> & key,
@@ -1003,38 +1031,22 @@ namespace asio
 					trim_right(trim_line);
 
 					if (trim_line.empty())
-					{
-						return 'o'; // other
-					}
+						return detail::iniutil::line_type::other;
 
-					// current line is code annotation
-					if (
-						(trim_line.size() > 0 && (trim_line[0] == ';' || trim_line[0] == '#' || trim_line[0] == ':'))
-						||
-						(trim_line.size() > 1 && trim_line[0] == '/' && trim_line[1] == '/')
-						)
-					{
-						return 'a'; // annotation
-					}
+					if (trim_line[0] == ';' || trim_line[0] == '#' || trim_line[0] == ':')
+						return detail::iniutil::line_type::comment;
 
-					auto pos1 = trim_line.find_first_of('[');
-					auto pos2 = trim_line.find_first_of(']');
+					if (trim_line.size() > 1 && trim_line[0] == '/' && trim_line[1] == '/')
+						return detail::iniutil::line_type::comment;
 
-					// current line is section
-					if (
-						pos1 == 0
-						&&
-						pos2 != std::basic_string<char_type, Traits, Allocator>::npos
-						&&
-						pos2 > pos1
-						)
+					if (trim_line.front() == '[' && trim_line.back() == ']')
 					{
-						sec = trim_line.substr(pos1 + 1, pos2 - pos1 - 1);
+						sec = trim_line.substr(1, trim_line.size() - 2);
 
 						trim_left(sec);
 						trim_right(sec);
 
-						return 's'; // section
+						return detail::iniutil::line_type::section;
 					}
 
 					auto sep = trim_line.find_first_of('=');
@@ -1050,14 +1062,14 @@ namespace asio
 						trim_left(val);
 						trim_right(val);
 
-						return 'k'; // kv
+						return detail::iniutil::line_type::kv;
 					}
 
-					return 'o'; // other
+					return detail::iniutil::line_type::other;
 				}
 			}
 
-			return 'n'; // null
+			return detail::iniutil::line_type::eof;
 		}
 
 		template<

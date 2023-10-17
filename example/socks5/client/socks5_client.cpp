@@ -130,11 +130,11 @@ int main()
 	{
 		.proxy_address = "127.0.0.1",
 		.proxy_port = 20808,
-		.dest_address = "127.0.0.1",
-		.dest_port = 8035,
+		.method = {socks5::auth_method::anonymous},
 		.username = "admin",
 		.password = "123456",
-		.method = {socks5::auth_method::anonymous},
+		.dest_address = "127.0.0.1",
+		.dest_port = 8035,
 		.cmd = socks5::command::udp_associate,
 	};
 

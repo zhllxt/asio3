@@ -22,10 +22,15 @@ namespace asio
 		std::string           listen_address{};
 		std::uint16_t         listen_port{};
 
+		// reuse address flag for the tcp acceptor 
+		bool                  reuse_address{ true };
+
+		// 
 		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
 		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
 		timeout_duration      idle_timeout{ std::chrono::milliseconds(detail::tcp_idle_timeout) };
 
+		// socket option for the tcp sessions
 		tcp_socket_option     socket_option{};
 
 		std::function<awaitable<void>(std::shared_ptr<tcp_connection>)> on_connect{};

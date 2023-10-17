@@ -144,17 +144,18 @@ namespace asio
 		inline async_send(Data&& data, WriteToken&& token
 			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
 		{
-			ip::udp::endpoint target_endpoint{};
+			std::optional<ip::udp::endpoint> dest_endpoint{};
 
 			if (socks5_socket)
 			{
 				error_code ec{};
-				target_endpoint.address(socket.remote_endpoint(ec).address());
-				target_endpoint.port(option.server_port);
+				dest_endpoint.emplace();
+				dest_endpoint->address(socket.remote_endpoint(ec).address());
+				dest_endpoint->port(option.server_port);
 			}
 
-			return asio::async_send(socket,
-				std::forward<Data>(data), target_endpoint, std::forward<WriteToken>(token));
+			return asio::async_send(socket, std::forward<Data>(data),
+				std::move(dest_endpoint), std::forward<WriteToken>(token));
 		}
 
 		/**

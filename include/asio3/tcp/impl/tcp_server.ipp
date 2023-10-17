@@ -84,7 +84,7 @@ namespace asio
 
 			auto [e1, ep1] = co_await asio::async_start(acp,
 				opt.listen_address, opt.listen_port,
-				opt.socket_option.reuse_address, use_nothrow_deferred);
+				opt.reuse_address, use_nothrow_deferred);
 			if (e1)
 				co_return e1;
 
