@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <asio3/external/config.hpp>
+#include <asio3/core/config.hpp>
 
 #if !defined(ASIO3_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
 #include <boost/core/type_name.hpp>

@@ -463,7 +463,7 @@ namespace boost::asio
 using namespace asio::experimental::awaitable_operators;
 
 #if (defined(ASIO_NO_EXCEPTIONS) || defined(BOOST_ASIO_NO_EXCEPTIONS)) && !defined(ASIO3_NO_EXCEPTIONS_IMPL)
-#include <asio3/external/assert.hpp>
+#include <cassert>
 #include <iostream>
 #ifdef ASIO_STANDALONE
 namespace asio::detail

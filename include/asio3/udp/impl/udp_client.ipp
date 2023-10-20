@@ -8,11 +8,7 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#pragma once
-
-namespace asio
-{
-	struct udp_client::async_connect_op
+	struct async_connect_op
 	{
 		auto operator()(auto state, udp_client& client) -> void
 		{
@@ -104,4 +100,3 @@ namespace asio
 			co_return asio::error_code{};
 		}
 	};
-}

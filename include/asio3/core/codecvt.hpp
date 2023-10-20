@@ -20,10 +20,9 @@
 #include <locale>
 #include <codecvt>
 
-#include <asio3/external/predef.h>
+#include <asio3/core/predef.h>
 #include <asio3/core/asio.hpp>
-
-#include <asio3/util/string.hpp>
+#include <asio3/core/strutil.hpp>
 
 #if defined(ASIO3_OS_WINDOWS) || defined(__CYGWIN__)
 #  if __has_include(<Windows.h>)

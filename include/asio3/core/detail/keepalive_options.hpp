@@ -12,11 +12,9 @@
 
 #include <tuple>
 
-#include <asio3/external/predef.h>
-
-#include <asio3/error.hpp>
-
-#include <asio3/core/detail/util.hpp>
+#include <asio3/core/predef.h>
+#include <asio3/core/error.hpp>
+#include <asio3/core/detail/netutil.hpp>
 
 #if ASIO3_OS_WINDOWS
 #	if __has_include(<Mstcpip.h>)

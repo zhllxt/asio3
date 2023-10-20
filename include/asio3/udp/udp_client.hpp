@@ -42,7 +42,7 @@ namespace asio
 	class udp_client : public std::enable_shared_from_this<udp_client>
 	{
 	public:
-		struct async_connect_op;
+#include <asio3/udp/impl/udp_client.ipp>
 
 	public:
 		template<class Executor>
@@ -213,4 +213,3 @@ namespace asio
 	};
 }
 
-#include <asio3/udp/impl/udp_client.ipp>

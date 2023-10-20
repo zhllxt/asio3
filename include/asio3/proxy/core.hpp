@@ -155,11 +155,13 @@ namespace asio
 {
 	namespace
 	{
+		[[maybe_unused]]
 		const std::string& get_server_address(const std::string& server_address, socks5::option& s5opt)
 		{
 			return socks5::is_option_valid(s5opt) ? s5opt.proxy_address : server_address;
 		}
 
+		[[maybe_unused]]
 		std::uint16_t get_server_port(std::uint16_t server_port, socks5::option& s5opt)
 		{
 			return socks5::is_option_valid(s5opt) ? s5opt.proxy_port : server_port;
