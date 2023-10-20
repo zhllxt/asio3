@@ -1,12 +1,12 @@
 #include <asio3/core/fmt.hpp>
-#include <asio3/socks5/handshake.hpp>
+#include <asio3/proxy/handshake.hpp>
 #include <asio3/core/timer.hpp>
 #include <asio3/tcp/connect.hpp>
 #include <asio3/udp/read.hpp>
 #include <asio3/udp/write.hpp>
-#include <asio3/socks5/parser.hpp>
-#include <asio3/socks5/match_condition.hpp>
-#include <asio3/socks5/udp_header.hpp>
+#include <asio3/proxy/parser.hpp>
+#include <asio3/proxy/match_condition.hpp>
+#include <asio3/proxy/udp_header.hpp>
 
 namespace net = ::asio;
 using time_point = std::chrono::steady_clock::time_point;

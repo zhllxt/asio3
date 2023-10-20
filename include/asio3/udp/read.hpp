@@ -12,7 +12,7 @@
 
 #include <asio3/core/asio.hpp>
 #include <asio3/udp/core.hpp>
-#include <asio3/socks5/parser.hpp>
+#include <asio3/proxy/parser.hpp>
 
 namespace asio::detail
 {

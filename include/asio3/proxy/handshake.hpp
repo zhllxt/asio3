@@ -19,8 +19,8 @@
 #include <asio3/core/error.hpp>
 #include <asio3/core/detail/netutil.hpp>
 
-#include <asio3/socks5/core.hpp>
-#include <asio3/socks5/error.hpp>
+#include <asio3/proxy/core.hpp>
+#include <asio3/proxy/error.hpp>
 
 #include <asio3/tcp/connect.hpp>
 #include <asio3/tcp/read.hpp>

@@ -12,7 +12,7 @@
 
 #include <cassert>
 
-#include <asio3/socks5/core.hpp>
+#include <asio3/proxy/core.hpp>
 #include <asio3/core/detail/netutil.hpp>
 #include <asio3/core/fixed_capacity_vector.hpp>
 

@@ -18,7 +18,7 @@
 #include <asio3/core/data_persist.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/udp/core.hpp>
-#include <asio3/socks5/udp_header.hpp>
+#include <asio3/proxy/udp_header.hpp>
 
 namespace asio::detail
 {

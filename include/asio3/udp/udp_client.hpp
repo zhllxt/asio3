@@ -17,9 +17,9 @@
 #include <asio3/udp/send.hpp>
 #include <asio3/udp/connect.hpp>
 #include <asio3/tcp/connect.hpp>
-#include <asio3/socks5/handshake.hpp>
-#include <asio3/socks5/parser.hpp>
-#include <asio3/socks5/udp_header.hpp>
+#include <asio3/proxy/handshake.hpp>
+#include <asio3/proxy/parser.hpp>
+#include <asio3/proxy/udp_header.hpp>
 
 namespace asio
 {

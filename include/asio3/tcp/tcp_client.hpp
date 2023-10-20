@@ -16,7 +16,7 @@
 #include <asio3/tcp/send.hpp>
 #include <asio3/tcp/connect.hpp>
 #include <asio3/tcp/disconnect.hpp>
-#include <asio3/socks5/handshake.hpp>
+#include <asio3/proxy/handshake.hpp>
 
 namespace asio
 {

@@ -13,7 +13,7 @@
 #include <string_view>
 #include <tuple>
 
-#include <asio3/socks5/core.hpp>
+#include <asio3/proxy/core.hpp>
 #include <asio3/core/detail/netutil.hpp>
 
 namespace asio::socks5
