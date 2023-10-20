@@ -81,6 +81,38 @@ namespace asio::detail
 			co_return ec;
 		}
 	};
+
+	struct close_socket_when_timeout
+	{
+		std::shared_ptr<asio::steady_timer> t;
+
+		close_socket_when_timeout(auto& sock, timeout_duration val) noexcept
+		{
+			t = std::make_shared<asio::steady_timer>(sock.get_executor(), val);
+
+			asio::co_spawn(sock.get_executor(),
+			[&sock, p = t]() mutable -> asio::awaitable<asio::error_code>
+			{
+				auto [ec] = co_await p->async_wait(use_nothrow_awaitable);
+				if (!ec)
+				{
+					sock.close(ec);
+				}
+				co_return ec;
+			}, asio::detached);
+		}
+
+		~close_socket_when_timeout()
+		{
+			try
+			{
+				t->cancel();
+			}
+			catch (system_error const&)
+			{
+			}
+		}
+	};
 }
 
 namespace asio
@@ -113,15 +145,19 @@ namespace asio
 	 * @brief Asynchronously sleep for a duration.
 	 * @param duration - The duration. 
 	 */
+	asio::awaitable<asio::error_code> async_sleep(timer_duration duration)
+	{
+		auto [ec] = co_await async_sleep(co_await asio::this_coro::executor, duration, use_nothrow_awaitable);
+		co_return ec;
+	}
+
+	/**
+	 * @brief Asynchronously sleep for a duration.
+	 * @param duration - The duration. 
+	 */
 	asio::awaitable<asio::error_code> delay(timer_duration duration)
 	{
-		asio::steady_timer t(co_await asio::this_coro::executor);
-
-		t.expires_after(duration);
-
-		auto [ec] = co_await t.async_wait(use_nothrow_awaitable);
-
-		co_return ec;
+		co_return co_await async_sleep(duration);
 	}
 
 	/**
@@ -130,50 +166,8 @@ namespace asio
 	 */
 	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(timer_duration duration)
 	{
-		asio::steady_timer t(co_await asio::this_coro::executor);
-
-		t.expires_after(duration);
-
-		auto [ec] = co_await t.async_wait(use_nothrow_awaitable);
-
-		co_return std::tuple{ ec, detail::timer_tag };
+		co_return std::tuple{ co_await async_sleep(duration), detail::timer_tag };
 	}
-
-	/**
-	 * @brief Asynchronously wait for a timer, if timeout, close the socket.
-	 */
-	asio::awaitable<asio::error_code> timeout(std::shared_ptr<asio::steady_timer> t, auto& socket)
-	{
-		auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
-		if (!ec)
-		{
-			socket.close(ec);
-		}
-		co_return ec;
-	}
-
-	struct timeout_guard
-	{
-		std::shared_ptr<asio::steady_timer> t;
-
-		timeout_guard(auto& socket, timeout_duration val) noexcept
-		{
-			t = std::make_shared<asio::steady_timer>(socket.get_executor(), val);
-
-			asio::co_spawn(socket.get_executor(), timeout(t, socket), asio::detached);
-		}
-
-		~timeout_guard()
-		{
-			try
-			{
-				t->cancel();
-			}
-			catch (system_error const&)
-			{
-			}
-		}
-	};
 
 	/**
 	 * @brief Check whether the result of the awaitable_operators is timeout.

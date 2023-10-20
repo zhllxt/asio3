@@ -23,7 +23,7 @@ namespace asio
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			asio::timeout_guard tg(sock, opt.connect_timeout);
+			[[maybe_unused]] detail::close_socket_when_timeout tg(sock, opt.connect_timeout);
 
 			if (asio::to_underlying(opt.socks5_option.cmd) == 0)
 				opt.socks5_option.cmd = socks5::command::connect;

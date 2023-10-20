@@ -46,7 +46,7 @@ namespace asio::detail
 
 				if (!ec)
 				{
-					asio::timeout_guard tg(sock, timeout);
+					[[maybe_unused]] detail::close_socket_when_timeout tg(sock, timeout);
 
 					co_await sock.async_wait(asio::socket_base::wait_error, use_nothrow_deferred);
 
