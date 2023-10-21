@@ -10,8 +10,9 @@
 
 	struct async_connect_op
 	{
-		auto operator()(auto state, udp_client& client) -> void
+		auto operator()(auto state, auto client_ref) -> void
 		{
+			auto& client = client_ref.get();
 			auto& sock = client.socket;
 			auto& opt = client.option;
 

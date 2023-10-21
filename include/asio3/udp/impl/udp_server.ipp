@@ -8,14 +8,9 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#pragma once
-
-namespace asio
-{
-	template<typename ConnectionT>
-	struct udp_server_t<ConnectionT>::async_start_op
+	struct async_start_op
 	{
-		asio::awaitable<void> do_connection(udp_server_t& server, auto conn)
+		asio::awaitable<void> do_connection(auto& server, auto conn)
 		{
 			auto& opt = server.option;
 
@@ -43,7 +38,7 @@ namespace asio
 			}
 		}
 
-		asio::awaitable<void> do_accept(udp_server_t& server)
+		asio::awaitable<void> do_accept(auto& server)
 		{
 			auto& sock = server.socket;
 			auto& opt = server.option;
@@ -91,8 +86,9 @@ namespace asio
 			}
 		}
 
-		auto operator()(auto state, udp_server_t& server) -> void
+		auto operator()(auto state, auto server_ref) -> void
 		{
+			auto& server = server_ref.get();
 			auto& sock = server.socket;
 			auto& opt = server.option;
 
@@ -109,8 +105,7 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct udp_server_t<ConnectionT>::batch_async_send_op
+	struct batch_async_send_op
 	{
 		asio::awaitable<void> do_send(auto msgbuf, std::size_t& total, auto conn)
 		{
@@ -119,8 +114,10 @@ namespace asio
 		}
 
 		template<typename Data>
-		auto operator()(auto state, udp_server_t& server, Data&& data) -> void
+		auto operator()(auto state, auto server_ref, Data&& data) -> void
 		{
+			auto& server = server_ref.get();
+
 			Data msg = std::forward<Data>(data);
 
 			co_await asio::dispatch(server.get_executor(), use_nothrow_deferred);
@@ -139,4 +136,3 @@ namespace asio
 			co_return{ error_code{}, total };
 		}
 	};
-}

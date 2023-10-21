@@ -37,17 +37,15 @@ namespace asio
 	};
 
 	template<typename ConnectionT = udp_connection>
-	class udp_server_t : public std::enable_shared_from_this<udp_server_t<ConnectionT>>
+	class udp_server_t
 	{
 	public:
 		using connection_type = ConnectionT;
 
-		struct async_start_op;
-		struct batch_async_send_op;
+#include <asio3/udp/impl/udp_server.ipp>
 
 	public:
-		template<class Executor>
-		explicit udp_server_t(const Executor& ex, udp_server_option opt)
+		explicit udp_server_t(const auto& ex, udp_server_option opt)
 			: option(std::move(opt))
 			, socket(ex)
 			, connection_map(ex)
@@ -163,5 +161,3 @@ namespace asio
 
 	using udp_server = udp_server_t<>;
 }
-
-#include <asio3/udp/impl/udp_server.ipp>

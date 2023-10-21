@@ -39,14 +39,13 @@ namespace asio
 		socks5::option        socks5_option{};
 	};
 
-	class udp_client : public std::enable_shared_from_this<udp_client>
+	class udp_client
 	{
 	public:
 #include <asio3/udp/impl/udp_client.ipp>
 
 	public:
-		template<class Executor>
-		explicit udp_client(const Executor& ex, udp_client_option opt)
+		explicit udp_client(const auto& ex, udp_client_option opt)
 			: option(std::move(opt))
 			, socket(ex)
 		{

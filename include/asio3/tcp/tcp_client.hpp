@@ -39,14 +39,13 @@ namespace asio
 		socks5::option        socks5_option{};
 	};
 
-	class tcp_client : public std::enable_shared_from_this<tcp_client>
+	class tcp_client
 	{
 	public:
-		struct async_connect_op;
+#include <asio3/tcp/impl/tcp_client.ipp>
 
 	public:
-		template<class Executor>
-		explicit tcp_client(const Executor& ex, tcp_client_option opt)
+		explicit tcp_client(const auto& ex, tcp_client_option opt)
 			: option(std::move(opt))
 			, socket(ex)
 		{
@@ -165,6 +164,4 @@ namespace asio
 		std::atomic_flag  aborted{};
 	};
 }
-
-#include <asio3/tcp/impl/tcp_client.ipp>
 

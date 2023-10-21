@@ -8,14 +8,11 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#pragma once
-
-namespace asio
-{
-	struct tcp_client::async_connect_op
+	struct async_connect_op
 	{
-		auto operator()(auto state, tcp_client& client) -> void
+		auto operator()(auto state, auto client_ref) -> void
 		{
+			auto& client = client_ref.get();
 			auto& sock = client.socket;
 			auto& opt = client.option;
 
@@ -64,4 +61,3 @@ namespace asio
 			co_return asio::error_code{};
 		}
 	};
-}
