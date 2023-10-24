@@ -11,7 +11,7 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
-#include <asio3/core/detail/type_traits.hpp>
+#include <asio3/core/detail/concepts.hpp>
 
 namespace asio
 {

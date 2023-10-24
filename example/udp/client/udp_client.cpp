@@ -3,7 +3,28 @@
 
 namespace net = ::asio;
 
-net::awaitable<void> do_work(net::udp_client& client)
+net::awaitable<void> do_recv(net::udp_client& client)
+{
+	std::vector<char> recv_buffer(1024);
+
+	for (;;)
+	{
+		auto [e1, data] = co_await client.async_receive(asio::buffer(recv_buffer));
+		if (e1)
+			break;
+
+		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
+
+		auto [e2, n2] = co_await client.async_send(asio::buffer(data));
+		if (e2)
+			break;
+	}
+
+	client.socket.shutdown(net::socket_base::shutdown_both);
+	client.socket.close();
+}
+
+net::awaitable<void> do_connect(net::udp_client& client)
 {
 	while (!client.is_aborted())
 	{
@@ -20,24 +41,8 @@ net::awaitable<void> do_work(net::udp_client& client)
 		// connect success, send some message to the server...
 		client.async_send("<0123456789>", [](auto...) {});
 
-		std::vector<char> recv_buffer(1024);
-
-		for (;;)
-		{
-			auto [e1, data] = co_await client.async_receive(asio::buffer(recv_buffer));
-			if (e1)
-				break;
-
-			fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
-
-			auto [e2, n2] = co_await client.async_send(asio::buffer(data));
-			if (e2)
-				break;
-		}
+		co_await do_recv(client);
 	}
-
-	client.socket.shutdown(net::socket_base::shutdown_both);
-	client.socket.close();
 }
 
 int main()
@@ -57,7 +62,7 @@ int main()
 		},
 	});
 
-	net::co_spawn(ctx.get_executor(), do_work(client), net::detached);
+	net::co_spawn(ctx.get_executor(), do_connect(client), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
 	sigset.async_wait([&client](net::error_code, int) mutable

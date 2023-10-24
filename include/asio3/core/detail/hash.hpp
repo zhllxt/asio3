@@ -12,7 +12,7 @@
 
 #include <functional>
 
-#include <asio3/core/detail/type_traits.hpp>
+#include <asio3/core/detail/concepts.hpp>
 #include <asio3/core/asio.hpp>
 
 namespace asio::detail

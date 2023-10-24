@@ -50,20 +50,20 @@
 
 		asio::awaitable<void> do_accept(auto& server)
 		{
-			auto& acp = server.acceptor;
-
-			while (acp.is_open())
+			for (auto& acp = server.acceptor;;)
 			{
 				auto [e1, client] = co_await acp.async_accept(use_nothrow_deferred);
-				if (e1 && acp.is_open())
+
+				if (!acp.is_open())
+					break;
+
+				if (e1)
 				{
-					co_await asio::async_sleep(acp.get_executor(),
-						std::chrono::milliseconds(100), use_nothrow_deferred);
+					co_await asio::delay(std::chrono::milliseconds(100));
 				}
 				else
 				{
-					asio::co_spawn(acp.get_executor(),
-						do_connection(server, std::move(client)), asio::detached);
+					asio::co_spawn(acp.get_executor(), do_connection(server, std::move(client)), asio::detached);
 				}
 			}
 		}

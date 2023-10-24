@@ -380,9 +380,7 @@ namespace asio
 		concept is_char =
 			std::is_same_v<U, char    > ||
 			std::is_same_v<U, wchar_t > ||
-		#if defined(__cpp_lib_char8_t)  
 			std::is_same_v<U, char8_t > ||
-		#endif  
 			std::is_same_v<U, char16_t> ||
 			std::is_same_v<U, char32_t>;
 

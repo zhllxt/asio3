@@ -34,7 +34,7 @@
 #include <regex>
 #include <map>
 
-#include <asio3/core/detail/type_traits.hpp>
+#include <asio3/core/detail/concepts.hpp>
 
 namespace asio
 {
