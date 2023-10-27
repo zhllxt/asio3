@@ -11,15 +11,13 @@
 #pragma once
 
 #include <asio3/core/timer.hpp>
-#include <asio3/udp/core.hpp>
+#include <asio3/core/asio.hpp>
 
 namespace asio::detail
 {
-	struct udp_async_disconnect_op
+	struct async_alive_check_op
 	{
-		template<typename AsyncStream>
-		auto operator()(
-			auto state, std::reference_wrapper<AsyncStream> sock_ref, timeout_duration) -> void
+		auto operator()(auto state, auto sock_ref, timeout_duration timeout) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -35,8 +33,34 @@ namespace asio::detail
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
 			asio::error_code ec{};
-			sock.shutdown(asio::socket_base::shutdown_both, ec);
-			sock.close(ec);
+
+			asio::socket_base::linger linger{};
+
+			sock.get_option(linger, ec);
+
+			if (!ec && !(linger.enabled() == true && linger.timeout() == 0))
+			{
+				sock.shutdown(asio::socket_base::shutdown_send, ec);
+
+				if (!ec)
+				{
+					[[maybe_unused]] detail::close_socket_when_timeout tg(sock, timeout);
+
+					co_await sock.async_wait(asio::socket_base::wait_error, use_nothrow_deferred);
+
+					sock.close(ec);
+				}
+				else
+				{
+					sock.shutdown(asio::socket_base::shutdown_receive, ec);
+					sock.close(ec);
+				}
+			}
+			else
+			{
+				sock.shutdown(asio::socket_base::shutdown_both, ec);
+				sock.close(ec);
+			}
 
 			co_return ec;
 		}
@@ -54,20 +78,15 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec);
 	 */
-	template<
-		typename AsyncStream,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) DisconnectToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	requires std::same_as<typename std::remove_cvref_t<AsyncStream>::protocol_type, asio::ip::udp>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(DisconnectToken, void(asio::error_code))
-	async_disconnect(
-		AsyncStream& sock,
-		timeout_duration timeout = std::chrono::steady_clock::duration::zero(),
-		DisconnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+	template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
+	inline auto async_alive_check(
+		auto& sock,
+		timeout_duration timeout,
+		DisconnectToken&& token = asio::default_token<asio::tcp_socket>())
 	{
 		return asio::async_initiate<DisconnectToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(
-				detail::udp_async_disconnect_op{}, sock),
+				detail::async_alive_check_op{}, sock),
 			token, std::ref(sock), timeout);
 	}
 }

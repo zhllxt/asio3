@@ -23,22 +23,21 @@ namespace asio::detail
 {
 	struct tcp_async_send_op
 	{
-		template<typename AsyncWriteStream, typename Data>
-		auto operator()(auto state, std::reference_wrapper<AsyncWriteStream> stream_ref, Data&& data) -> void
+		auto operator()(auto state, auto sock_ref, auto&& data) -> void
 		{
-			auto& s = stream_ref.get();
+			auto& sock = sock_ref.get();
 
-			Data msg = std::forward<Data>(data);
+			auto msg = std::forward_like<decltype(data)>(data);
 
-			co_await asio::dispatch(s.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::async_lock(s, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
 
-			[[maybe_unused]] asio::unlock_guard ug{ s };
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
-			auto [e1, n1] = co_await asio::async_write(s, asio::buffer(msg), asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await asio::async_write(sock, asio::buffer(msg), asio::use_nothrow_deferred);
 
 			co_return{ e1, n1 };
 		}
@@ -49,26 +48,25 @@ namespace asio
 {
 	/**
 	 * @brief Start an asynchronous operation to write all of the supplied data to a stream.
-	 * @param s - The stream to which the data is to be written.
+	 * @param sock - The stream to which the data is to be written.
 	 * @param data - The written data.
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
      *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 	 */
-	template<typename AsyncWriteStream, typename Data,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncWriteStream::executor_type)>
-	requires detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncWriteStream>>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
-	async_send(
-		AsyncWriteStream& s,
-		Data&& data,
-		WriteToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
+	template<typename SendToken = asio::default_token_type<asio::tcp_socket>>
+	inline auto async_send(
+		is_basic_stream_socket auto& sock,
+		auto&& data,
+		SendToken&& token = asio::default_token<asio::tcp_socket>())
 	{
-		return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
+		return async_initiate<SendToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
-				detail::tcp_async_send_op{}, s),
-			token, std::ref(s), detail::data_persist(std::forward<Data>(data)));
+				detail::tcp_async_send_op{}, sock),
+			token,
+			std::ref(sock),
+			detail::data_persist(std::forward_like<decltype(data)>(data))
+		);
 	}
 }

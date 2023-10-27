@@ -11,7 +11,7 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
-#include <asio3/core/detail/concepts.hpp>
+#include <asio3/core/netutil.hpp>
 
 namespace asio
 {
@@ -178,9 +178,7 @@ namespace asio
 	 * {
 	 * }
 	 */
-	template<typename T>
-	requires (asio::detail::is_template_instance_of<std::variant, std::remove_cvref_t<T>>)
-	constexpr bool is_timeout(T& v) noexcept
+	constexpr bool is_timeout(is_variant auto& v) noexcept
 	{
 		return std::holds_alternative<std::tuple<asio::error_code, detail::timer_tag_t>>(v);
 	}

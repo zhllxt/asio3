@@ -177,32 +177,22 @@ namespace asio
 			token, std::ref(s));
 	}
 
-	/**
-	 * @brief Start an synchronous operation to unlock the channcel of the stream.
-	 * @param s - The stream to which be locked.
-	 */
 	template<typename AsyncStream>
-	inline void unlock(AsyncStream& s)
+	struct defer_unlock
 	{
-		detail::unlock_op{}(s);
-	}
-
-	template<typename AsyncStream>
-	struct unlock_guard
-	{
-		unlock_guard(AsyncStream& _s) noexcept : s(_s)
+		defer_unlock(AsyncStream& _s) noexcept : s(_s)
 		{
 		}
-		~unlock_guard()
+		~defer_unlock()
 		{
-			asio::unlock(s);
+			detail::unlock_op{}(s);
 		}
 
 		AsyncStream& s;
 	};
 
 	template<typename AsyncStream>
-	unlock_guard(AsyncStream&) -> unlock_guard<AsyncStream>;
+	defer_unlock(AsyncStream&) -> defer_unlock<AsyncStream>;
 }
 
 #include <asio3/core/detail/pop_options.hpp>

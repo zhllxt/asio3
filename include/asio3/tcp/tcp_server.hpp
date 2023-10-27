@@ -12,75 +12,64 @@
 
 #include <asio3/core/io_context_thread.hpp>
 #include <asio3/core/connection_map.hpp>
-#include <asio3/tcp/start.hpp>
+#include <asio3/tcp/open.hpp>
 #include <asio3/tcp/tcp_connection.hpp>
 
 namespace asio
 {
-	struct tcp_server_option
-	{
-		std::string           listen_address{};
-		std::uint16_t         listen_port{};
-
-		// reuse address flag for the tcp acceptor 
-		bool                  reuse_address{ true };
-
-		// 
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
-		timeout_duration      idle_timeout{ std::chrono::milliseconds(detail::tcp_idle_timeout) };
-
-		// socket option for the tcp sessions
-		tcp_socket_option     socket_option{};
-
-		std::function<awaitable<void>(std::shared_ptr<tcp_connection>)> on_connect{};
-		std::function<awaitable<void>(std::shared_ptr<tcp_connection>)> on_disconnect{};
-	};
-
-	template<typename ConnectionT = tcp_connection>
-	class tcp_server_t
+	class tcp_server
 	{
 	public:
-		using connection_type = ConnectionT;
-
-#include <asio3/tcp/impl/tcp_server.ipp>
+//#include <asio3/tcp/impl/tcp_server.ipp>
 
 	public:
-		explicit tcp_server_t(const auto& ex, tcp_server_option opt)
-			: option(std::move(opt))
-			, acceptor(ex)
-			, connection_map(ex)
+		explicit tcp_server(const auto& ex) : acceptor(ex)
 		{
 		}
 
-		~tcp_server_t()
+		~tcp_server()
 		{
-			stop();
-		}
-
-		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) StartToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_acceptor::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(StartToken, void(asio::error_code))
-		async_start(
-			StartToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_acceptor::executor_type))
-		{
-			return asio::async_initiate<StartToken, void(asio::error_code)>(
-				asio::experimental::co_composed<void(asio::error_code)>(
-					async_start_op{}, acceptor),
-				token, std::ref(*this));
+			async_stop([](auto...) {});
 		}
 
 		/**
-		 * @brief Stop the server, this function does not block.
+		 * @brief Asynchronously start the server.
 		 */
-		inline void stop() noexcept
+		template<typename StartToken = asio::default_token_type<asio::tcp_acceptor>>
+		inline auto async_start(
+			is_string auto&& listen_address,
+			is_string_or_integral auto&& listen_port,
+			bool reuse_addr = true,
+			StartToken&& token = asio::default_token<asio::tcp_acceptor>())
 		{
-			if (acceptor.is_open())
-			{
-				asio::co_spawn(get_executor(), do_stop(*this), asio::detached);
-			}
+			return asio::async_open(
+				acceptor,
+				std::forward_like<decltype(listen_address)>(listen_address),
+				std::forward_like<decltype(listen_port)>(listen_port),
+				reuse_addr,
+				std::forward<StartToken>(token));
+		}
+
+		/**
+		 * @brief Asynchronously stop the server.
+		 */
+		template<typename StopToken = asio::default_token_type<asio::tcp_acceptor>>
+		inline auto async_stop(StopToken&& token = asio::default_token<asio::tcp_acceptor>())
+		{
+			return asio::async_initiate<StopToken, void(error_code)>(
+				experimental::co_composed<void(error_code)>(
+					[](auto state, tcp_acceptor& acceptor) -> void
+					{
+						state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+						error_code ec{};
+						acceptor.close(ec);
+
+						// disconnect all connections...
+
+						co_return ec;
+					}, acceptor),
+				token, std::ref(acceptor));
 		}
 
 		/**
@@ -91,22 +80,22 @@ namespace asio
 			return !acceptor.is_open();
 		}
 
-		/**
-		 * @brief Safety start an asynchronous operation to write all of the supplied data to all clients.
-		 * @param data - The written data.
-		 * @param token - The completion handler to invoke when the operation completes.
-		 *	  The equivalent function signature of the handler must be:
-		 *    @code
-		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
-		 */
-		template<typename Data, typename WriteToken = default_tcp_write_token>
-		inline auto async_send(Data&& data, WriteToken&& token = default_tcp_write_token{})
-		{
-			return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
-				experimental::co_composed<void(asio::error_code, std::size_t)>(
-					batch_async_send_op{}, acceptor),
-				token, std::ref(*this), detail::data_persist(std::forward<Data>(data)));
-		}
+		///**
+		// * @brief Safety start an asynchronous operation to write all of the supplied data to all clients.
+		// * @param data - The written data.
+		// * @param token - The completion handler to invoke when the operation completes.
+		// *	  The equivalent function signature of the handler must be:
+		// *    @code
+		// *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
+		// */
+		//template<typename Data, typename WriteToken = default_tcp_write_token>
+		//inline auto async_send(Data&& data, WriteToken&& token = default_tcp_write_token{})
+		//{
+		//	return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
+		//		experimental::co_composed<void(asio::error_code, std::size_t)>(
+		//			batch_async_send_op{}, acceptor),
+		//		token, std::ref(*this), detail::data_persist(std::forward<Data>(data)));
+		//}
 
 		/**
 		 * @brief Get the executor associated with the object.
@@ -134,30 +123,7 @@ namespace asio
 			return acceptor.local_endpoint(ec).port();
 		}
 
-	protected:
-		static asio::awaitable<void> do_disconnect_connection(std::shared_ptr<connection_type>& conn)
-		{
-			conn->disconnect();
-			co_return;
-		}
-
-		static asio::awaitable<void> do_stop(tcp_server_t& server)
-		{
-			co_await asio::post(server.get_executor(), use_nothrow_deferred);
-
-			asio::error_code ec{};
-			server.acceptor.close(ec);
-
-			co_await server.connection_map.async_for_each(do_disconnect_connection, use_nothrow_deferred);
-		}
-
 	public:
-		tcp_server_option   option;
-
 		asio::tcp_acceptor  acceptor;
-
-		connection_map_t<connection_type> connection_map;
 	};
-
-	using tcp_server = tcp_server_t<>;
 }

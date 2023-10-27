@@ -34,7 +34,8 @@
 #include <regex>
 #include <map>
 
-#include <asio3/core/detail/concepts.hpp>
+#include <asio3/core/stdconcepts.hpp>
+#include <asio3/core/stdutil.hpp>
 
 namespace asio
 {
@@ -48,17 +49,17 @@ namespace asio
 	inline auto to_basic_string(T&& v)
 	{
 		using type  = typename std::remove_cvref_t<T>;
-		using CharT = typename detail::char_type<type>::type;
+		using CharT = typename asio::char_type<type>::type;
 
-		if /**/ constexpr (detail::is_string_view<type>)
+		if /**/ constexpr (asio::is_basic_string_view<type>)
 		{
 			return std::basic_string<CharT>{ v.data(), v.size() };
 		}
-		else if constexpr (detail::is_string<type>)
+		else if constexpr (asio::is_basic_string<type>)
 		{
 			return std::forward<T>(v);
 		}
-		else if constexpr (detail::is_char<type>)
+		else if constexpr (asio::is_char<type>)
 		{
 			return std::basic_string<CharT>{ 1, v };
 		}
@@ -82,14 +83,14 @@ namespace asio
 			}
 			return r;
 		}
-		else if constexpr (detail::is_char_pointer<type>)
+		else if constexpr (asio::is_char_pointer<type>)
 		{
 			if (v)
 				return std::basic_string<CharT>{ v };
 			else
 				return std::basic_string<CharT>{ };
 		}
-		else if constexpr (detail::is_char_array<type>)
+		else if constexpr (asio::is_char_array<type>)
 		{
 			return std::basic_string<CharT>{ reinterpret_cast<const CharT*>(v) };
 		}
@@ -111,25 +112,25 @@ namespace asio
 	inline auto to_basic_string_view(const T& v)
 	{
 		using type  = typename std::remove_cvref_t<T>;
-		using CharT = typename detail::char_type<type>::type;
+		using CharT = typename asio::char_type<type>::type;
 
-		if /**/ constexpr (detail::is_string_view<type>)
+		if /**/ constexpr (asio::is_basic_string_view<type>)
 		{
 			return v;
 		}
-		else if constexpr (detail::is_string<type>)
+		else if constexpr (asio::is_basic_string<type>)
 		{
 			return std::basic_string_view<CharT>{ v };
 		}
-		else if constexpr (detail::is_char<type>)
+		else if constexpr (asio::is_char<type>)
 		{
 			return std::basic_string_view<CharT>{ std::addressof(v), 1 };
 		}
-		else if constexpr (detail::is_char_pointer<type>)
+		else if constexpr (asio::is_char_pointer<type>)
 		{
 			return (v ? std::basic_string_view<CharT>{ v } : std::basic_string_view<CharT>{});
 		}
-		else if constexpr (detail::is_char_array<type>)
+		else if constexpr (asio::is_char_array<type>)
 		{
 			return std::basic_string_view<CharT>{ reinterpret_cast<const CharT*>(v) };
 		}
@@ -168,11 +169,11 @@ namespace asio
 		{
 			s = std::to_string(v);
 		}
-		else if constexpr (detail::is_char_pointer<type>)
+		else if constexpr (asio::is_char_pointer<type>)
 		{
 			if (v) s = v;
 		}
-		else if constexpr (detail::is_char_array<type>)
+		else if constexpr (asio::is_char_array<type>)
 		{
 			s = std::forward<T>(v);
 		}
@@ -204,15 +205,15 @@ namespace asio
 		{
 			return std::string_view{ v };
 		}
-		else if constexpr (detail::is_char<type>)
+		else if constexpr (asio::is_char<type>)
 		{
 			return std::string_view{ std::addressof(v), 1 };
 		}
-		else if constexpr (detail::is_char_pointer<type>)
+		else if constexpr (asio::is_char_pointer<type>)
 		{
 			return (v ? std::string_view{ v } : std::string_view{});
 		}
-		else if constexpr (detail::is_char_array<type>)
+		else if constexpr (asio::is_char_array<type>)
 		{
 			return std::string_view{ v };
 		}
@@ -1378,7 +1379,7 @@ namespace asio
 	template<class String1, class String2>
 	inline auto split(const String1& str, const String2& delim)
 	{
-		using CharT = typename detail::char_type<String1>::type;
+		using CharT = typename asio::char_type<String1>::type;
 
 		auto s = asio::to_basic_string_view(str);
 		auto d = asio::to_basic_string_view(delim);
@@ -1407,7 +1408,7 @@ namespace asio
 	template<class String1, class String2>
 	inline auto regex_split(const String1& src, const String2& rgx_str)
 	{
-		using CharT = typename detail::char_type<String1>::type;
+		using CharT = typename asio::char_type<String1>::type;
 
 		auto s = asio::to_basic_string(src);
 		auto d = asio::to_basic_string_view(rgx_str);
@@ -1436,7 +1437,7 @@ namespace asio
 	template<class String1, class String2>
 	inline auto regex_split_map(const String1& src, const String2& rgx_str)
 	{
-		using CharT = typename detail::char_type<String1>::type;
+		using CharT = typename asio::char_type<String1>::type;
 
 		auto d = asio::to_basic_string_view(rgx_str);
 
@@ -1539,7 +1540,7 @@ namespace asio
 	template<class String1, class String2>
 	inline auto split_any(const String1& str, const String2& delims)
 	{
-		using CharT = typename detail::char_type<String1>::type;
+		using CharT = typename asio::char_type<String1>::type;
 
 		auto s = asio::to_basic_string_view(str);
 		auto d = asio::to_basic_string_view(delims);
@@ -1576,7 +1577,7 @@ namespace asio
 	>
 	inline auto join(const std::vector<T>& tokens, const String1& delim)
 	{
-		using CharT = typename detail::char_type<String1>::type;
+		using CharT = typename asio::char_type<String1>::type;
 
 		std::basic_ostringstream<CharT> result;
 		for (auto it = tokens.begin(); it != tokens.end(); ++it)
@@ -1672,7 +1673,7 @@ namespace asio
 	template<class String1>
 	inline auto repeat(const String1& str, unsigned n)
 	{
-		using CharT = typename detail::char_type<String1>::type;
+		using CharT = typename asio::char_type<String1>::type;
 
 		std::basic_string<CharT> result;
 
@@ -1691,7 +1692,7 @@ namespace asio
 	 * @return True if regex matches str, false otherwise.
 	 */
 	template<class String1>
-	inline bool matches(const String1& str, const std::basic_regex<typename detail::char_type<String1>::type>& regex)
+	inline bool matches(const String1& str, const std::basic_regex<typename asio::char_type<String1>::type>& regex)
 	{
 		return std::regex_match(str, regex);
 	}

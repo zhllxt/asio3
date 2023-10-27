@@ -21,19 +21,19 @@ namespace asio::detail
 		using data_type = std::remove_cvref_t<T>;
 
 		// std::string_view
-		if constexpr /**/ (detail::is_string_view<data_type>)
+		if constexpr /**/ (asio::is_basic_string_view<data_type>)
 		{
 			using value_type = typename data_type::value_type;
 			return std::basic_string<value_type>(data.data(), data.size());
 		}
 		// char* , const char* , const char* const
-		else if constexpr (detail::is_char_pointer<data_type>)
+		else if constexpr (asio::is_char_pointer<data_type>)
 		{
 			using value_type = typename std::remove_cvref_t<std::remove_pointer_t<data_type>>;
 			return std::basic_string<value_type>(std::forward<T>(data));
 		}
 		// char[]
-		else if constexpr (detail::is_char_array<data_type>)
+		else if constexpr (asio::is_char_array<data_type>)
 		{
 			using value_type = typename std::remove_cvref_t<std::remove_all_extents_t<data_type>>;
 			return std::basic_string<value_type>(std::forward<T>(data));

@@ -11,11 +11,11 @@
 #pragma once
 
 #include <asio3/core/timer.hpp>
-#include <asio3/tcp/core.hpp>
+#include <asio3/core/asio.hpp>
 
 namespace asio::detail
 {
-	struct tcp_async_disconnect_op
+	struct async_alive_check_op
 	{
 		auto operator()(auto state, auto sock_ref, timeout_duration timeout) -> void
 		{
@@ -69,24 +69,4 @@ namespace asio::detail
 
 namespace asio
 {
-	/**
-	 * @brief Asynchronously graceful disconnect the socket connection.
-	 * @param sock - The socket reference to be connected.
-	 * @param timeout - The disconnect timeout.
-	 * @param token - The completion handler to invoke when the operation completes. 
-	 *	  The equivalent function signature of the handler must be:
-     *    @code
-     *    void handler(const asio::error_code& ec);
-	 */
-	template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
-	inline auto async_disconnect(
-		is_tcp_socket auto& sock,
-		timeout_duration timeout,
-		DisconnectToken&& token = asio::default_token<asio::tcp_socket>())
-	{
-		return asio::async_initiate<DisconnectToken, void(asio::error_code)>(
-			asio::experimental::co_composed<void(asio::error_code)>(
-				detail::tcp_async_disconnect_op{}, sock),
-			token, std::ref(sock), timeout);
-	}
 }

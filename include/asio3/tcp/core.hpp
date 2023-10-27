@@ -16,8 +16,8 @@
 
 namespace asio
 {
-	using tcp_acceptor = as_tuple_t<deferred_t>::as_default_on_t<ip::tcp::acceptor>;
-	using tcp_resolver = as_tuple_t<deferred_t>::as_default_on_t<ip::tcp::resolver>;
+	using tcp_acceptor = with_lock_t<as_tuple_t<deferred_t>>::as_default_on_t<ip::tcp::acceptor>;
+	using tcp_resolver = with_lock_t<as_tuple_t<deferred_t>>::as_default_on_t<ip::tcp::resolver>;
 	using tcp_socket   = with_lock_t<as_tuple_t<deferred_t>>::as_default_on_t<ip::tcp::socket>;
 }
 

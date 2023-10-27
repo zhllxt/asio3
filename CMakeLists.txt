@@ -159,7 +159,7 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 # Compiler config
 # ---------------------------------------------------------------------------------------
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD 23)
 endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -192,8 +192,8 @@ if (MSVC)
           /JMC
           )
   
-      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++20 /MTd")
-      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++20 /Zi /Ob2 /Oi /Ot /MT")
+      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi /Ob2 /Oi /Ot /MT")
   
       set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
 
@@ -209,8 +209,8 @@ if (MSVC)
           /Zc:__cplusplus
           )
   
-      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++20 /MTd /Zi")
-      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++20 /Zi /Ob2 /Oi /Ot /GL /MT")
+      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd /Zi")
+      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi /Ob2 /Oi /Ot /GL /MT")
   
       set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -222,7 +222,7 @@ else()
     find_package (Threads)
 
     set( CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fcoroutines")
+      "${CMAKE_CXX_FLAGS} -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fcoroutines")
 
     #set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb")
 

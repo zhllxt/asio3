@@ -11,7 +11,7 @@
 #pragma once
 
 #include <asio3/core/connection.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
 #include <asio3/tcp/send.hpp>
@@ -19,31 +19,19 @@
 
 namespace asio
 {
-	struct tcp_connection_option
-	{
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
-		timeout_duration      idle_timeout{ std::chrono::milliseconds(detail::tcp_idle_timeout) };
-
-		tcp_socket_option     socket_option{};
-	};
-
 	class tcp_connection : public std::enable_shared_from_this<tcp_connection>
 	{
 	public:
 		using key_type = std::size_t;
 
 	public:
-		explicit tcp_connection(tcp_socket sock, tcp_connection_option opt)
-			: socket(std::move(sock))
-			, option(std::move(opt))
+		explicit tcp_connection(tcp_socket sock) : socket(std::move(sock))
 		{
-			default_tcp_socket_option_setter{ option.socket_option }(socket);
 		}
 
 		~tcp_connection()
 		{
-			stop();
+			async_disconnect(std::chrono::milliseconds(detail::tcp_handshake_timeout), [](auto...) {});
 		}
 
 		/**
@@ -57,28 +45,12 @@ namespace asio
 		/**
 		 * @brief Asynchronously graceful disconnect the connection, this function does not block.
 		 */
-		inline void disconnect() noexcept
+		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
+		inline auto async_disconnect(
+			timeout_duration timeout = std::chrono::milliseconds(detail::tcp_handshake_timeout),
+			DisconnectToken&& token = asio::default_token<asio::tcp_socket>())
 		{
-			if (socket.is_open())
-			{
-				asio::async_disconnect(socket, option.disconnect_timeout, [](auto) {});
-			}
-		}
-
-		/**
-		 * @brief shutdown and close the socket directly.
-		 */
-		inline void stop() noexcept
-		{
-			if (socket.is_open())
-			{
-				asio::post(socket.get_executor(), [this]() mutable
-				{
-					error_code ec{};
-					socket.shutdown(socket_base::shutdown_both, ec);
-					socket.close(ec);
-				});
-			}
+			return asio::async_disconnect(socket, timeout, std::forward<DisconnectToken>(token));
 		}
 
 		/**
@@ -89,10 +61,16 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename WriteToken = default_tcp_write_token>
-		inline auto async_send(Data&& data, WriteToken&& token = default_tcp_write_token{})
+		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
+		inline auto async_send(auto&& data, WriteToken&& token = asio::default_token<asio::tcp_socket>())
 		{
-			return asio::async_send(socket, std::forward<Data>(data), std::forward<WriteToken>(token));
+			return asio::async_send(socket,
+				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+		}
+
+		inline void start_idle_check()
+		{
+
 		}
 
 		/**
@@ -140,8 +118,6 @@ namespace asio
 		}
 
 	public:
-		tcp_connection_option option{};
-
 		asio::tcp_socket      socket;
 
 		asio::steady_timer    idle_timer{ socket.get_executor()};

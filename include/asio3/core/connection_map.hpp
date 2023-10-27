@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
+#include <asio3/core/netutil.hpp>
 
 namespace asio
 {

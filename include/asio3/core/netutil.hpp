@@ -12,8 +12,22 @@
 
 #include <bit>
 
-#include <asio3/core/detail/concepts.hpp>
-#include <asio3/core/asio.hpp>
+#include <asio3/core/netconcepts.hpp>
+
+#if (defined(ASIO_NO_EXCEPTIONS) || defined(BOOST_ASIO_NO_EXCEPTIONS)) && !defined(ASIO3_NO_EXCEPTIONS_IMPL)
+#include <cassert>
+#include <iostream>
+namespace asio::detail
+{
+	template <typename Exception>
+	void throw_exception(const Exception& e ASIO_SOURCE_LOCATION_PARAM)
+	{
+		std::cerr << "exception occured: " << e.what() << std::endl;
+		assert(false);
+		std::terminate();
+	}
+}
+#endif
 
 namespace asio::detail
 {
@@ -58,6 +72,28 @@ namespace asio::detail
 	static std::size_t constexpr http_frame_size = 1480;
 
 	static std::size_t constexpr max_buffer_size = (std::numeric_limits<std::size_t>::max)();
+}
+
+namespace asio
+{
+	template<typename T, typename U = std::remove_cvref_t<T>>
+	using default_token_type = typename ::asio::default_completion_token<typename U::executor_type>::type;
+
+	template<typename T>
+	inline constexpr auto default_token()
+	{
+		return default_token_type<T>();
+	}
+
+	//
+	constexpr auto use_nothrow_deferred  = asio::as_tuple(asio::deferred);
+	constexpr auto use_nothrow_awaitable = asio::as_tuple(asio::use_awaitable);
+
+	template <typename... Ts>
+	inline constexpr void ignore_unused(Ts const& ...) noexcept {}
+
+	template <typename... Ts>
+	inline constexpr void ignore_unused() noexcept {}
 
 	// std::thread::hardware_concurrency() is not constexpr, so use it with function form
 	// @see: asio::detail::default_thread_pool_size()
@@ -68,10 +104,59 @@ namespace asio::detail
 		num_threads = num_threads == 0 ? 2 : num_threads;
 		return num_threads;
 	}
-}
 
-namespace asio::detail
-{
+	template<typename = void>
+	inline std::string to_string(const asio::const_buffer& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string to_string(const asio::mutable_buffer& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+	template<typename = void>
+	inline std::string to_string(const asio::const_buffers_1& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string to_string(const asio::mutable_buffers_1& v) noexcept
+	{
+		return std::string{ (std::string::pointer)(v.data()), v.size() };
+	}
+#endif
+
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::const_buffer& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::mutable_buffer& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::const_buffers_1& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+
+	template<typename = void>
+	inline std::string_view to_string_view(const asio::mutable_buffers_1& v) noexcept
+	{
+		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+	}
+#endif
+
 	/**
 	 * Swaps the order of bytes for some chunk of memory
 	 * @param data - The data as a uint8_t pointer

@@ -39,7 +39,7 @@ namespace asio::detail
 
 			co_await asio::async_lock(s, asio::use_nothrow_deferred);
 
-			[[maybe_unused]] asio::unlock_guard ug{ s };
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ s };
 
 			error_code ec{};
 			std::size_t n{ 0 };

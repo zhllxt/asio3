@@ -348,7 +348,7 @@ namespace asio
 {
 	// use namespace asio::detail::iniutil to avoid conflict with
 	// asio::detail in file "asio3/core/strutil.hpp"
-	// is_string_view ...
+	// is_basic_string_view ...
 	namespace detail::iniutil
 	{
 		enum class line_type : std::uint8_t
@@ -386,12 +386,12 @@ namespace asio
 
 		// std::basic_string<...>
 		template<typename T, typename U = std::remove_cvref_t<T>>
-		concept is_string = std::is_same_v<U, std::basic_string<
+		concept is_basic_string = std::is_same_v<U, std::basic_string<
 			typename U::value_type, typename U::traits_type, typename U::allocator_type>>;
 
 		// std::basic_string_view<...>
 		template<typename T, typename U = std::remove_cvref_t<T>>
-		concept is_string_view = std::is_same_v<U, std::basic_string_view<
+		concept is_basic_string_view = std::is_same_v<U, std::basic_string_view<
 			typename U::value_type, typename U::traits_type>>;
 
 		// char*, const char*, not char**
@@ -420,7 +420,7 @@ namespace asio
 			using type = typename std::conditional_t<is_char_pointer<R> || is_char_array<R>,
 				std::basic_string<std::remove_cv_t<std::remove_all_extents_t<
 				std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<R>>>>>>,
-				typename string_view_traits<R, is_string_view<R>>::type>;
+				typename string_view_traits<R, is_basic_string_view<R>>::type>;
 		};
 	}
 
@@ -645,7 +645,7 @@ namespace asio
 				{
 					return (flag ? val : return_t{ default_val });
 				}
-				else if constexpr (detail::iniutil::is_string_view<R>)
+				else if constexpr (detail::iniutil::is_basic_string_view<R>)
 				{
 					return (flag ? val : return_t{ default_val });
 				}
