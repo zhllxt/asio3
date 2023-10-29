@@ -14,7 +14,7 @@
 #include <tuple>
 
 #include <asio3/proxy/core.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 
 namespace asio::socks5
 {
@@ -30,7 +30,7 @@ parse_udp_packet(std::string_view data, bool rsv_as_datalen = false)
 	if (data.size() < std::size_t(3))
 		return { 1,{},{},{} };
 
-	std::uint16_t data_size = asio::detail::network_to_host(
+	std::uint16_t data_size = asio::network_to_host(
 		std::uint16_t(*(reinterpret_cast<const std::uint16_t*>(data.data()))));
 
 	data.remove_prefix(3);
@@ -62,7 +62,7 @@ parse_udp_packet(std::string_view data, bool rsv_as_datalen = false)
 
 		auto* p = data.data();
 
-		std::uint16_t uport = asio::detail::read<std::uint16_t>(p);
+		std::uint16_t uport = asio::read<std::uint16_t>(p);
 		endpoint.port(uport);
 
 		data.remove_prefix(2);
@@ -88,7 +88,7 @@ parse_udp_packet(std::string_view data, bool rsv_as_datalen = false)
 
 		auto* p = data.data();
 
-		std::uint16_t uport = asio::detail::read<std::uint16_t>(p);
+		std::uint16_t uport = asio::read<std::uint16_t>(p);
 		endpoint.port(uport);
 
 		data.remove_prefix(2);
@@ -116,7 +116,7 @@ parse_udp_packet(std::string_view data, bool rsv_as_datalen = false)
 
 		auto* p = data.data();
 
-		std::uint16_t uport = asio::detail::read<std::uint16_t>(p);
+		std::uint16_t uport = asio::read<std::uint16_t>(p);
 		endpoint.port(uport);
 
 		data.remove_prefix(2);

@@ -11,29 +11,30 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
+#include <asio3/core/netutil.hpp>
 #include <asio3/core/strutil.hpp>
 #include <asio3/udp/core.hpp>
 
 namespace asio::detail
 {
-	struct udp_async_start_op
+	struct udp_async_open_op
 	{
-		template<typename AsyncStream, typename String, typename StrOrInt, typename SetOptionCallback>
 		auto operator()(
-			auto state, std::reference_wrapper<AsyncStream> sock_ref,
-			String&& listen_address, StrOrInt&& listen_port, SetOptionCallback&& cb_set_option) -> void
+			auto state, auto sock_ref,
+			auto&& listen_address, auto&& listen_port, auto&& cb_set_option) -> void
 		{
-			using endpoint_type = typename AsyncStream::protocol_type::endpoint;
-			using resolver_type = typename AsyncStream::protocol_type::resolver;
-
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			auto& sock = sock_ref.get();
 
-			std::string addr = asio::to_string(std::forward<String>(listen_address));
-			std::string port = asio::to_string(std::forward<StrOrInt>(listen_port));
+			auto fn_set_option = std::forward_like<decltype(cb_set_option)>(cb_set_option);
 
-			auto set_option = std::forward<SetOptionCallback>(cb_set_option);
+			std::string addr = asio::to_string(std::forward_like<decltype(listen_address)>(listen_address));
+			std::string port = asio::to_string(std::forward_like<decltype(listen_port)>(listen_port));
+
+			using stream_type = std::remove_cvref_t<decltype(sock)>;
+			using endpoint_type = typename stream_type::protocol_type::endpoint;
+			using resolver_type = typename stream_type::protocol_type::resolver;
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			co_await asio::dispatch(sock.get_executor(), use_nothrow_deferred);
 
@@ -53,19 +54,19 @@ namespace asio::detail
 
 			asio::error_code ec;
 
-			AsyncStream tmp_sock(sock.get_executor());
+			stream_type tmp(sock.get_executor());
 
-			tmp_sock.open(bnd_endpoint.protocol(), ec);
+			tmp.open(bnd_endpoint.protocol(), ec);
 			if (ec)
 				co_return {ec, endpoint_type{} };
 
-			set_option(tmp_sock);
+			fn_set_option(tmp);
 
-			tmp_sock.bind(bnd_endpoint, ec);
+			tmp.bind(bnd_endpoint, ec);
 			if (ec)
 				co_return {ec, endpoint_type{} };
 
-			sock = std::move(tmp_sock);
+			sock = std::move(tmp);
 
 			co_return{ error_code{}, bnd_endpoint };
 		}
@@ -79,6 +80,34 @@ namespace asio
 	 * @param sock - The socket reference to be started.
 	 * @param listen_address - The listen address. 
 	 * @param listen_port - The listen port. 
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::udp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename OpenToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_datagram_socket<AsyncStream>)
+	inline auto async_open(
+		AsyncStream& sock,
+		is_string auto&& listen_address, is_string_or_integral auto&& listen_port,
+		OpenToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<OpenToken, void(asio::error_code, asio::ip::udp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::udp::endpoint)>(
+				detail::udp_async_open_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(listen_address)>(listen_address),
+			std::forward_like<decltype(listen_port)>(listen_port),
+			asio::default_udp_socket_option_setter{});
+	}
+
+	/**
+	 * @brief Asynchronously start a udp socket at the bind address and port.
+	 * @param sock - The socket reference to be started.
+	 * @param listen_address - The listen address. 
+	 * @param listen_port - The listen port. 
 	 * @param cb_set_option - The callback to set the socket options.
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
@@ -87,26 +116,21 @@ namespace asio
 	 */
 	template<
 		typename AsyncStream,
-		typename String, typename StrOrInt,
-		typename SetOptionCallback = asio::default_udp_socket_option_setter,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::udp::endpoint)) StartToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	requires 
-		(detail::is_template_instance_of<asio::basic_datagram_socket, std::remove_cvref_t<AsyncStream>> &&
-		(std::constructible_from<std::string, String>) &&
-		(std::constructible_from<std::string, StrOrInt> || std::integral<std::remove_cvref_t<StrOrInt>>))
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(StartToken, void(asio::error_code, asio::ip::udp::endpoint))
-	async_start(
+		typename SetOptionFn,
+		typename OpenToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_datagram_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	inline auto async_open(
 		AsyncStream& sock,
-		String&& listen_address, StrOrInt&& listen_port,
-		SetOptionCallback&& cb_set_option = asio::default_udp_socket_option_setter{},
-		StartToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+		is_string auto&& listen_address, is_string_or_integral auto&& listen_port,
+		SetOptionFn&& cb_set_option,
+		OpenToken&& token = asio::default_token_type<AsyncStream>())
 	{
-		return asio::async_initiate<StartToken, void(asio::error_code, asio::ip::udp::endpoint)>(
+		return asio::async_initiate<OpenToken, void(asio::error_code, asio::ip::udp::endpoint)>(
 			asio::experimental::co_composed<void(asio::error_code, asio::ip::udp::endpoint)>(
-				detail::udp_async_start_op{}, sock),
+				detail::udp_async_open_op{}, sock),
 			token, std::ref(sock),
-			std::forward<String>(listen_address), std::forward<StrOrInt>(listen_port),
-			std::forward<SetOptionCallback>(cb_set_option));
+			std::forward_like<decltype(listen_address)>(listen_address),
+			std::forward_like<decltype(listen_port)>(listen_port),
+			std::forward<SetOptionFn>(cb_set_option));
 	}
 }

@@ -11,15 +11,14 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
-#include <asio3/core/netconcepts.hpp>
 #include <asio3/core/netutil.hpp>
-#include <asio3/core/timer.hpp>
 #include <asio3/core/strutil.hpp>
+#include <asio3/core/timer.hpp>
 #include <asio3/tcp/core.hpp>
 
 namespace asio::detail
 {
-	struct tcp_async_open_op
+	struct tcp_async_listen_op
 	{
 		auto operator()(
 			auto state, auto acceptor_ref,
@@ -69,7 +68,7 @@ namespace asio::detail
 namespace asio
 {
 	/**
-	 * @brief Asynchronously start a tcp acceptor for listen at the bind address and port.
+	 * @brief Asynchronously start a tcp acceptor for listen at the address and port.
 	 * @param acceptor - The acceptor reference to be started.
 	 * @param listen_address - The listen ip. 
 	 * @param listen_port - The listen port. 
@@ -79,17 +78,20 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
 	 */
-	template<typename OpenToken = asio::default_token_type<asio::tcp_acceptor>>
-	inline auto async_open(
-		is_basic_socket_acceptor auto& acceptor,
+	template<
+		typename AsyncAcceptor,
+		typename ListenToken = asio::default_token_type<AsyncAcceptor>>
+	requires is_basic_socket_acceptor<AsyncAcceptor>
+	inline auto async_listen(
+		AsyncAcceptor& acceptor,
 		is_string auto&& listen_address,
 		is_string_or_integral auto&& listen_port,
 		bool reuse_addr = true,
-		OpenToken&& token = asio::default_token<asio::tcp_acceptor>())
+		ListenToken&& token = asio::default_token_type<AsyncAcceptor>())
 	{
-		return async_initiate<OpenToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+		return async_initiate<ListenToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
 			experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
-				detail::tcp_async_open_op{}, acceptor),
+				detail::tcp_async_listen_op{}, acceptor),
 			token,
 			std::ref(acceptor),
 			std::forward_like<decltype(listen_address)>(listen_address),

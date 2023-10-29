@@ -13,7 +13,7 @@
 #include <cassert>
 
 #include <asio3/proxy/core.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 #include <asio3/core/fixed_capacity_vector.hpp>
 
 namespace asio::socks5
@@ -34,7 +34,7 @@ auto make_udp_header(const asio::ip::address& dest_addr, std::uint16_t dest_port
 	}
 	else
 	{
-		std::uint16_t udatalen = asio::detail::host_to_network(std::uint16_t(datalen));
+		std::uint16_t udatalen = asio::host_to_network(std::uint16_t(datalen));
 		std::uint8_t* pdatalen = reinterpret_cast<std::uint8_t*>(std::addressof(udatalen));
 		head.push_back(static_cast<value_type>(pdatalen[0])); // RSV 
 		head.push_back(static_cast<value_type>(pdatalen[1])); // RSV 
@@ -63,7 +63,7 @@ auto make_udp_header(const asio::ip::address& dest_addr, std::uint16_t dest_port
 		head.insert(head.cend(), bytes.begin(), bytes.end());
 	}
 
-	std::uint16_t uport = asio::detail::host_to_network(dest_port);
+	std::uint16_t uport = asio::host_to_network(dest_port);
 	std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
 	head.push_back(static_cast<value_type>(pport[0]));
 	head.push_back(static_cast<value_type>(pport[1]));
@@ -107,7 +107,7 @@ std::string make_udp_header(std::string domain, std::uint16_t dest_port, I datal
 	}
 	else
 	{
-		std::uint16_t udatalen = asio::detail::host_to_network(std::uint16_t(datalen));
+		std::uint16_t udatalen = asio::host_to_network(std::uint16_t(datalen));
 		std::uint8_t* pdatalen = reinterpret_cast<std::uint8_t*>(std::addressof(udatalen));
 		tmp.push_back(static_cast<value_type>(pdatalen[0])); // RSV 
 		tmp.push_back(static_cast<value_type>(pdatalen[1])); // RSV 
@@ -121,7 +121,7 @@ std::string make_udp_header(std::string domain, std::uint16_t dest_port, I datal
 
 	head.insert(head.cbegin(), tmp.begin(), tmp.end());
 
-	std::uint16_t uport = asio::detail::host_to_network(dest_port);
+	std::uint16_t uport = asio::host_to_network(dest_port);
 	std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
 	head.push_back(static_cast<value_type>(pport[0]));
 	head.push_back(static_cast<value_type>(pport[1]));

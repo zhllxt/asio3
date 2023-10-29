@@ -18,6 +18,8 @@ namespace asio
 	using timer = asio::as_tuple_t<::asio::deferred_t>::as_default_on_t<::asio::steady_timer>;
 	using timer_duration = std::chrono::steady_clock::duration;
 	using timeout_duration = std::chrono::steady_clock::duration;
+	using deadline_time_point = std::chrono::steady_clock::time_point;
+	using alive_time_point = std::chrono::steady_clock::time_point;
 
 	inline void cancel_timer(asio::steady_timer& t) noexcept
 	{
@@ -82,31 +84,44 @@ namespace asio::detail
 		}
 	};
 
-	struct close_socket_when_timeout
+	struct call_func_when_timeout
 	{
-		std::shared_ptr<asio::steady_timer> t;
-
-		close_socket_when_timeout(auto& sock, timeout_duration val) noexcept
+		struct storage
 		{
-			t = std::make_shared<asio::steady_timer>(sock.get_executor(), val);
+			asio::steady_timer timer;
+			bool timeouted{ false };
 
-			asio::co_spawn(sock.get_executor(),
-			[&sock, p = t]() mutable -> asio::awaitable<asio::error_code>
+			storage(auto& executor) : timer(executor)
 			{
-				auto [ec] = co_await p->async_wait(use_nothrow_awaitable);
+			}
+		};
+
+		std::shared_ptr<storage> ptr;
+
+		call_func_when_timeout(auto& executor, timeout_duration timeout_value, auto&& func)
+		{
+			ptr = std::make_shared<storage>(executor);
+
+			ptr->timer.expires_after(timeout_value);
+
+			asio::co_spawn(executor, [p = ptr, f = std::forward_like<decltype(func)>(func)]
+			() mutable -> asio::awaitable<asio::error_code>
+			{
+				auto [ec] = co_await p->timer.async_wait(use_nothrow_awaitable);
 				if (!ec)
 				{
-					sock.close(ec);
+					p->timeouted = true;
+					f();
 				}
 				co_return ec;
 			}, asio::detached);
 		}
 
-		~close_socket_when_timeout()
+		~call_func_when_timeout()
 		{
 			try
 			{
-				t->cancel();
+				ptr->timer.cancel();
 			}
 			catch (system_error const&)
 			{

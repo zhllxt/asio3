@@ -11,41 +11,50 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
+#include <asio3/core/netutil.hpp>
 #include <asio3/core/strutil.hpp>
+#include <asio3/core/timer.hpp>
 #include <asio3/tcp/core.hpp>
 
 namespace asio::detail
 {
 	struct tcp_async_connect_op
 	{
-		template<typename AsyncStream,
-			typename String1, typename StrOrInt1, typename String2, typename StrOrInt2,
-			typename SetOptionCallback>
 		auto operator()(
-			auto state, std::reference_wrapper<AsyncStream> sock_ref,
-			String1&& server_address, StrOrInt1&& server_port,
-			String2&& bind_address, StrOrInt2&& bind_port,
-			SetOptionCallback&& cb_set_option) -> void
+			auto state, auto sock_ref,
+			auto&& server_address, auto&& server_port, auto&& bind_address, auto&& bind_port,
+			timeout_duration timeout, auto&& cb_set_option) -> void
 		{
-			using endpoint_type = typename AsyncStream::protocol_type::endpoint;
-			using resolver_type = typename AsyncStream::protocol_type::resolver;
+			auto& sock = sock_ref.get();
+
+			auto fn_set_option = std::forward_like<decltype(cb_set_option)>(cb_set_option);
+
+			std::string svr_addr = asio::to_string(std::forward_like<decltype(server_address)>(server_address));
+			std::string bnd_addr = asio::to_string(std::forward_like<decltype(bind_address)>(bind_address));
+			std::string svr_port = asio::to_string(std::forward_like<decltype(server_port)>(server_port));
+			std::string bnd_port = asio::to_string(std::forward_like<decltype(bind_port)>(bind_port));
+
+			using stream_type = std::remove_cvref_t<decltype(sock)>;
+			using endpoint_type = typename stream_type::protocol_type::endpoint;
+			using resolver_type = typename stream_type::protocol_type::resolver;
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			auto& sock = sock_ref.get();
-
-			std::string srv_addr = asio::to_string(std::forward<String1>(server_address));
-			std::string bnd_addr = asio::to_string(std::forward<String2>(bind_address));
-
-			std::string srv_port = asio::to_string(std::forward<StrOrInt1>(server_port));
-			std::string bnd_port = asio::to_string(std::forward<StrOrInt2>(bind_port));
+			detail::call_func_when_timeout wt(sock.get_executor(), timeout, [&sock]() mutable
+			{
+				error_code ec{};
+				sock.close(ec);
+			});
 
 			resolver_type resolver(sock.get_executor());
 
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
-			auto [e1, eps] = co_await resolver.async_resolve(srv_addr, srv_port, use_nothrow_deferred);
+			auto [e1, eps] = co_await resolver.async_resolve(svr_addr, svr_port, use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, endpoint_type{} };
+
+			if (wt.ptr->timeouted)
+				co_return{ asio::error::timed_out, endpoint_type{} };
 
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, endpoint_type{} };
@@ -83,25 +92,25 @@ namespace asio::detail
 			{
 				for (auto&& ep : eps)
 				{
-					AsyncStream tmp_sock(sock.get_executor());
+					stream_type tmp(sock.get_executor());
 
-					tmp_sock.open(ep.endpoint().protocol(), ec);
+					tmp.open(ep.endpoint().protocol(), ec);
 					if (ec)
 						continue;
 
-					cb_set_option(tmp_sock);
+					fn_set_option(tmp);
 
 					if (!bnd_addr.empty() || uport != 0)
 					{
-						tmp_sock.bind(bnd_endpoint, ec);
+						tmp.bind(bnd_endpoint, ec);
 						if (ec)
 							continue;
 					}
 
-					auto [e2] = co_await tmp_sock.async_connect(ep, use_nothrow_deferred);
+					auto [e2] = co_await tmp.async_connect(ep, use_nothrow_deferred);
 					if (!e2)
 					{
-						sock = std::move(tmp_sock);
+						sock = std::move(tmp);
 						co_return{ e2, ep.endpoint() };
 					}
 
@@ -122,7 +131,6 @@ namespace asio
 	 * @param sock - The socket reference to be connected.
 	 * @param server_address - The target server address. 
 	 * @param server_port - The target server port. 
-	 * @param cb_set_option - The callback to set the socket options.
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
@@ -130,28 +138,22 @@ namespace asio
 	 */
 	template<
 		typename AsyncStream,
-		typename String, typename StrOrInt,
-		typename SetOptionCallback = asio::default_tcp_socket_option_setter,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::tcp::endpoint)) ConnectToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	requires 
-		(detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncStream>> &&
-		(std::constructible_from<std::string, String>) &&
-		(std::constructible_from<std::string, StrOrInt> || std::integral<std::remove_cvref_t<StrOrInt>>))
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint))
-	async_connect(
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires is_basic_stream_socket<AsyncStream>
+	inline auto async_connect(
 		AsyncStream& sock,
-		String&& server_address, StrOrInt&& server_port,
-		SetOptionCallback&& cb_set_option = asio::default_tcp_socket_option_setter{},
-		ConnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
 			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
 				detail::tcp_async_connect_op{}, sock),
 			token, std::ref(sock),
-			std::forward<String>(server_address), std::forward<StrOrInt>(server_port),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
 			"", 0,
-			std::forward<SetOptionCallback>(cb_set_option));
+			asio::tcp_connect_timeout,
+			asio::default_tcp_socket_option_setter{});
 	}
 
 	/**
@@ -159,7 +161,7 @@ namespace asio
 	 * @param sock - The socket reference to be connected.
 	 * @param server_address - The target server address. 
 	 * @param server_port - The target server port. 
-	 * @param cb_set_option - The callback to set the socket options.
+	 * @param cb_set_option - The callback to set the socket options. [](auto& sock){...}
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
@@ -167,31 +169,222 @@ namespace asio
 	 */
 	template<
 		typename AsyncStream,
-		typename String1, typename StrOrInt1,
-		typename String2, typename StrOrInt2,
-		typename SetOptionCallback = asio::default_tcp_socket_option_setter,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::ip::tcp::endpoint)) ConnectToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	requires 
-		(detail::is_template_instance_of<asio::basic_stream_socket, std::remove_cvref_t<AsyncStream>> &&
-		(std::constructible_from<std::string, String1>) &&
-		(std::constructible_from<std::string, StrOrInt1> || std::integral<std::remove_cvref_t<StrOrInt1>>) &&
-		(std::constructible_from<std::string, String2>) &&
-		(std::constructible_from<std::string, StrOrInt2> || std::integral<std::remove_cvref_t<StrOrInt2>>))
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint))
-	async_connect(
+		typename SetOptionFn,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_stream_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	inline auto async_connect(
 		AsyncStream& sock,
-		String1&& server_address, StrOrInt1&& server_port,
-		String2&& bind_address, StrOrInt2&& bind_port,
-		SetOptionCallback&& cb_set_option = asio::default_tcp_socket_option_setter{},
-		ConnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		SetOptionFn&& cb_set_option,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
 			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
 				detail::tcp_async_connect_op{}, sock),
 			token, std::ref(sock),
-			std::forward<String1>(server_address), std::forward<StrOrInt1>(server_port),
-			std::forward<String2>(bind_address), std::forward<StrOrInt2>(bind_port),
-			std::forward<SetOptionCallback>(cb_set_option));
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			"", 0,
+			asio::tcp_connect_timeout,
+			std::forward<SetOptionFn>(cb_set_option));
+	}
+
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires is_basic_stream_socket<AsyncStream>
+	inline auto async_connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		is_string auto&& bind_address, is_string_or_integral auto&& bind_port,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
+				detail::tcp_async_connect_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			std::forward_like<decltype(bind_address)>(bind_address),
+			std::forward_like<decltype(bind_port)>(bind_port),
+			asio::tcp_connect_timeout,
+			asio::default_tcp_socket_option_setter{});
+	}
+
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 * @param cb_set_option - The callback to set the socket options. [](auto& sock){...}
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename SetOptionFn,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_stream_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	inline auto async_connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		is_string auto&& bind_address, is_string_or_integral auto&& bind_port,
+		SetOptionFn&& cb_set_option,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
+				detail::tcp_async_connect_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			std::forward_like<decltype(bind_address)>(bind_address),
+			std::forward_like<decltype(bind_port)>(bind_port),
+			asio::tcp_connect_timeout,
+			std::forward<SetOptionFn>(cb_set_option));
+	}
+
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires is_basic_stream_socket<AsyncStream>
+	inline auto async_connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		timeout_duration timeout,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
+				detail::tcp_async_connect_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			"", 0, timeout,
+			asio::default_tcp_socket_option_setter{});
+	}
+
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 * @param cb_set_option - The callback to set the socket options. [](auto& sock){...}
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename SetOptionFn,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_stream_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	inline auto async_connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		timeout_duration timeout,
+		SetOptionFn&& cb_set_option,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
+				detail::tcp_async_connect_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			"", 0, timeout,
+			std::forward<SetOptionFn>(cb_set_option));
+	}
+
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires is_basic_stream_socket<AsyncStream>
+	inline auto async_connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		is_string auto&& bind_address, is_string_or_integral auto&& bind_port,
+		timeout_duration timeout,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
+				detail::tcp_async_connect_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			std::forward_like<decltype(bind_address)>(bind_address),
+			std::forward_like<decltype(bind_port)>(bind_port),
+			timeout,
+			asio::default_tcp_socket_option_setter{});
+	}
+
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 * @param cb_set_option - The callback to set the socket options. [](auto& sock){...}
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(const asio::error_code& ec, asio::ip::tcp::endpoint ep);
+	 */
+	template<
+		typename AsyncStream,
+		typename SetOptionFn,
+		typename ConnectToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_stream_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	inline auto async_connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		is_string auto&& bind_address, is_string_or_integral auto&& bind_port,
+		timeout_duration timeout,
+		SetOptionFn&& cb_set_option,
+		ConnectToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
+			asio::experimental::co_composed<void(asio::error_code, asio::ip::tcp::endpoint)>(
+				detail::tcp_async_connect_op{}, sock),
+			token, std::ref(sock),
+			std::forward_like<decltype(server_address)>(server_address),
+			std::forward_like<decltype(server_port)>(server_port),
+			std::forward_like<decltype(bind_address)>(bind_address),
+			std::forward_like<decltype(bind_port)>(bind_port),
+			timeout,
+			std::forward<SetOptionFn>(cb_set_option));
 	}
 }

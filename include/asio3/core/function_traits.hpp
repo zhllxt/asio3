@@ -42,7 +42,10 @@ namespace asio::detail
 			}
 		}
 	};
+}
 
+namespace asio
+{
 	/*
 	 * 1. function type								==>	Ret(Args...)
 	 * 2. function pointer							==>	Ret(*)(Args...)
@@ -64,7 +67,7 @@ namespace asio::detail
 		typedef Ret function_type(Args...);
 		typedef Ret return_type;
 		using stl_function_type = std::function<function_type>;
-		using stl_lambda_type = lambda_dummy_t<function_type>;
+		using stl_lambda_type = detail::lambda_dummy_t<function_type>;
 		typedef Ret(*pointer)(Args...);
 		using class_type = void;
 
@@ -89,7 +92,7 @@ namespace asio::detail
 		typedef Ret function_type(Args...);
 		typedef Ret return_type;
 		using stl_function_type = std::function<function_type>;
-		using stl_lambda_type = lambda_dummy_t<function_type>;
+		using stl_lambda_type = detail::lambda_dummy_t<function_type>;
 		typedef Ret(*pointer)(Args...);
 		using class_type = Class;
 

@@ -16,6 +16,7 @@
 #include <asio3/udp/write.hpp>
 #include <asio3/udp/send.hpp>
 #include <asio3/udp/connect.hpp>
+#include <asio3/udp/disconnect.hpp>
 #include <asio3/tcp/connect.hpp>
 #include <asio3/proxy/handshake.hpp>
 #include <asio3/proxy/parser.hpp>
@@ -23,7 +24,7 @@
 
 namespace asio
 {
-	struct udp_client_option
+	struct udp_connect_option
 	{
 		std::string           server_address{};
 		std::uint16_t         server_port{};
@@ -31,101 +32,66 @@ namespace asio
 		std::string           bind_address{};
 		std::uint16_t         bind_port{ 0 };
 
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::udp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::udp_handshake_timeout) };
-
-		udp_socket_option     socket_option{};
-
-		socks5::option        socks5_option{};
+		bool                  reuse_address{ true };
 	};
 
 	class udp_client
 	{
 	public:
-#include <asio3/udp/impl/udp_client.ipp>
-
-	public:
-		explicit udp_client(const auto& ex, udp_client_option opt)
-			: option(std::move(opt))
-			, socket(ex)
+		explicit udp_client(const auto& ex) : socket(ex)
 		{
 			aborted.clear();
 		}
 
 		~udp_client()
 		{
-			stop();
 		}
 
-		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) ConnectToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code))
-		async_connect(
-			ConnectToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
+		template<typename ConnectToken = asio::default_token_type<asio::udp_socket>>
+		inline auto async_connect(
+			this auto&& self,
+			udp_connect_option opt,
+			ConnectToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			return asio::async_initiate<ConnectToken, void(asio::error_code)>(
-				asio::experimental::co_composed<void(asio::error_code)>(
-					async_connect_op{}, socket),
-				token, std::ref(*this));
+			udp_socket_option socket_opt{
+				.reuse_address = opt.reuse_address,
+			};
+			return asio::async_connect(self.get_socket(),
+				std::move(opt.server_address),
+				opt.server_port,
+				std::move(opt.bind_address),
+				opt.bind_port,
+				asio::default_udp_socket_option_setter{ .option = socket_opt },
+				std::forward<ConnectToken>(token));
 		}
 
 		/**
 		 * @brief Abort the object, disconnect the connection, this function does not block.
 		 */
-		inline void stop() noexcept
+		template<typename StopToken = asio::default_token_type<asio::udp_socket>>
+		inline auto async_stop(
+			this auto&& self,
+			StopToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			if (!aborted.test_and_set())
-			{
-				asio::post(socket.get_executor(), [this]() mutable
-				{
-					error_code ec{};
-					socket.shutdown(socket_base::shutdown_both, ec);
-					socket.close(ec);
-					if (socks5_socket)
-					{
-						socks5_socket->shutdown(socket_base::shutdown_both, ec);
-						socks5_socket->close(ec);
-						socks5_socket.reset();
-					}
-				});
-			}
+			self.aborted.test_and_set();
+
+			return asio::async_disconnect(self.get_socket(), std::forward<StopToken>(token));
 		}
 
 		/**
 		 * @brief Set the aborted flag to false.
 		 */
-		inline void restart() noexcept
+		inline void restart(this auto&& self) noexcept
 		{
-			aborted.clear();
+			self.aborted.clear();
 		}
 
 		/**
 		 * @brief Check whether the client is aborted or not.
 		 */
-		inline bool is_aborted() const noexcept
+		inline bool is_aborted(this auto&& self) noexcept
 		{
-			return aborted.test();
-		}
-
-		/**
-		 * @brief Start an asynchronous receive on a connected socket. Remove the socks5 head if exists.
-		 * @param buffers - One or more buffers into which the data will be received.
-		 * @param token - The completion handler to invoke when the operation completes.
-		 *	  The equivalent function signature of the handler must be:
-		 *    @code
-		 *    void handler(const asio::error_code& ec, std::string_view data);
-		 */
-		template<typename MutableBufferSequence,
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::string_view)) ReadToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::string_view))
-		inline async_receive(const MutableBufferSequence& buffers, ReadToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
-		{
-			return asio::async_receive(socket,
-				buffers, socks5_socket.has_value(), std::forward<ReadToken>(token));
+			return self.aborted.test();
 		}
 
 		/**
@@ -136,79 +102,74 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data,
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::udp_socket::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
-		inline async_send(Data&& data, WriteToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::udp_socket::executor_type))
+		template<typename WriteToken = asio::default_token_type<asio::udp_socket>>
+		inline auto async_send(
+			this auto&& self,
+			auto&& data,
+			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			std::optional<ip::udp::endpoint> dest_endpoint{};
-
-			if (socks5_socket)
-			{
-				error_code ec{};
-				dest_endpoint.emplace();
-				dest_endpoint->address(socket.remote_endpoint(ec).address());
-				dest_endpoint->port(option.server_port);
-			}
-
-			return asio::async_send(socket, std::forward<Data>(data),
-				std::move(dest_endpoint), std::forward<WriteToken>(token));
+			return asio::async_send(self.get_socket(),
+				std::forward_like<decltype(data)>(data),
+				std::forward<WriteToken>(token));
 		}
 
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor() noexcept
+		inline const auto& get_executor(this auto&& self) noexcept
 		{
-			return socket.get_executor();
+			return self.get_socket().get_executor();
 		}
 
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address() noexcept
+		inline std::string get_local_address(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.local_endpoint(ec).address().to_string(ec);
+			return self.get_socket().local_endpoint(ec).address().to_string(ec);
 		}
 
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port() noexcept
+		inline ip::port_type get_local_port(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.local_endpoint(ec).port();
+			return self.get_socket().local_endpoint(ec).port();
 		}
 
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address() noexcept
+		inline std::string get_remote_address(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.remote_endpoint(ec).address().to_string(ec);
+			return self.get_socket().remote_endpoint(ec).address().to_string(ec);
 		}
 
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port() noexcept
+		inline ip::port_type get_remote_port(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.remote_endpoint(ec).port();
+			return self.get_socket().remote_endpoint(ec).port();
+		}
+
+		/**
+		 * @brief Get the socket.
+		 * https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/
+		 */
+		constexpr inline auto&& get_socket(this auto&& self)
+		{
+			return std::forward_like<decltype(self)>(self).socket;
 		}
 
 	public:
-		udp_client_option option;
-
 		asio::udp_socket  socket;
 
 		std::atomic_flag  aborted{};
-
-		std::optional<tcp_socket> socks5_socket;
 	};
 }
 

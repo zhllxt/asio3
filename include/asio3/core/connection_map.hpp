@@ -12,6 +12,8 @@
 
 #include <asio3/core/asio.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/function_traits.hpp>
+#include <asio3/core/data_persist.hpp>
 
 namespace asio
 {
@@ -24,10 +26,13 @@ namespace asio
 		using value_type = std::shared_ptr<connection_type>;
 		using map_type   = std::unordered_map<key_type, value_type>;
 		using lock_type  = as_tuple_t<deferred_t>::as_default_on_t<experimental::channel<void()>>;
+		using executor_type = typename lock_type::executor_type;
 
 		struct async_emplace_op;
 		struct async_erase_op;
 		struct async_find_op;
+		struct async_disconnect_all_op;
+		struct async_send_all_op;
 		struct async_for_each_op;
 
 	public:
@@ -45,14 +50,10 @@ namespace asio
 		/**
 		 * @brief emplace connection
 		 */
-		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(bool)) EmplaceToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename lock_type::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(EmplaceToken, void(bool))
-		async_emplace(
+		template<typename EmplaceToken = asio::default_token_type<lock_type>>
+		inline auto async_emplace(
 			value_type conn,
-			EmplaceToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename lock_type::executor_type))
+			EmplaceToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EmplaceToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
@@ -63,14 +64,10 @@ namespace asio
 		/**
 		 * @brief erase connection by the key
 		 */
-		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(bool)) EraseToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename lock_type::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(EraseToken, void(bool))
-		async_erase(
+		template<typename EraseToken = asio::default_token_type<lock_type>>
+		inline auto async_erase(
 			key_type key,
-			EraseToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename lock_type::executor_type))
+			EraseToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EraseToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
@@ -78,19 +75,91 @@ namespace asio
 				token, std::ref(*this), std::move(key));
 		}
 
-		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(value_type)) FindToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename lock_type::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(FindToken, void(value_type))
-		async_find(
+		/**
+		 * @brief erase the specified connection
+		 */
+		template<typename EraseToken = asio::default_token_type<lock_type>>
+		inline auto async_erase(
+			std::shared_ptr<connection_type>& conn,
+			EraseToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<EraseToken, void(bool)>(
+				asio::experimental::co_composed<void(bool)>(
+					async_erase_op{}, lock),
+				token, std::ref(*this), conn->hash_key());
+		}
+
+		/**
+		 * @brief find connection by the key
+		 */
+		template<typename FindToken = asio::default_token_type<lock_type>>
+		inline auto async_find(
 			key_type key,
-			FindToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename lock_type::executor_type))
+			FindToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<FindToken, void(value_type)>(
 				asio::experimental::co_composed<void(value_type)>(
 					async_find_op{}, lock),
 				token, std::ref(*this), std::move(key));
+		}
+
+		/**
+		 * @brief disconnect all the connections in the map.
+		 */
+		template<typename DisconnectToken = asio::default_token_type<lock_type>>
+		inline auto async_disconnect_all(DisconnectToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<DisconnectToken, void(std::size_t)>(
+				asio::experimental::co_composed<void(std::size_t)>(
+					async_disconnect_all_op{}, lock),
+				token, std::ref(*this), [](auto&) { return true; });
+		}
+
+		/**
+		 * @brief disconnect the selected connections in the map.
+		 */
+		template<typename DisconnectToken = asio::default_token_type<lock_type>>
+		inline auto async_disconnect_selected(auto&& pred, DisconnectToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<DisconnectToken, void(std::size_t)>(
+				asio::experimental::co_composed<void(std::size_t)>(
+					async_disconnect_all_op{}, lock),
+				token, std::ref(*this), std::forward_like<decltype(pred)>(pred));
+		}
+
+		/**
+		 * @brief send data to all the connections in the map.
+		 */
+		template<typename SendToken = asio::default_token_type<lock_type>>
+		inline auto async_send_all(
+			auto&& data,
+			SendToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<SendToken, void(error_code, std::size_t)>(
+				asio::experimental::co_composed<void(error_code, std::size_t)>(
+					async_send_all_op{}, lock),
+				token, std::ref(*this),
+				detail::data_persist(std::forward_like<decltype(data)>(data)),
+				[](auto&) { return true; });
+		}
+
+		/**
+		 * @brief send data to the selected connections in the map.
+		 * @param data - 
+		 * @param pred - [](auto& conn){ return true; }
+		 */
+		template<typename SendToken = asio::default_token_type<lock_type>>
+		inline auto async_send_selected(
+			auto&& data,
+			auto&& pred,
+			SendToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<SendToken, void(error_code, std::size_t)>(
+				asio::experimental::co_composed<void(error_code, std::size_t)>(
+					async_send_all_op{}, lock),
+				token, std::ref(*this),
+				detail::data_persist(std::forward_like<decltype(data)>(data)),
+				std::forward_like<decltype(pred)>(pred));
 		}
 
 		/**
@@ -100,13 +169,10 @@ namespace asio
 		 */
 		template<
 			typename Function,
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) ForEachToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename lock_type::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ForEachToken, void(asio::error_code))
-		async_for_each(
+			typename ForEachToken = asio::default_token_type<lock_type>>
+		inline auto async_for_each(
 			Function&& func,
-			ForEachToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename lock_type::executor_type))
+			ForEachToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<ForEachToken, void(asio::error_code)>(
 				asio::experimental::co_composed<void(asio::error_code)>(

@@ -20,82 +20,84 @@
 
 namespace asio
 {
-	struct tcp_client_option
+	struct tcp_connect_option
 	{
 		std::string           server_address{};
 		std::uint16_t         server_port{};
 
-		bool                  auto_reconnect{ true };
-		timeout_duration      reconnect_delay{ std::chrono::seconds(1) };
-
 		std::string           bind_address{};
 		std::uint16_t         bind_port{ 0 };
 
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::tcp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::tcp_handshake_timeout) };
+		timeout_duration      connect_timeout{ asio::tcp_connect_timeout };
 
-		tcp_socket_option     socket_option{};
-
-		socks5::option        socks5_option{};
+		bool                  reuse_address{ true };
+		bool                  keep_alive{ true };
+		bool                  no_delay{ true };
 	};
 
 	class tcp_client
 	{
 	public:
-#include <asio3/tcp/impl/tcp_client.ipp>
-
-	public:
-		explicit tcp_client(const auto& ex, tcp_client_option opt)
-			: option(std::move(opt))
-			, socket(ex)
+		explicit tcp_client(const auto& ex) : socket(ex)
 		{
 			aborted.clear();
 		}
 
 		~tcp_client()
 		{
-			stop();
-		}
-
-		template<
-			ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) ConnectToken
-			ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::tcp_socket::executor_type)>
-		ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ConnectToken, void(asio::error_code))
-		async_connect(
-			ConnectToken&& token
-			ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::tcp_socket::executor_type))
-		{
-			return asio::async_initiate<ConnectToken, void(asio::error_code)>(
-				asio::experimental::co_composed<void(asio::error_code)>(
-					async_connect_op{}, socket),
-				token, std::ref(*this));
 		}
 
 		/**
-		 * @brief Abort the object, disconnect the connection, this function does not block.
+		 * @brief Asynchronously connect to the server.
 		 */
-		inline void stop() noexcept
+		template<typename ConnectToken = asio::default_token_type<asio::tcp_socket>>
+		inline auto async_connect(
+			this auto&& self,
+			tcp_connect_option opt,
+			ConnectToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			if (!aborted.test_and_set())
-			{
-				asio::async_disconnect(socket, option.disconnect_timeout, [](auto) {});
-			}
+			tcp_socket_option socket_opt{
+				.reuse_address = opt.reuse_address,
+				.keep_alive = opt.keep_alive,
+				.no_delay = opt.no_delay,
+			};
+			return asio::async_connect(self.get_socket(),
+				std::move(opt.server_address),
+				opt.server_port,
+				std::move(opt.bind_address),
+				opt.bind_port,
+				opt.connect_timeout,
+				asio::default_tcp_socket_option_setter{ .option = socket_opt },
+				std::forward<ConnectToken>(token));
+		}
+
+		/**
+		 * @brief Asynchronously disconnect the connection.
+		 */
+		template<typename StopToken = asio::default_token_type<asio::tcp_socket>>
+		inline auto async_stop(
+			this auto&& self,
+			StopToken&& token = asio::default_token_type<asio::tcp_socket>())
+		{
+			self.aborted.test_and_set();
+
+			return asio::async_disconnect(self.get_socket(), std::forward<StopToken>(token));
 		}
 
 		/**
 		 * @brief Set the aborted flag to false.
 		 */
-		inline void restart() noexcept
+		inline void restart(this auto&& self) noexcept
 		{
-			aborted.clear();
+			self.aborted.clear();
 		}
 
 		/**
 		 * @brief Check whether the client is aborted or not.
 		 */
-		inline bool is_aborted() const noexcept
+		inline bool is_aborted(this auto&& self) noexcept
 		{
-			return aborted.test();
+			return self.aborted.test();
 		}
 
 		/**
@@ -106,59 +108,70 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename WriteToken = default_tcp_write_token>
-		inline auto async_send(Data&& data, WriteToken&& token = default_tcp_write_token{})
+		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
+		inline auto async_send(
+			this auto&& self,
+			auto&& data,
+			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			return asio::async_send(socket, std::forward<Data>(data), std::forward<WriteToken>(token));
+			return asio::async_send(self.get_socket(),
+				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
 		}
 
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor() noexcept
+		inline const auto& get_executor(this auto&& self) noexcept
 		{
-			return socket.get_executor();
+			return self.get_socket().get_executor();
 		}
 
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address() noexcept
+		inline std::string get_local_address(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.local_endpoint(ec).address().to_string(ec);
+			return self.get_socket().local_endpoint(ec).address().to_string(ec);
 		}
 
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port() noexcept
+		inline ip::port_type get_local_port(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.local_endpoint(ec).port();
+			return self.get_socket().local_endpoint(ec).port();
 		}
 
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address() noexcept
+		inline std::string get_remote_address(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.remote_endpoint(ec).address().to_string(ec);
+			return self.get_socket().remote_endpoint(ec).address().to_string(ec);
 		}
 
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port() noexcept
+		inline ip::port_type get_remote_port(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.remote_endpoint(ec).port();
+			return self.get_socket().remote_endpoint(ec).port();
+		}
+
+		/**
+		 * @brief Get the socket.
+		 * https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/
+		 */
+		constexpr inline auto&& get_socket(this auto&& self)
+		{
+			return std::forward_like<decltype(self)>(self).socket;
 		}
 
 	public:
-		tcp_client_option option;
-
 		asio::tcp_socket  socket;
 
 		std::atomic_flag  aborted{};

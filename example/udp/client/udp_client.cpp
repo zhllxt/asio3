@@ -9,9 +9,11 @@ net::awaitable<void> do_recv(net::udp_client& client)
 
 	for (;;)
 	{
-		auto [e1, data] = co_await client.async_receive(asio::buffer(recv_buffer));
+		auto [e1, n1] = co_await net::async_receive(client.socket, asio::buffer(recv_buffer));
 		if (e1)
 			break;
+
+		auto data = asio::buffer(recv_buffer.data(), n1);
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
@@ -24,19 +26,24 @@ net::awaitable<void> do_recv(net::udp_client& client)
 	client.socket.close();
 }
 
-net::awaitable<void> do_connect(net::udp_client& client)
+net::awaitable<void> connect(net::udp_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [e0] = co_await client.async_connect();
-		if (e0)
+		auto [ec, ep] = co_await client.async_connect(
+			{
+				.server_address = "127.0.0.1",
+				.server_port = 8035,
+				.reuse_address = true,
+			});
+		if (ec)
 		{
-			fmt::print("connect failure: {}\n", e0.message());
+			fmt::print("connect failure: {}\n", ec.message());
 			co_await net::delay(std::chrono::seconds(1));
 			continue;
 		}
 
-		fmt::print("connect success: {} {}\n", client.get_remote_address(),client.get_remote_port());
+		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
 
 		// connect success, send some message to the server...
 		client.async_send("<0123456789>", [](auto...) {});
@@ -49,25 +56,14 @@ int main()
 {
 	net::io_context ctx;
 
-	net::udp_client client(ctx.get_executor(), {
-		.server_address = "127.0.0.1",
-		.server_port = 8035,
-		//.bind_address = "127.0.0.1",
-		//.bind_port = 55555,
-		.socks5_option =
-		{
-			.proxy_address = "127.0.0.1",
-			.proxy_port = 10808,
-			.method = {socks5::auth_method::anonymous}
-		},
-	});
+	net::udp_client client(ctx.get_executor());
 
-	net::co_spawn(ctx.get_executor(), do_connect(client), net::detached);
+	net::co_spawn(ctx.get_executor(), connect(client), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
 	sigset.async_wait([&client](net::error_code, int) mutable
 	{
-		client.stop();
+		client.async_stop([](auto) {});
 	});
 
 	ctx.run();

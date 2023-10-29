@@ -14,7 +14,7 @@
 #include <tuple>
 
 #include <asio3/proxy/core.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 
 namespace asio::socks5
 {
@@ -36,7 +36,7 @@ namespace
 			if (end - p < static_cast<diff_type>(5))
 				break;
 
-			std::uint16_t data_size = asio::detail::network_to_host(
+			std::uint16_t data_size = asio::network_to_host(
 				std::uint16_t(*(reinterpret_cast<const std::uint16_t*>(p.operator->()))));
 
 			std::uint8_t atyp = std::uint8_t(p[3]);

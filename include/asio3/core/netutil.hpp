@@ -29,7 +29,7 @@ namespace asio::detail
 }
 #endif
 
-namespace asio::detail
+namespace asio
 {
 	// /bho/beast/websocket/stream_base.hpp line 147
 	// opt.handshake_timeout = std::chrono::seconds(30);
@@ -38,27 +38,31 @@ namespace asio::detail
 	// and other problems, resulting in the client being unable to connect to the server normally.
 	// Increasing the connect,handshake,shutdown timeout can effectively alleviate this problem.
 
-	static long constexpr  tcp_handshake_timeout = 30 * 1000;
-	static long constexpr  udp_handshake_timeout = 30 * 1000;
-	static long constexpr http_handshake_timeout = 30 * 1000;
+	constexpr std::chrono::milliseconds  tcp_handshake_timeout  = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds  udp_handshake_timeout  = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds http_handshake_timeout  = std::chrono::milliseconds(30 * 1000);
 
-	static long constexpr  tcp_connect_timeout   = 30 * 1000;
-	static long constexpr  udp_connect_timeout   = 30 * 1000;
-	static long constexpr http_connect_timeout   = 30 * 1000;
+	constexpr std::chrono::milliseconds  tcp_connect_timeout    = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds  udp_connect_timeout    = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds http_connect_timeout    = std::chrono::milliseconds(30 * 1000);
 
-	static long constexpr  tcp_idle_timeout   = 60 * 60 * 1000;
-	static long constexpr  udp_idle_timeout   = 60 * 1000;
-	static long constexpr http_idle_timeout   = 85 * 1000;
-	static long constexpr mqtt_idle_timeout   = 90 * 1000; // 60 * 1.5
+	constexpr std::chrono::milliseconds  tcp_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds  udp_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds http_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
 
-	static long constexpr http_execute_timeout   = 15 * 1000;
-	static long constexpr icmp_execute_timeout   =  4 * 1000;
+	constexpr std::chrono::milliseconds  tcp_idle_timeout       = std::chrono::milliseconds(60 * 60 * 1000);
+	constexpr std::chrono::milliseconds  udp_idle_timeout       = std::chrono::milliseconds(60 * 1000);
+	constexpr std::chrono::milliseconds http_idle_timeout       = std::chrono::milliseconds(85 * 1000);
+	constexpr std::chrono::milliseconds mqtt_idle_timeout       = std::chrono::milliseconds(90 * 1000); // 60 * 1.5
 
-	static long constexpr ssl_shutdown_timeout   = 30 * 1000;
-	static long constexpr  ws_shutdown_timeout   = 30 * 1000;
+	constexpr std::chrono::milliseconds http_execute_timeout    = std::chrono::milliseconds(15 * 1000);
+	constexpr std::chrono::milliseconds icmp_execute_timeout    = std::chrono::milliseconds( 4 * 1000);
 
-	static long constexpr ssl_handshake_timeout  = 30 * 1000;
-	static long constexpr  ws_handshake_timeout  = 30 * 1000;
+	constexpr std::chrono::milliseconds ssl_shutdown_timeout    = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds  ws_shutdown_timeout    = std::chrono::milliseconds(30 * 1000);
+
+	constexpr std::chrono::milliseconds ssl_handshake_timeout   = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds  ws_handshake_timeout   = std::chrono::milliseconds(30 * 1000);
 
 	/*
 	 * The read buffer has to be at least as large
@@ -67,28 +71,13 @@ namespace asio::detail
 	 * refrenced from beast stream.hpp
 	 */
 	// udp MTU : https://zhuanlan.zhihu.com/p/301276548
-	static std::size_t constexpr  tcp_frame_size = 1480;
-	static std::size_t constexpr  udp_frame_size = 548; // LAN:1472 WAN:548
-	static std::size_t constexpr http_frame_size = 1480;
-
-	static std::size_t constexpr max_buffer_size = (std::numeric_limits<std::size_t>::max)();
+	constexpr std::size_t  tcp_frame_size = 1480;
+	constexpr std::size_t  udp_frame_size = 548; // LAN:1472 WAN:548
+	constexpr std::size_t http_frame_size = 1480;
 }
 
 namespace asio
 {
-	template<typename T, typename U = std::remove_cvref_t<T>>
-	using default_token_type = typename ::asio::default_completion_token<typename U::executor_type>::type;
-
-	template<typename T>
-	inline constexpr auto default_token()
-	{
-		return default_token_type<T>();
-	}
-
-	//
-	constexpr auto use_nothrow_deferred  = asio::as_tuple(asio::deferred);
-	constexpr auto use_nothrow_awaitable = asio::as_tuple(asio::use_awaitable);
-
 	template <typename... Ts>
 	inline constexpr void ignore_unused(Ts const& ...) noexcept {}
 
@@ -292,4 +281,90 @@ namespace asio
 		ws = websocket,
 		wss = websockets
 	};
+}
+
+namespace asio::detail
+{
+	template<class T>
+	struct co_await_value_type
+	{
+		using type = std::remove_cvref_t<T>;
+	};
+
+	template<>
+	struct co_await_value_type<void>
+	{
+		using type = error_code;
+	};
+
+	struct async_call_coroutine_op
+	{
+		static asio::awaitable<error_code> call_coroutine(auto&& awaiter, auto& ch)
+		{
+			using awaiter_type = std::remove_cvref_t<decltype(awaiter)>;
+			using value_type = typename awaiter_type::value_type;
+
+			if constexpr (std::is_void_v<value_type>)
+			{
+				co_await std::forward_like<decltype(awaiter)>(awaiter);
+
+				auto [ec] = co_await ch.async_send(error_code{}, error_code{}, asio::use_nothrow_awaitable);
+
+				co_return ec;
+			}
+			else
+			{
+				auto result = co_await std::forward_like<decltype(awaiter)>(awaiter);
+
+				auto [ec] = co_await ch.async_send(error_code{}, std::move(result), asio::use_nothrow_awaitable);
+
+				co_return ec;
+			}
+		}
+
+		auto operator()(auto state, auto executor, auto&& awaiter) -> void
+		{
+			using awaiter_type = std::remove_cvref_t<decltype(awaiter)>;
+			using value_type = typename awaiter_type::value_type;
+			using result_type = typename detail::co_await_value_type<value_type>::type;
+
+			auto waiter = std::forward_like<decltype(awaiter)>(awaiter);
+
+			co_await asio::dispatch(executor, asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+			experimental::channel<void(error_code, result_type)> ch{ executor, 1 };
+
+			asio::co_spawn(executor, call_coroutine(std::move(waiter), ch), asio::detached);
+
+			auto [ec, result] = co_await ch.async_receive(use_nothrow_deferred);
+
+			co_return result;
+		}
+	};
+}
+
+namespace asio
+{
+	/**
+	 * @brief 
+	 * @param executor - 
+	 * @param awaiter - 
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+	 */
+	template<typename Awaiter, typename AwaitToken>
+	inline auto async_call_coroutine(auto&& executor, Awaiter&& awaiter, AwaitToken&& token)
+	{
+		using result_type = typename detail::co_await_value_type<typename Awaiter::value_type>::type;
+		return async_initiate<AwaitToken, void(result_type)>(
+			experimental::co_composed<void(result_type)>(
+				detail::async_call_coroutine_op{}, executor),
+			token,
+			executor,
+			std::forward<Awaiter>(awaiter)
+		);
+	}
 }

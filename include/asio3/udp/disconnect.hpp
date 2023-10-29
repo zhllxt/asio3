@@ -17,9 +17,7 @@ namespace asio::detail
 {
 	struct udp_async_disconnect_op
 	{
-		template<typename AsyncStream>
-		auto operator()(
-			auto state, std::reference_wrapper<AsyncStream> sock_ref, timeout_duration) -> void
+		auto operator()(auto state, auto sock_ref) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -48,7 +46,6 @@ namespace asio
 	/**
 	 * @brief Asynchronously graceful disconnect the socket connection.
 	 * @param sock - The socket reference to be connected.
-	 * @param timeout - The disconnect timeout.
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
@@ -56,18 +53,15 @@ namespace asio
 	 */
 	template<
 		typename AsyncStream,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) DisconnectToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	requires std::same_as<typename std::remove_cvref_t<AsyncStream>::protocol_type, asio::ip::udp>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(DisconnectToken, void(asio::error_code))
-	async_disconnect(
+		typename DisconnectToken = asio::default_token_type<AsyncStream>>
+	requires (is_basic_datagram_socket<AsyncStream>)
+	inline auto async_disconnect(
 		AsyncStream& sock,
-		timeout_duration timeout = std::chrono::steady_clock::duration::zero(),
-		DisconnectToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+		DisconnectToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<DisconnectToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(
 				detail::udp_async_disconnect_op{}, sock),
-			token, std::ref(sock), timeout);
+			token, std::ref(sock));
 	}
 }

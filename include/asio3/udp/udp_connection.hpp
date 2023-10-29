@@ -10,62 +10,45 @@
 
 #pragma once
 
-#include <asio3/core/connection.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 #include <asio3/udp/read.hpp>
 #include <asio3/udp/write.hpp>
 #include <asio3/udp/send.hpp>
+#include <asio3/udp/disconnect.hpp>
 
 namespace asio
 {
-	struct udp_connection_option
-	{
-		timeout_duration      connect_timeout{ std::chrono::milliseconds(detail::udp_connect_timeout) };
-		timeout_duration      disconnect_timeout{ std::chrono::milliseconds(detail::udp_handshake_timeout) };
-		timeout_duration      idle_timeout{ std::chrono::milliseconds(detail::udp_idle_timeout) };
-	};
-
 	class udp_connection : public std::enable_shared_from_this<udp_connection>
 	{
 	public:
 		using key_type = ip::udp::endpoint;
-		using recv_channel_type = experimental::channel<void(asio::error_code)>;
-		using recv_notifier_type = as_tuple_t<deferred_t>::as_default_on_t<recv_channel_type>;
 
 	public:
-		explicit udp_connection(udp_socket& sock, udp_connection_option opt)
-			: socket(sock)
-			, option(std::move(opt))
+		explicit udp_connection(udp_socket& sock) : socket(sock)
 		{
 		}
 
 		~udp_connection()
 		{
-			stop();
 		}
 
 		/**
 		 * @brief Get this object hash key, used for connection map
 		 */
-		inline key_type hash_key() const noexcept
+		inline key_type hash_key(this auto&& self) noexcept
 		{
-			return remote_endpoint;
+			return self.remote_endpoint;
 		}
 
 		/**
 		 * @brief Asynchronously graceful disconnect the connection, this function does not block.
 		 */
-		inline void disconnect() noexcept
+		template<typename DisconnectToken = asio::default_token_type<asio::udp_socket>>
+		inline auto async_disconnect(
+			this auto&& self,
+			DisconnectToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			stop();
-		}
-
-		/**
-		 * @brief shutdown and close the socket directly.
-		 */
-		inline void stop() noexcept
-		{
-			asio::cancel_timer(idle_timer);
+			return asio::async_disconnect(self.get_socket(), std::forward<DisconnectToken>(token));
 		}
 
 		/**
@@ -76,64 +59,71 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename Data, typename WriteToken = default_udp_send_token>
-		inline auto async_send(Data&& data, WriteToken&& token = default_udp_send_token{})
+		template<typename WriteToken = asio::default_token_type<asio::udp_socket>>
+		inline auto async_send(
+			this auto&& self,
+			auto&& data,
+			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			return asio::async_send(socket, std::forward<Data>(data), std::forward<WriteToken>(token));
+			return asio::async_send(self.get_socket(),
+				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
 		}
 
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor() noexcept
+		inline const auto& get_executor(this auto&& self) noexcept
 		{
-			return socket.get_executor();
+			return self.get_socket().get_executor();
 		}
 
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address() noexcept
+		inline std::string get_local_address(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.local_endpoint(ec).address().to_string(ec);
+			return self.get_socket().local_endpoint(ec).address().to_string(ec);
 		}
 
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port() noexcept
+		inline ip::port_type get_local_port(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return socket.local_endpoint(ec).port();
+			return self.get_socket().local_endpoint(ec).port();
 		}
 
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address() noexcept
+		inline std::string get_remote_address(this auto&& self) noexcept
 		{
 			error_code ec{};
-			return remote_endpoint.address().to_string(ec);
+			return self.remote_endpoint.address().to_string(ec);
 		}
 
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port() noexcept
+		inline ip::port_type get_remote_port(this auto&& self) noexcept
 		{
-			return remote_endpoint.port();
+			return self.remote_endpoint.port();
+		}
+
+		/**
+		 * @brief Get the socket.
+		 * https://devblogs.microsoft.com/cppblog/cpp23-deducing-this/
+		 */
+		constexpr inline auto&& get_socket(this auto&& self)
+		{
+			return std::forward_like<decltype(self)>(self).socket;
 		}
 
 	public:
-		udp_connection_option option{};
-
 		asio::udp_socket&     socket;
 
 		ip::udp::endpoint     remote_endpoint{};
-
-		asio::steady_timer    idle_timer{ socket.get_executor() };
-
-		recv_notifier_type    recv_notifier{ socket.get_executor(), 1 };
 	};
 }

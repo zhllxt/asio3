@@ -14,7 +14,7 @@
 #pragma once
 
 #include <asio3/core/error.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 
 #include <asio3/proxy/core.hpp>
 #include <asio3/proxy/error.hpp>
@@ -29,16 +29,6 @@ namespace asio::socks5::detail
 {
 	struct async_accept_op
 	{
-		template<typename Awaiter, typename Channel>
-		static asio::awaitable<error_code> call_coroutine(Awaiter&& a, Channel& ch)
-		{
-			auto result = co_await std::forward<Awaiter>(a);
-
-			auto [ec] = co_await ch.async_send(error_code{}, std::move(result), asio::use_nothrow_awaitable);
-
-			co_return ec;
-		}
-
 		template<typename AsyncStream, typename AuthConfig>
 		auto operator()(auto state,
 			std::reference_wrapper<AsyncStream> sock_ref,
@@ -229,12 +219,8 @@ namespace asio::socks5::detail
 
 				password.assign(p, plen);
 
-				experimental::channel<void(error_code, bool)> ch{ sock.get_executor(), 1 };
-
-				asio::co_spawn(sock.get_executor(),
-					call_coroutine(auth_cfg.on_auth(hdshak_info), ch), asio::detached);
-
-				auto [auth_ec, auth_result] = co_await ch.async_receive(use_nothrow_deferred);
+				auto [auth_ec, auth_result] = co_await asio::async_call_coroutine(
+					sock.get_executor(), auth_cfg.on_auth(hdshak_info), asio::use_nothrow_deferred);
 
 				// compare username and password
 				// failed

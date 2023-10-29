@@ -18,17 +18,14 @@ namespace asio::detail
 {
 	struct async_send_to_op
 	{
-		template<typename AsyncStream, typename ConstBufferSequence, typename String, typename StrOrInt>
-		auto operator()(
-			auto state, std::reference_wrapper<AsyncStream> sock_ref,
-			ConstBufferSequence buffers, String&& host, StrOrInt&& port) -> void
+		auto operator()(auto state, auto sock_ref, auto buffers, auto&& host, auto&& port) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			auto& sock = sock_ref.get();
 
-			std::string h = asio::to_string(std::forward<String>(host));
-			std::string p = asio::to_string(std::forward<StrOrInt>(port));
+			std::string h = asio::to_string(std::forward_like<decltype(host)>(host));
+			std::string p = asio::to_string(std::forward_like<decltype(port)>(port));
 
 			asio::ip::udp::resolver resolver(sock.get_executor());
 
@@ -111,18 +108,17 @@ template <typename AsyncWriteStream, typename ConstBufferSequence,
 	typename String, typename StrOrInt,
 	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
 	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncWriteStream::executor_type)>
-requires 
-	(std::constructible_from<std::string, String> &&
-	(std::constructible_from<std::string, StrOrInt> || std::integral<std::remove_cvref_t<StrOrInt>>))
 ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
 async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
-	String&& host, StrOrInt&& port,
+	is_string auto&& host, is_string_or_integral auto&& port,
 	WriteToken&& token
 	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
 {
 	return asio::async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
 			detail::async_send_to_op{}, s),
-		token, std::ref(s), buffers, std::forward<String>(host), std::forward<StrOrInt>(port));
+		token, std::ref(s), buffers,
+		std::forward_like<decltype(host)>(host),
+		std::forward_like<decltype(port)>(port));
 }
 }

@@ -145,6 +145,15 @@
 	//}
 #endif // ASIO_STANDALONE
 
+namespace asio
+{
+	template<typename T, typename U = std::remove_cvref_t<T>>
+	using default_token_type = typename ::asio::default_completion_token<typename U::executor_type>::type;
+
+	constexpr auto use_nothrow_deferred  = asio::as_tuple(asio::deferred);
+	constexpr auto use_nothrow_awaitable = asio::as_tuple(asio::use_awaitable);
+}
+
 using namespace asio::experimental::awaitable_operators;
 
 #include <asio3/core/detail/pop_options.hpp>

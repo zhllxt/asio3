@@ -42,11 +42,4 @@ namespace asio
 			sock.set_option(asio::ip::tcp::no_delay(option.no_delay), ec);
 		}
 	};
-
-	struct default_tcp_write_token
-	{
-		inline void operator()(const asio::error_code&, std::size_t) noexcept
-		{
-		}
-	};
 }

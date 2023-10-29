@@ -119,10 +119,10 @@ namespace asio
 			return value;
 	}
 
+
 	// helper type for the visitor #4
 	template<class... Ts>
 	struct variant_overloaded : Ts... { using Ts::operator()...; };
-
 	// explicit deduction guide (not needed as of C++20)
 	template<class... Ts>
 	variant_overloaded(Ts...) -> variant_overloaded<Ts...>;

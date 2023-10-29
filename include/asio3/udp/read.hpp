@@ -14,41 +14,6 @@
 #include <asio3/udp/core.hpp>
 #include <asio3/proxy/parser.hpp>
 
-namespace asio::detail
-{
-	struct udp_async_recv_op
-	{
-		template<typename AsyncReadStream, typename MutableBufferSequence>
-		auto operator()(auto state,
-			std::reference_wrapper<AsyncReadStream> stream_ref, const MutableBufferSequence& buffers,
-			bool remove_socks5_head) -> void
-		{
-			auto& s = stream_ref.get();
-
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-			auto [e1, n1] = co_await s.async_receive(buffers, use_nothrow_deferred);
-			if (e1)
-				co_return{ e1, std::string_view{} };
-
-			std::string_view sv{ (std::string_view::pointer)(buffers.data()), n1 };
-
-			if (remove_socks5_head)
-			{
-				auto [error, endpoint, domain, real_data] = socks5::parse_udp_packet(sv);
-				if (error)
-					co_return{ asio::error::no_data, std::string_view{} };
-				else
-					co_return{ error_code{}, real_data };
-			}
-			else
-			{
-				co_return{ error_code{}, sv };
-			}
-		}
-	};
-}
-
 namespace asio
 {
 /**
@@ -92,48 +57,20 @@ async_receive_from(AsyncReadStream& s, const MutableBufferSequence& buffers,
 /**
  * @brief Start an asynchronous receive on a connected socket. Remove the socks5 head if exists.
  * @param buffers - One or more buffers into which the data will be received.
- * @param remove_socks5_head - If the socket has socks5 proxy, this should be true.
  * @param token - The completion handler to invoke when the operation completes.
  *	  The equivalent function signature of the handler must be:
  *    @code
- *    void handler(const asio::error_code& ec, std::string_view data);
+ *    void handler(const asio::error_code& ec, std::size_t bytes_recvd);
  */
 template <typename AsyncReadStream, typename MutableBufferSequence,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::string_view)) ReadToken
+	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) ReadToken
 	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncReadStream::executor_type)>
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::string_view))
-async_receive(
-	AsyncReadStream& s, const MutableBufferSequence& buffers, bool remove_socks5_head,
-	ASIO_MOVE_ARG(ReadToken) token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncReadStream::executor_type))
-{
-	return async_initiate<ReadToken, void(asio::error_code, std::string_view)>(
-		experimental::co_composed<void(asio::error_code, std::string_view)>(
-			detail::udp_async_recv_op{}, s),
-		token, std::ref(s), buffers, remove_socks5_head);
-}
-
-/**
- * @brief Start an asynchronous receive on a connected socket. Remove the socks5 head if exists.
- * @param buffers - One or more buffers into which the data will be received.
- * @param token - The completion handler to invoke when the operation completes.
- *	  The equivalent function signature of the handler must be:
- *    @code
- *    void handler(const asio::error_code& ec, std::string_view data);
- */
-template <typename AsyncReadStream, typename MutableBufferSequence,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::string_view)) ReadToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncReadStream::executor_type)>
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::string_view))
+ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::size_t))
 async_receive(
 	AsyncReadStream& s, const MutableBufferSequence& buffers,
 	ASIO_MOVE_ARG(ReadToken) token
 	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncReadStream::executor_type))
 {
-	return async_initiate<ReadToken, void(asio::error_code, std::string_view)>(
-		experimental::co_composed<void(asio::error_code, std::string_view)>(
-			detail::udp_async_recv_op{}, s),
-		token, std::ref(s), buffers, false);
+	return s.async_receive(buffers, std::forward<ReadToken>(token));
 }
-
 }

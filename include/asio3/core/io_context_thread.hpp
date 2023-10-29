@@ -45,7 +45,7 @@ namespace asio
 		/**
 		 * @brief Get the executor associated of the io_context.
 		 */
-		inline auto get_executor() noexcept
+		inline asio::io_context::executor_type get_executor() noexcept
 		{
 			return context.get_executor();
 		}

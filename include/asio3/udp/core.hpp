@@ -16,7 +16,7 @@
 
 namespace asio
 {
-	using udp_resolver = as_tuple_t<deferred_t>::as_default_on_t<ip::udp::resolver>;
+	using udp_resolver = with_lock_t<as_tuple_t<deferred_t>>::as_default_on_t<ip::udp::resolver>;
 	using udp_socket   = with_lock_t<as_tuple_t<deferred_t>>::as_default_on_t<ip::udp::socket>;
 }
 
@@ -25,7 +25,6 @@ namespace asio
 	struct udp_socket_option
 	{
 		bool reuse_address = true;
-		bool keep_alive    = true;
 	};
 
 	struct default_udp_socket_option_setter
@@ -36,14 +35,6 @@ namespace asio
 		{
 			asio::error_code ec{};
 			sock.set_option(asio::socket_base::reuse_address(option.reuse_address), ec);
-			sock.set_option(asio::socket_base::keep_alive(option.keep_alive), ec);
-		}
-	};
-
-	struct default_udp_send_token
-	{
-		inline void operator()(const asio::error_code&, std::size_t) noexcept
-		{
 		}
 	};
 }

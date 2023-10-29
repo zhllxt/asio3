@@ -17,7 +17,7 @@
 #include <cassert>
 
 #include <asio3/core/error.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 
 #include <asio3/proxy/core.hpp>
 #include <asio3/proxy/error.hpp>
@@ -35,9 +35,8 @@ namespace asio::socks5::detail
 			std::reference_wrapper<AsyncStream> sock_ref,
 			std::reference_wrapper<Socks5Option> sock5_opt_ref) -> void
 		{
-			using ::asio::detail::read;
-			using ::asio::detail::write;
-			using ::asio::detail::to_underlying;
+			using ::asio::read;
+			using ::asio::write;
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -72,11 +71,11 @@ namespace asio::socks5::detail
 			buffer = strbuf.prepare(bytes);
 			p      = static_cast<char*>(buffer.data());
 
-			write(p, std::uint8_t(0x05));                    // SOCKS VERSION 5.
-			write(p, std::uint8_t(sock5_opt.method.size())); // NMETHODS
+			write(p, std::uint8_t(0x05));                      // SOCKS VERSION 5.
+			write(p, std::uint8_t(sock5_opt.method.size()));   // NMETHODS
 			for (auto m : sock5_opt.method)
 			{
-				write(p, std::uint8_t(to_underlying(m)));  // METHODS
+				write(p, std::uint8_t(std::to_underlying(m))); // METHODS
 			}
 
 			strbuf.commit(bytes);
@@ -292,9 +291,9 @@ namespace asio::socks5::detail
 			buffer = strbuf.prepare(1 + 1 + 1 + 1 + (std::max)(16, int(dst_addr.size() + 1)) + 2);
 			p      = static_cast<char*>(buffer.data());
 
-			write(p, std::uint8_t(0x05));                         // VER 5.
-			write(p, std::uint8_t(to_underlying(sock5_opt.cmd))); // CMD CONNECT .
-			write(p, std::uint8_t(0x00));                         // RSV.
+			write(p, std::uint8_t(0x05));                              // VER 5.
+			write(p, std::uint8_t(std::to_underlying(sock5_opt.cmd))); // CMD CONNECT .
+			write(p, std::uint8_t(0x00));                              // RSV.
 
 			asio::ip::tcp::endpoint dst_endpoint{};
 			// ATYP

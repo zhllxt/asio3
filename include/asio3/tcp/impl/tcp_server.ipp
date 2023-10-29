@@ -91,36 +91,3 @@
 		}
 	};
 
-	struct batch_async_send_op
-	{
-		asio::awaitable<void> do_send(auto msgbuf, std::size_t& total, auto conn)
-		{
-			auto [e1, n1] = co_await conn->async_send(msgbuf, use_nothrow_deferred);
-			total += n1;
-		}
-
-		template<typename Data>
-		auto operator()(auto state, auto server_ref, Data&& data) -> void
-		{
-			auto& server = server_ref.get();
-
-			Data msg = std::forward<Data>(data);
-
-			co_await asio::dispatch(server.get_executor(), use_nothrow_deferred);
-
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-			auto msgbuf = asio::buffer(msg);
-
-			std::size_t total = 0;
-
-			co_await connection_map.async_for_each(
-				std::bind_front(do_send, msgbuf, std::ref(total)), use_nothrow_deferred);
-
-			//asio::awaitable<void> awaiter;
-			//awaiter = (awaiter && do_send(msgbuf, total, conn));
-			//co_await (awaiter);
-
-			co_return{ error_code{}, total };
-		}
-	};

@@ -15,7 +15,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/fixed_capacity_vector.hpp>
 #include <asio3/core/move_only_any.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 
 namespace asio::socks5
 {
@@ -147,24 +147,6 @@ namespace asio::socks5
 			//if (opt.cmd == command::udp_associate && opt.dest_port == 0)
 			//	return false;
 			return true;
-		}
-	}
-}
-
-namespace asio
-{
-	namespace
-	{
-		[[maybe_unused]]
-		const std::string& get_server_address(const std::string& server_address, socks5::option& s5opt)
-		{
-			return socks5::is_option_valid(s5opt) ? s5opt.proxy_address : server_address;
-		}
-
-		[[maybe_unused]]
-		std::uint16_t get_server_port(std::uint16_t server_port, socks5::option& s5opt)
-		{
-			return socks5::is_option_valid(s5opt) ? s5opt.proxy_port : server_port;
 		}
 	}
 }
