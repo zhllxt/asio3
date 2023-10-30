@@ -78,13 +78,12 @@ auto async_read(AsyncReadStream& s, basic_streambuf<Allocator>& b, detail::trans
  *   std::size_t bytes_transferred // Number of bytes read.
  * ); @endcode
  */
-template <typename AsyncReadStream, typename MutableBufferSequence,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) ReadToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncReadStream::executor_type)>
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::size_t))
-async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers,
-	ReadToken&& token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncReadStream::executor_type))
+template <
+	typename AsyncReadStream,
+	typename MutableBufferSequence,
+	typename ReadToken = default_token_type<AsyncReadStream>>
+inline auto async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers,
+	ReadToken&& token = default_token_type<AsyncReadStream>())
 {
 	return s.async_read_some(buffers, std::forward<ReadToken>(token));
 }

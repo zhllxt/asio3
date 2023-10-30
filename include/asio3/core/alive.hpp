@@ -60,13 +60,26 @@ namespace asio::detail
 	{
 		auto operator()(auto state, auto sock_ref,
 			std::chrono::system_clock::time_point& alive_time,
-			std::chrono::system_clock::duration idle_timeout) -> void
+			std::chrono::system_clock::duration idle_timeout,
+			asio::cancellation_signal& sig) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			auto& sock = sock_ref.get();
 
 			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+
+			struct auto_emiter
+			{
+				auto_emiter(asio::cancellation_signal& s) : sig(s)
+				{
+				}
+				~auto_emiter()
+				{
+					sig.emit(asio::cancellation_type::terminal);
+				}
+				asio::cancellation_signal& sig;
+			} tmp_auto_emiter{ sig };
 
 			steady_timer t(sock.get_executor());
 
@@ -142,12 +155,13 @@ namespace asio
 		AsyncStream& sock,
 		std::chrono::system_clock::time_point& alive_time,
 		std::chrono::system_clock::duration idle_timeout,
+		asio::cancellation_signal& sig,
 		CheckToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<CheckToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(
 				detail::async_check_idle_op{}, sock),
-			token, std::ref(sock), std::ref(alive_time), idle_timeout);
+			token, std::ref(sock), std::ref(alive_time), idle_timeout, std::ref(sig));
 	}
 }
 
@@ -163,10 +177,12 @@ namespace asio
 		if (!sock.is_open())
 			co_return asio::error::operation_aborted;
 
+		asio::cancellation_signal sig;
+
 		auto result = co_await
 		(
-			async_check_error(sock, use_nothrow_awaitable) ||
-			async_check_idle(sock, alive_time, idle_timeout, use_nothrow_awaitable)
+			async_check_error(sock, asio::bind_cancellation_slot(sig.slot(), use_nothrow_awaitable)) ||
+			async_check_idle(sock, alive_time, idle_timeout, sig, use_nothrow_awaitable)
 		);
 
 		error_code ec{};

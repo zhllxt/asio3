@@ -42,14 +42,13 @@ namespace asio
  *   std::size_t bytes_transferred // Number of bytes received.
  * ); @endcode
  */
-template <typename AsyncReadStream, typename MutableBufferSequence,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) ReadToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncReadStream::executor_type)>
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::size_t))
-async_receive_from(AsyncReadStream& s, const MutableBufferSequence& buffers,
+template <
+	typename AsyncReadStream,
+	typename MutableBufferSequence,
+	typename ReadToken = default_token_type<AsyncReadStream>>
+inline auto async_receive_from(AsyncReadStream& s, const MutableBufferSequence& buffers,
 	typename AsyncReadStream::endpoint_type& sender_endpoint,
-	ReadToken&& token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncReadStream::executor_type))
+	ReadToken&& token = default_token_type<AsyncReadStream>())
 {
 	return s.async_receive_from(buffers, sender_endpoint, std::forward<ReadToken>(token));
 }
@@ -62,14 +61,13 @@ async_receive_from(AsyncReadStream& s, const MutableBufferSequence& buffers,
  *    @code
  *    void handler(const asio::error_code& ec, std::size_t bytes_recvd);
  */
-template <typename AsyncReadStream, typename MutableBufferSequence,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) ReadToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncReadStream::executor_type)>
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::size_t))
-async_receive(
+template <
+	typename AsyncReadStream,
+	typename MutableBufferSequence,
+	typename ReadToken = default_token_type<AsyncReadStream>>
+inline auto async_receive(
 	AsyncReadStream& s, const MutableBufferSequence& buffers,
-	ReadToken&& token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncReadStream::executor_type))
+	ReadToken&& token = default_token_type<AsyncReadStream>())
 {
 	return s.async_receive(buffers, std::forward<ReadToken>(token));
 }

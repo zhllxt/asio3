@@ -110,33 +110,29 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec, asio::stream_file file, std::string content);
 	 */
-	template<typename Executor, typename String,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::stream_file, std::string)) ReadToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::nothrow_stream_file::executor_type)>
-	requires std::constructible_from<std::string, String>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, asio::stream_file, std::string))
-	async_read_file(
+	template<
+		typename Executor,
+		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
+	inline auto async_read_file(
 		Executor&& ex,
-		String&& filepath,
-		ReadToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::nothrow_stream_file::executor_type))
+		is_string auto&& filepath,
+		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::string)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::string)>(
 				detail::async_read_file_op{}, ex),
-			token, ex, asio::to_string(std::forward<String>(filepath)));
+			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)));
 	}
 
 	/**
 	 * @brief Start an asynchronous operation to read a file.
 	 * @param filepath - The full file path.
 	 */
-	template<typename String>
-	requires std::constructible_from<std::string, String>
 	asio::awaitable<std::tuple<asio::error_code, asio::stream_file, std::string>> async_read_file(
-		String&& filepath)
+		is_string auto&& filepath)
 	{
 		co_return co_await async_read_file(co_await asio::this_coro::executor,
-			std::forward<String>(filepath), asio::use_nothrow_awaitable);
+			std::forward_like<decltype(filepath)>(filepath), asio::use_nothrow_awaitable);
 	}
 
 	/**
@@ -148,21 +144,20 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec, asio::stream_file file, std::size_t bytes_writen);
 	 */
-	template<typename Executor, typename String, typename ConstBufferSequence,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::stream_file, std::size_t)) ReadToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::nothrow_stream_file::executor_type)>
-	requires std::constructible_from<std::string, String>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, asio::stream_file, std::size_t))
-	async_write_file(
+	template<
+		typename Executor,
+		typename ConstBufferSequence,
+		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
+	inline auto async_write_file(
 		Executor&& ex,
-		String&& filepath,
+		is_string auto&& filepath,
 		const ConstBufferSequence& buffers,
-		ReadToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::nothrow_stream_file::executor_type))
+		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::size_t)>(
 				detail::async_write_file_op{}, ex),
-			token, ex, asio::to_string(std::forward<String>(filepath)), buffers,
+			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)), buffers,
 			stream_file::write_only | stream_file::create | stream_file::truncate);
 	}
 
@@ -175,35 +170,33 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec, asio::stream_file file, std::size_t bytes_writen);
 	 */
-	template<typename Executor, typename String, typename ConstBufferSequence,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, asio::stream_file, std::size_t)) ReadToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::nothrow_stream_file::executor_type)>
-	requires std::constructible_from<std::string, String>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, asio::stream_file, std::size_t))
-	async_write_file(
+	template<
+		typename Executor,
+		typename ConstBufferSequence,
+		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
+	inline auto async_write_file(
 		Executor&& ex,
-		String&& filepath,
+		is_string auto&& filepath,
 		const ConstBufferSequence& buffers,
 		file_base::flags open_flags,
-		ReadToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::nothrow_stream_file::executor_type))
+		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::size_t)>(
 				detail::async_write_file_op{}, ex),
-			token, ex, asio::to_string(std::forward<String>(filepath)), buffers, open_flags);
+			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)), buffers, open_flags);
 	}
 
 	/**
 	 * @brief Start an asynchronous operation to write file.
 	 * @param filepath - The full file path.
 	 */
-	template<typename String, typename ConstBufferSequence>
-	requires std::constructible_from<std::string, String>
+	template<typename ConstBufferSequence>
 	asio::awaitable<std::tuple<asio::error_code, asio::stream_file, std::size_t>> async_write_file(
-		String&& filepath, const ConstBufferSequence& buffers,
+		is_string auto&& filepath, const ConstBufferSequence& buffers,
 		file_base::flags open_flags = stream_file::write_only | stream_file::create | stream_file::truncate)
 	{
 		co_return co_await async_write_file(co_await asio::this_coro::executor,
-			std::forward<String>(filepath), buffers, open_flags, asio::use_nothrow_awaitable);
+			std::forward_like<decltype(filepath)>(filepath), buffers, open_flags, asio::use_nothrow_awaitable);
 	}
 }

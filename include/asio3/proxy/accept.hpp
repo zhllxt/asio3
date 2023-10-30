@@ -542,14 +542,13 @@ namespace asio::socks5
 	 *    void handler(const asio::error_code& ec, socks5::handshake_info info);
 	 */
 	template<
-		typename AsyncStream, typename AuthConfig,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, socks5::handshake_info)) AcceptToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
+		typename AsyncStream,
+		typename AuthConfig,
+		typename AcceptToken = default_token_type<AsyncStream>>
 	requires std::derived_from<std::remove_cvref_t<AuthConfig>, socks5::auth_config>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(AcceptToken, void(asio::error_code, socks5::handshake_info))
-	async_accept(
+	inline auto async_accept(
 		AsyncStream& sock, AuthConfig& auth_cfg,
-		AcceptToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+		AcceptToken&& token = default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<AcceptToken, void(asio::error_code, socks5::handshake_info)>(
 			asio::experimental::co_composed<void(asio::error_code, socks5::handshake_info)>(

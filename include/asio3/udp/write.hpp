@@ -83,17 +83,16 @@ namespace asio
  *   std::size_t bytes_transferred // Number of bytes sent.
  * ); @endcode
  */
-template <typename AsyncWriteStream, typename ConstBufferSequence,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncWriteStream::executor_type)>
+template <
+	typename AsyncWriteStream,
+	typename ConstBufferSequence,
+	typename WriteToken = default_token_type<AsyncWriteStream>>
 requires (
 	asio::is_const_buffer_sequence<ConstBufferSequence>::value ||
 	asio::is_mutable_buffer_sequence<ConstBufferSequence>::value)
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
-async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
+inline auto async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
 	const typename AsyncWriteStream::endpoint_type& destination,
-	WriteToken&& token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
+	WriteToken&& token = default_token_type<AsyncWriteStream>())
 {
 	return s.async_send_to(buffers, destination, std::forward<WriteToken>(token));
 }
@@ -122,17 +121,16 @@ async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
  *   std::size_t bytes_transferred // Number of bytes sent.
  * ); @endcode
  */
-template <typename AsyncWriteStream, typename DataT,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncWriteStream::executor_type)>
+template <
+	typename AsyncWriteStream,
+	typename DataT,
+	typename WriteToken = default_token_type<AsyncWriteStream>>
 requires (
 	!asio::is_const_buffer_sequence<DataT>::value &&
 	!asio::is_mutable_buffer_sequence<DataT>::value)
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
-async_send_to(AsyncWriteStream& s, DataT&& data,
+inline auto async_send_to(AsyncWriteStream& s, DataT&& data,
 	const typename AsyncWriteStream::endpoint_type& destination,
-	WriteToken&& token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
+	WriteToken&& token = default_token_type<AsyncWriteStream>())
 {
 	return asio::async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
@@ -164,18 +162,16 @@ async_send_to(AsyncWriteStream& s, DataT&& data,
  *   std::size_t bytes_transferred // Number of bytes sent.
  * ); @endcode
  */
-template <typename AsyncWriteStream, typename ConstBufferSequence,
-	typename String, typename StrOrInt,
-	ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code, std::size_t)) WriteToken
-	ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncWriteStream::executor_type)>
+template <
+	typename AsyncWriteStream,
+	typename ConstBufferSequence,
+	typename WriteToken = default_token_type<AsyncWriteStream>>
 requires (
 	asio::is_const_buffer_sequence<ConstBufferSequence>::value ||
 	asio::is_mutable_buffer_sequence<ConstBufferSequence>::value)
-ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(WriteToken, void(asio::error_code, std::size_t))
-async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
+inline auto async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
 	is_string auto&& host, is_string_or_integral auto&& port,
-	WriteToken&& token
-	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncWriteStream::executor_type))
+	WriteToken&& token = default_token_type<AsyncWriteStream>())
 {
 	return asio::async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(

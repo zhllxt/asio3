@@ -159,13 +159,12 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec);
 	 */
-	template<typename AsyncStream,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) LockToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename AsyncStream::executor_type)>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(LockToken, void(asio::error_code))
-	async_lock(
+	template<
+		typename AsyncStream,
+		typename LockToken = default_token_type<AsyncStream>>
+	inline auto async_lock(
 		AsyncStream& s,
-		LockToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncStream::executor_type))
+		LockToken&& token = default_token_type<AsyncStream>())
 	{
 		return async_initiate<LockToken, void(asio::error_code)>(
 			experimental::co_composed<void(asio::error_code)>(

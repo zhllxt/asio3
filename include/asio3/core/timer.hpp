@@ -139,14 +139,13 @@ namespace asio
      *    @code
      *    void handler(const asio::error_code& ec);
 	 */
-	template<typename Executor,
-		ASIO_COMPLETION_TOKEN_FOR(void(asio::error_code)) SleepToken
-		ASIO_DEFAULT_COMPLETION_TOKEN_TYPE(typename asio::timer::executor_type)>
-	ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(SleepToken, void(asio::error_code))
-	async_sleep(
+	template<
+		typename Executor,
+		typename SleepToken = default_token_type<asio::timer>>
+	inline auto async_sleep(
 		Executor&& executor,
 		timer_duration duration,
-		SleepToken&& token ASIO_DEFAULT_COMPLETION_TOKEN(typename asio::timer::executor_type))
+		SleepToken&& token = default_token_type<asio::timer>())
 	{
 		return asio::async_initiate<SleepToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(
