@@ -18,7 +18,7 @@
 namespace asio
 {
 	template<typename ConnectionT>
-	class connection_map_t : public std::enable_shared_from_this<connection_map_t<ConnectionT>>
+	class connection_map_t
 	{
 	public:
 		using connection_type = ConnectionT;
@@ -29,6 +29,7 @@ namespace asio
 		using executor_type = typename lock_type::executor_type;
 
 		struct async_emplace_op;
+		struct async_find_or_emplace_op;
 		struct async_erase_op;
 		struct async_find_op;
 		struct async_disconnect_all_op;
@@ -37,8 +38,7 @@ namespace asio
 
 	public:
 		template<class Executor>
-		explicit connection_map_t(const Executor& ex)
-			: lock(ex, 1)
+		explicit connection_map_t(const Executor& ex) : lock(ex, 1)
 		{
 			map.reserve(64);
 		}
@@ -52,13 +52,31 @@ namespace asio
 		 */
 		template<typename EmplaceToken = asio::default_token_type<lock_type>>
 		inline auto async_emplace(
+			this auto&& self,
 			value_type conn,
 			EmplaceToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EmplaceToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
-					async_emplace_op{}, lock),
-				token, std::ref(*this), std::move(conn));
+					async_emplace_op{}, self.lock),
+				token, std::ref(self), std::move(conn));
+		}
+
+		/**
+		 * @brief emplace connection
+		 */
+		template<typename EmplaceToken = asio::default_token_type<lock_type>>
+		inline auto async_find_or_emplace(
+			this auto&& self,
+			key_type key,
+			auto&& create_func,
+			EmplaceToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<EmplaceToken, void(value_type, bool)>(
+				asio::experimental::co_composed<void(value_type, bool)>(
+					async_find_or_emplace_op{}, self.lock),
+				token, std::ref(self), std::move(key),
+				std::forward_like<decltype(create_func)>(create_func));
 		}
 
 		/**
@@ -66,13 +84,14 @@ namespace asio
 		 */
 		template<typename EraseToken = asio::default_token_type<lock_type>>
 		inline auto async_erase(
+			this auto&& self,
 			key_type key,
 			EraseToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EraseToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
-					async_erase_op{}, lock),
-				token, std::ref(*this), std::move(key));
+					async_erase_op{}, self.lock),
+				token, std::ref(self), std::move(key));
 		}
 
 		/**
@@ -80,13 +99,14 @@ namespace asio
 		 */
 		template<typename EraseToken = asio::default_token_type<lock_type>>
 		inline auto async_erase(
+			this auto&& self,
 			std::shared_ptr<connection_type>& conn,
 			EraseToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EraseToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
-					async_erase_op{}, lock),
-				token, std::ref(*this), conn->hash_key());
+					async_erase_op{}, self.lock),
+				token, std::ref(self), conn->hash_key());
 		}
 
 		/**
@@ -94,37 +114,43 @@ namespace asio
 		 */
 		template<typename FindToken = asio::default_token_type<lock_type>>
 		inline auto async_find(
+			this auto&& self,
 			key_type key,
 			FindToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<FindToken, void(value_type)>(
 				asio::experimental::co_composed<void(value_type)>(
-					async_find_op{}, lock),
-				token, std::ref(*this), std::move(key));
+					async_find_op{}, self.lock),
+				token, std::ref(self), std::move(key));
 		}
 
 		/**
 		 * @brief disconnect all the connections in the map.
 		 */
 		template<typename DisconnectToken = asio::default_token_type<lock_type>>
-		inline auto async_disconnect_all(DisconnectToken&& token = asio::default_token_type<lock_type>())
+		inline auto async_disconnect_all(
+			this auto&& self,
+			DisconnectToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<DisconnectToken, void(std::size_t)>(
 				asio::experimental::co_composed<void(std::size_t)>(
-					async_disconnect_all_op{}, lock),
-				token, std::ref(*this), [](auto&) { return true; });
+					async_disconnect_all_op{}, self.lock),
+				token, std::ref(self), [](auto&) { return true; });
 		}
 
 		/**
 		 * @brief disconnect the selected connections in the map.
 		 */
 		template<typename DisconnectToken = asio::default_token_type<lock_type>>
-		inline auto async_disconnect_selected(auto&& pred, DisconnectToken&& token = asio::default_token_type<lock_type>())
+		inline auto async_disconnect_selected(
+			this auto&& self,
+			auto&& pred,
+			DisconnectToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<DisconnectToken, void(std::size_t)>(
 				asio::experimental::co_composed<void(std::size_t)>(
-					async_disconnect_all_op{}, lock),
-				token, std::ref(*this), std::forward_like<decltype(pred)>(pred));
+					async_disconnect_all_op{}, self.lock),
+				token, std::ref(self), std::forward_like<decltype(pred)>(pred));
 		}
 
 		/**
@@ -132,13 +158,14 @@ namespace asio
 		 */
 		template<typename SendToken = asio::default_token_type<lock_type>>
 		inline auto async_send_all(
+			this auto&& self,
 			auto&& data,
 			SendToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<SendToken, void(error_code, std::size_t)>(
 				asio::experimental::co_composed<void(error_code, std::size_t)>(
-					async_send_all_op{}, lock),
-				token, std::ref(*this),
+					async_send_all_op{}, self.lock),
+				token, std::ref(self),
 				detail::data_persist(std::forward_like<decltype(data)>(data)),
 				[](auto&) { return true; });
 		}
@@ -150,14 +177,15 @@ namespace asio
 		 */
 		template<typename SendToken = asio::default_token_type<lock_type>>
 		inline auto async_send_selected(
+			this auto&& self,
 			auto&& data,
 			auto&& pred,
 			SendToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<SendToken, void(error_code, std::size_t)>(
 				asio::experimental::co_composed<void(error_code, std::size_t)>(
-					async_send_all_op{}, lock),
-				token, std::ref(*this),
+					async_send_all_op{}, self.lock),
+				token, std::ref(self),
 				detail::data_persist(std::forward_like<decltype(data)>(data)),
 				std::forward_like<decltype(pred)>(pred));
 		}
@@ -171,37 +199,38 @@ namespace asio
 			typename Function,
 			typename ForEachToken = asio::default_token_type<lock_type>>
 		inline auto async_for_each(
+			this auto&& self,
 			Function&& func,
 			ForEachToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<ForEachToken, void(asio::error_code)>(
 				asio::experimental::co_composed<void(asio::error_code)>(
-					async_for_each_op{}, lock),
-				token, std::ref(*this), std::forward<Function>(func));
+					async_for_each_op{}, self.lock),
+				token, std::ref(self), std::forward<Function>(func));
 		}
 
 		/**
 		 * @brief get connection count
 		 */
-		inline std::size_t size() const noexcept
+		inline std::size_t size(this auto&& self) noexcept
 		{
-			return map.size();
+			return self.map.size();
 		}
 
 		/**
 		 * @brief Checks if the connection container has no elements
 		 */
-		inline bool empty() const noexcept
+		inline bool empty(this auto&& self) noexcept
 		{
-			return map.empty();
+			return self.map.empty();
 		}
 
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor() noexcept
+		inline const auto& get_executor(this auto&& self) noexcept
 		{
-			return lock.get_executor();
+			return self.lock.get_executor();
 		}
 
 	public:

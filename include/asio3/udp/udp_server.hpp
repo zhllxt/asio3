@@ -18,15 +18,6 @@
 
 namespace asio
 {
-	struct udp_listen_option
-	{
-		std::string           listen_address{};
-		std::uint16_t         listen_port{};
-
-		// reuse address flag for the tcp acceptor 
-		bool                  reuse_address{ true };
-	};
-
 	template<typename ConnectionT>
 	class udp_server_t
 	{
@@ -47,14 +38,12 @@ namespace asio
 		template<typename OpenToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_open(
 			this auto&& self,
-			udp_listen_option opt,
+			is_string auto&& listen_address, is_string_or_integral auto&& listen_port,
 			OpenToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			return asio::async_open(
-				self.get_socket(),
-				std::move(opt.listen_address),
-				opt.listen_port,
-				asio::default_udp_socket_option_setter{ .option = {.reuse_address = opt.reuse_address} },
+			return asio::async_open(self.get_socket(),
+				std::forward_like<decltype(listen_address)>(listen_address),
+				std::forward_like<decltype(listen_port)>(listen_port),
 				std::forward<OpenToken>(token));
 		}
 
@@ -90,7 +79,7 @@ namespace asio
 		/**
 		 * @brief Check whether the socket is stopped or not.
 		 */
-		inline bool is_stopped(this auto&& self) noexcept
+		inline bool is_aborted(this auto&& self) noexcept
 		{
 			return !self.get_socket().is_open();
 		}
@@ -127,8 +116,7 @@ namespace asio
 		 */
 		inline std::string get_listen_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).address().to_string(ec);
+			return asio::get_local_address(self.get_socket());
 		}
 
 		/**
@@ -136,8 +124,7 @@ namespace asio
 		 */
 		inline ip::port_type get_listen_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).port();
+			return asio::get_local_port(self.get_socket());
 		}
 
 		/**

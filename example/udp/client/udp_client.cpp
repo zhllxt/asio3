@@ -30,12 +30,7 @@ net::awaitable<void> connect(net::udp_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [ec, ep] = co_await client.async_connect(
-			{
-				.server_address = "127.0.0.1",
-				.server_port = 8035,
-				.reuse_address = true,
-			});
+		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8035);
 		if (ec)
 		{
 			fmt::print("connect failure: {}\n", ec.message());

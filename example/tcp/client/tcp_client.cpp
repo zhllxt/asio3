@@ -32,15 +32,7 @@ net::awaitable<void> connect(net::tcp_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [ec, ep] = co_await client.async_connect(
-			{
-				.server_address = "127.0.0.1",
-				.server_port = 8028,
-				.connect_timeout = std::chrono::seconds(5),
-				.reuse_address = true,
-				.keep_alive = true,
-				.no_delay = true
-			});
+		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8028);
 		if (ec)
 		{
 			// connect failed, reconnect...

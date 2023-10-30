@@ -79,7 +79,7 @@ namespace std
 	template <>
 	struct hash<asio::ip::address_v4>
 	{
-		std::size_t operator()(const asio::ip::address_v4& addr) const ASIO_NOEXCEPT
+		std::size_t operator()(const asio::ip::address_v4& addr) const noexcept
 		{
 			return std::hash<unsigned int>()(addr.to_uint());
 		}
@@ -88,7 +88,7 @@ namespace std
 	template <>
 	struct hash<asio::ip::address_v6>
 	{
-		std::size_t operator()(const asio::ip::address_v6& addr) const ASIO_NOEXCEPT
+		std::size_t operator()(const asio::ip::address_v6& addr) const noexcept
 		{
 			const asio::ip::address_v6::bytes_type bytes = addr.to_bytes();
 			std::size_t result = static_cast<std::size_t>(addr.scope_id());
@@ -114,7 +114,7 @@ namespace std
 	template <>
 	struct hash<asio::ip::address>
 	{
-		std::size_t operator()(const asio::ip::address& addr) const ASIO_NOEXCEPT
+		std::size_t operator()(const asio::ip::address& addr) const noexcept
 		{
 			return addr.is_v4()
 				? std::hash<asio::ip::address_v4>()(addr.to_v4())
@@ -125,7 +125,7 @@ namespace std
 	template <typename InternetProtocol>
 	struct hash<asio::ip::basic_endpoint<InternetProtocol>>
 	{
-		std::size_t operator()(const asio::ip::basic_endpoint<InternetProtocol>& ep) const ASIO_NOEXCEPT
+		std::size_t operator()(const asio::ip::basic_endpoint<InternetProtocol>& ep) const noexcept
 		{
 			std::size_t hash1 = std::hash<asio::ip::address>()(ep.address());
 			std::size_t hash2 = std::hash<unsigned short>()(ep.port());

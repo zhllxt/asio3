@@ -68,7 +68,7 @@ template <typename AsyncReadStream, typename MutableBufferSequence,
 ASIO_INITFN_AUTO_RESULT_TYPE_PREFIX(ReadToken, void(asio::error_code, std::size_t))
 async_receive(
 	AsyncReadStream& s, const MutableBufferSequence& buffers,
-	ASIO_MOVE_ARG(ReadToken) token
+	ReadToken&& token
 	ASIO_DEFAULT_COMPLETION_TOKEN(typename AsyncReadStream::executor_type))
 {
 	return s.async_receive(buffers, std::forward<ReadToken>(token));

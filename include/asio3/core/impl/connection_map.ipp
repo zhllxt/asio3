@@ -35,6 +35,36 @@ namespace asio
 	};
 
 	template<typename ConnectionT>
+	struct connection_map_t<ConnectionT>::async_find_or_emplace_op
+	{
+		auto operator()(auto state, auto self_ref, key_type key, auto&& create_func) -> void
+		{
+			auto& self = self_ref.get();
+			auto&& create_fn = std::forward_like<decltype(create_func)>(create_func);
+
+			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_deferred);
+
+			if (!self.lock.try_send())
+			{
+				co_await self.lock.async_send(asio::deferred);
+			}
+
+			bool is_new_client = false;
+
+			auto it = self.map.find(key);
+			if (it == self.map.end())
+			{
+				is_new_client = true;
+				it = self.map.emplace(key, create_fn()).first;
+			}
+
+			self.lock.try_receive([](auto...) {});
+
+			co_return{ it->second, is_new_client };
+		}
+	};
+
+	template<typename ConnectionT>
 	struct connection_map_t<ConnectionT>::async_erase_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
@@ -93,17 +123,22 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
-			std::size_t total = self.map.size();
+			std::size_t total = 0;
 
-			for (auto& [key, conn] : self.map)
+			for (auto it = self.map.begin(); it != self.map.end();)
 			{
-				if (!fun(conn))
+				if (!fun(it->second))
+				{
+					++it;
 					continue;
+				}
 
-				co_await conn->async_disconnect(asio::use_nothrow_deferred);
+				co_await it->second->async_disconnect(asio::use_nothrow_deferred);
+
+				it = self.map.erase(it);
+
+				++total;
 			}
-
-			self.map.clear();
 
 			self.lock.try_receive([](auto...) {});
 

@@ -14,13 +14,13 @@ struct async_result<with_lock_t<CompletionToken>, Signatures...>
   template <typename Initiation, typename RawCompletionToken, typename... Args>
   static auto
   initiate(
-      ASIO_MOVE_ARG(Initiation) initiation,
-      ASIO_MOVE_ARG(RawCompletionToken) token,
-      ASIO_MOVE_ARG(Args)... args)
+      Initiation&& initiation,
+      RawCompletionToken&& token,
+      Args&&... args)
   {
     return asio::async_initiate<CompletionToken, Signatures...>(
-          ASIO_MOVE_CAST(Initiation)(initiation),
-        token.token_, ASIO_MOVE_CAST(Args)(args)...);
+          static_cast<Initiation&&>(initiation),
+        token.token_, static_cast<Args&&>(args)...);
   }
 };
 
@@ -34,13 +34,13 @@ struct async_result<with_lock_t<CompletionToken>, Signature>
   template <typename Initiation, typename RawCompletionToken, typename... Args>
   static auto
   initiate(
-      ASIO_MOVE_ARG(Initiation) initiation,
-      ASIO_MOVE_ARG(RawCompletionToken) token,
-      ASIO_MOVE_ARG(Args)... args)
+      Initiation&& initiation,
+      RawCompletionToken&& token,
+      Args&&... args)
   {
     return async_initiate<CompletionToken, Signature>(
-          ASIO_MOVE_CAST(Initiation)(initiation),
-        token.token_, ASIO_MOVE_CAST(Args)(args)...);
+        static_cast<Initiation&&>(initiation),
+        token.token_, static_cast<Args&&>(args)...);
   }
 };
 

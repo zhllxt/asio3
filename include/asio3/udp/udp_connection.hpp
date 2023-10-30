@@ -24,7 +24,9 @@ namespace asio
 		using key_type = ip::udp::endpoint;
 
 	public:
-		explicit udp_connection(udp_socket& sock) : socket(sock)
+		explicit udp_connection(udp_socket& sock, ip::udp::endpoint remote_ep)
+			: socket(sock)
+			, remote_endpoint(std::move(remote_ep))
 		{
 		}
 
@@ -65,8 +67,10 @@ namespace asio
 			auto&& data,
 			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			return asio::async_send(self.get_socket(),
-				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+			return asio::async_send_to(self.get_socket(),
+				std::forward_like<decltype(data)>(data),
+				self.remote_endpoint,
+				std::forward<WriteToken>(token));
 		}
 
 		/**
@@ -82,8 +86,7 @@ namespace asio
 		 */
 		inline std::string get_local_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).address().to_string(ec);
+			return asio::get_local_address(self.get_socket());
 		}
 
 		/**
@@ -91,8 +94,7 @@ namespace asio
 		 */
 		inline ip::port_type get_local_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).port();
+			return asio::get_local_port(self.get_socket());
 		}
 
 		/**
@@ -121,9 +123,16 @@ namespace asio
 			return std::forward_like<decltype(self)>(self).socket;
 		}
 
+		inline void update_alive_time(this auto&& self) noexcept
+		{
+			self.alive_time = std::chrono::system_clock::now();
+		}
+
 	public:
 		asio::udp_socket&     socket;
 
 		ip::udp::endpoint     remote_endpoint{};
+
+		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
 	};
 }

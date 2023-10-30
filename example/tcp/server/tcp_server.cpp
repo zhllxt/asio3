@@ -13,6 +13,8 @@ net::awaitable<void> do_recv(std::shared_ptr<net::tcp_connection> conn)
 		if (e1)
 			break;
 
+		conn->update_alive_time();
+
 		auto data = net::buffer(strbuf.data().data(), n1);
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
@@ -39,7 +41,7 @@ net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::t
 
 	co_await server.async_send("abc");
 
-	co_await net::wait_until_idle_timeout(conn->socket, std::chrono::milliseconds(net::tcp_idle_timeout));
+	co_await net::wait_error_or_idle_timeout(conn->socket, conn->alive_time, net::tcp_idle_timeout);
 	co_await net::async_disconnect(conn->socket);
 
 	co_await server.connection_map.async_erase(conn);
@@ -47,8 +49,7 @@ net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::t
 
 net::awaitable<void> start_server(net::tcp_server& server)
 {
-	//auto [ec, ep] = co_await net::async_listen(server.acceptor, "0.0.0.0", 8028);
-	auto [ec, ep] = co_await server.async_listen({ .listen_address = "0.0.0.0", .listen_port = 8028 });
+	auto [ec, ep] = co_await server.async_listen("0.0.0.0", 8028);
 	if (ec)
 	{
 		fmt::print("listen failure: {}\n", ec.message());
@@ -57,7 +58,7 @@ net::awaitable<void> start_server(net::tcp_server& server)
 
 	fmt::print("listen success: {} {}\n", server.get_listen_address(), server.get_listen_port());
 
-	while (!server.is_stopped())
+	while (!server.is_aborted())
 	{
 		auto [e1, client] = co_await server.acceptor.async_accept();
 		if (e1)

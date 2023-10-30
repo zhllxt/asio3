@@ -24,17 +24,6 @@
 
 namespace asio
 {
-	struct udp_connect_option
-	{
-		std::string           server_address{};
-		std::uint16_t         server_port{};
-
-		std::string           bind_address{};
-		std::uint16_t         bind_port{ 0 };
-
-		bool                  reuse_address{ true };
-	};
-
 	class udp_client
 	{
 	public:
@@ -50,18 +39,12 @@ namespace asio
 		template<typename ConnectToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_connect(
 			this auto&& self,
-			udp_connect_option opt,
+			is_string auto&& server_address, is_string_or_integral auto&& server_port,
 			ConnectToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			udp_socket_option socket_opt{
-				.reuse_address = opt.reuse_address,
-			};
 			return asio::async_connect(self.get_socket(),
-				std::move(opt.server_address),
-				opt.server_port,
-				std::move(opt.bind_address),
-				opt.bind_port,
-				asio::default_udp_socket_option_setter{ .option = socket_opt },
+				std::forward_like<decltype(server_address)>(server_address),
+				std::forward_like<decltype(server_port)>(server_port),
 				std::forward<ConnectToken>(token));
 		}
 
@@ -126,8 +109,7 @@ namespace asio
 		 */
 		inline std::string get_local_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).address().to_string(ec);
+			return asio::get_local_address(self.get_socket());
 		}
 
 		/**
@@ -135,8 +117,7 @@ namespace asio
 		 */
 		inline ip::port_type get_local_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).port();
+			return asio::get_local_port(self.get_socket());
 		}
 
 		/**
@@ -144,8 +125,7 @@ namespace asio
 		 */
 		inline std::string get_remote_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().remote_endpoint(ec).address().to_string(ec);
+			return asio::get_remote_address(self.get_socket());
 		}
 
 		/**
@@ -153,8 +133,7 @@ namespace asio
 		 */
 		inline ip::port_type get_remote_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().remote_endpoint(ec).port();
+			return asio::get_remote_port(self.get_socket());
 		}
 
 		/**

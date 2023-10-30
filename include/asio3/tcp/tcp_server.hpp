@@ -18,15 +18,6 @@
 
 namespace asio
 {
-	struct tcp_listen_option
-	{
-		std::string           listen_address{};
-		std::uint16_t         listen_port{};
-
-		// reuse address flag for the tcp acceptor 
-		bool                  reuse_address{ true };
-	};
-
 	template<typename ConnectionT>
 	class tcp_server_t
 	{
@@ -45,18 +36,18 @@ namespace asio
 		/**
 		 * @brief Asynchronously start the server for listen at the address and port.
 		 */
-		template<typename StartToken = asio::default_token_type<asio::tcp_acceptor>>
+		template<typename ListenToken = asio::default_token_type<asio::tcp_acceptor>>
 		inline auto async_listen(
 			this auto&& self,
-			tcp_listen_option opt,
-			StartToken&& token = asio::default_token_type<asio::tcp_acceptor>())
+			is_string auto&& listen_address,
+			is_string_or_integral auto&& listen_port,
+			ListenToken&& token = asio::default_token_type<asio::tcp_acceptor>())
 		{
-			return asio::async_listen(
-				self.get_acceptor(),
-				std::move(opt.listen_address),
-				opt.listen_port,
-				opt.reuse_address,
-				std::forward<StartToken>(token));
+			return asio::async_listen(self.get_acceptor(),
+				std::forward_like<decltype(listen_address)>(listen_address),
+				std::forward_like<decltype(listen_port)>(listen_port),
+				true,
+				std::forward<ListenToken>(token));
 		}
 
 		/**
@@ -90,7 +81,7 @@ namespace asio
 		/**
 		 * @brief Check whether the acceptor is stopped or not.
 		 */
-		inline bool is_stopped(this auto&& self) noexcept
+		inline bool is_aborted(this auto&& self) noexcept
 		{
 			return !self.get_acceptor().is_open();
 		}
@@ -127,8 +118,7 @@ namespace asio
 		 */
 		inline std::string get_listen_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_acceptor().local_endpoint(ec).address().to_string(ec);
+			return asio::get_local_address(self.get_acceptor());
 		}
 
 		/**
@@ -136,8 +126,7 @@ namespace asio
 		 */
 		inline ip::port_type get_listen_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_acceptor().local_endpoint(ec).port();
+			return asio::get_local_port(self.get_acceptor());
 		}
 
 		/**

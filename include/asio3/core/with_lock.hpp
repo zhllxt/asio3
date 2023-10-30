@@ -21,18 +21,18 @@ public:
    * token is itself defaulted as an argument to allow it to capture a source
    * location.
    */
-  ASIO_CONSTEXPR with_lock_t(
+  constexpr with_lock_t(
       default_constructor_tag = default_constructor_tag(),
       CompletionToken token = CompletionToken())
-    : token_(ASIO_MOVE_CAST(CompletionToken)(token))
+    : token_(static_cast<CompletionToken&&>(token))
   {
   }
 
   /// Constructor.
   template <typename T>
-  ASIO_CONSTEXPR explicit with_lock_t(
-      ASIO_MOVE_ARG(T) completion_token)
-    : token_(ASIO_MOVE_CAST(T)(completion_token))
+  constexpr explicit with_lock_t(
+      T&& completion_token)
+    : token_(static_cast<T&&>(completion_token))
   {
   }
 
@@ -47,13 +47,13 @@ public:
     /// Construct the adapted executor from the inner executor type.
     template <typename InnerExecutor1>
     executor_with_default(const InnerExecutor1& ex,
-        typename constraint<
-          conditional<
+        constraint_t<
+          conditional_t<
             !is_same<InnerExecutor1, executor_with_default>::value,
             is_convertible<InnerExecutor1, InnerExecutor>,
             false_type
-          >::type::value
-        >::type = 0) ASIO_NOEXCEPT
+          >::value
+        > = 0) noexcept
       : InnerExecutor(ex)
     {
         lock = std::make_shared<experimental::channel<void()>>(ex, 1);
@@ -64,25 +64,21 @@ public:
 
   /// Type alias to adapt an I/O object to use @c with_lock_t as its
   /// default completion token type.
-#if defined(ASIO_HAS_ALIAS_TEMPLATES) \
-  || defined(GENERATING_DOCUMENTATION)
   template <typename T>
   using as_default_on_t = typename T::template rebind_executor<
       executor_with_default<typename T::executor_type> >::other;
-#endif // defined(ASIO_HAS_ALIAS_TEMPLATES)
-       //   || defined(GENERATING_DOCUMENTATION)
 
   /// Function helper to adapt an I/O object to use @c with_lock_t as its
   /// default completion token type.
   template <typename T>
-  static typename decay<T>::type::template rebind_executor<
-      executor_with_default<typename decay<T>::type::executor_type>
+  static typename decay_t<T>::template rebind_executor<
+      executor_with_default<typename decay_t<T>::executor_type>
     >::other
-  as_default_on(ASIO_MOVE_ARG(T) object)
+  as_default_on(T&& object)
   {
-    return typename decay<T>::type::template rebind_executor<
-        executor_with_default<typename decay<T>::type::executor_type>
-      >::other(ASIO_MOVE_CAST(T)(object));
+    return typename decay_t<T>::template rebind_executor<
+        executor_with_default<typename decay_t<T>::executor_type>
+      >::other(static_cast<T&&>(object));
   }
 
 //private:
@@ -93,11 +89,11 @@ public:
 /// arguments should be combined into a single tuple argument.
 template <typename CompletionToken>
 ASIO_NODISCARD inline
-ASIO_CONSTEXPR with_lock_t<typename decay<CompletionToken>::type>
-with_lock(ASIO_MOVE_ARG(CompletionToken) completion_token)
+constexpr with_lock_t<decay_t<CompletionToken>>
+with_lock(CompletionToken&& completion_token)
 {
-  return with_lock_t<typename decay<CompletionToken>::type>(
-      ASIO_MOVE_CAST(CompletionToken)(completion_token));
+  return with_lock_t<decay_t<CompletionToken>>(
+	  static_cast<CompletionToken&&>(completion_token));
 }
 
 }

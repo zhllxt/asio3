@@ -18,8 +18,6 @@ namespace asio
 	using timer = asio::as_tuple_t<::asio::deferred_t>::as_default_on_t<::asio::steady_timer>;
 	using timer_duration = std::chrono::steady_clock::duration;
 	using timeout_duration = std::chrono::steady_clock::duration;
-	using deadline_time_point = std::chrono::steady_clock::time_point;
-	using alive_time_point = std::chrono::steady_clock::time_point;
 
 	inline void cancel_timer(asio::steady_timer& t) noexcept
 	{

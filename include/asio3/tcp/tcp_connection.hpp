@@ -46,21 +46,11 @@ namespace asio
 		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
 		inline auto async_disconnect(
 			this auto&& self,
-			timeout_duration timeout,
 			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			return asio::async_disconnect(self.get_socket(), timeout, std::forward<DisconnectToken>(token));
-		}
-
-		/**
-		 * @brief Asynchronously graceful disconnect the connection, this function does not block.
-		 */
-		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
-		inline auto async_disconnect(
-			this auto&& self,
-			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
-		{
-			return self.async_disconnect(asio::tcp_disconnect_timeout, std::forward<DisconnectToken>(token));
+			return asio::async_disconnect(self.get_socket(),
+				asio::tcp_disconnect_timeout,
+				std::forward<DisconnectToken>(token));
 		}
 
 		/**
@@ -94,8 +84,7 @@ namespace asio
 		 */
 		inline std::string get_local_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).address().to_string(ec);
+			return asio::get_local_address(self.get_socket());
 		}
 
 		/**
@@ -103,8 +92,7 @@ namespace asio
 		 */
 		inline ip::port_type get_local_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().local_endpoint(ec).port();
+			return asio::get_local_port(self.get_socket());
 		}
 
 		/**
@@ -112,8 +100,7 @@ namespace asio
 		 */
 		inline std::string get_remote_address(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().remote_endpoint(ec).address().to_string(ec);
+			return asio::get_remote_address(self.get_socket());
 		}
 
 		/**
@@ -121,8 +108,7 @@ namespace asio
 		 */
 		inline ip::port_type get_remote_port(this auto&& self) noexcept
 		{
-			error_code ec{};
-			return self.get_socket().remote_endpoint(ec).port();
+			return asio::get_remote_port(self.get_socket());
 		}
 
 		/**
@@ -134,7 +120,14 @@ namespace asio
 			return std::forward_like<decltype(self)>(self).socket;
 		}
 
+		inline void update_alive_time(this auto&& self) noexcept
+		{
+			self.alive_time = std::chrono::system_clock::now();
+		}
+
 	public:
 		asio::tcp_socket      socket;
+
+		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
 	};
 }

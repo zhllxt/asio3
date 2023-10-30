@@ -51,7 +51,7 @@ namespace asio
 	constexpr std::chrono::milliseconds http_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
 
 	constexpr std::chrono::milliseconds  tcp_idle_timeout       = std::chrono::milliseconds(60 * 60 * 1000);
-	constexpr std::chrono::milliseconds  udp_idle_timeout       = std::chrono::milliseconds(60 * 1000);
+	constexpr std::chrono::milliseconds  udp_idle_timeout       = std::chrono::milliseconds(6 * 1000);
 	constexpr std::chrono::milliseconds http_idle_timeout       = std::chrono::milliseconds(85 * 1000);
 	constexpr std::chrono::milliseconds mqtt_idle_timeout       = std::chrono::milliseconds(90 * 1000); // 60 * 1.5
 
@@ -145,6 +145,42 @@ namespace asio
 		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
 	}
 #endif
+
+	/**
+	 * @brief Get the local address.
+	 */
+	inline std::string get_local_address(auto& sock) noexcept
+	{
+		error_code ec{};
+		return sock.local_endpoint(ec).address().to_string(ec);
+	}
+
+	/**
+	 * @brief Get the local port number.
+	 */
+	inline ip::port_type get_local_port(auto& sock) noexcept
+	{
+		error_code ec{};
+		return sock.local_endpoint(ec).port();
+	}
+
+	/**
+	 * @brief Get the remote address.
+	 */
+	inline std::string get_remote_address(auto& sock) noexcept
+	{
+		error_code ec{};
+		return sock.remote_endpoint(ec).address().to_string(ec);
+	}
+
+	/**
+	 * @brief Get the remote port number.
+	 */
+	inline ip::port_type get_remote_port(auto& sock) noexcept
+	{
+		error_code ec{};
+		return sock.remote_endpoint(ec).port();
+	}
 
 	/**
 	 * Swaps the order of bytes for some chunk of memory
