@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <concepts>
-
 #include <asio3/core/asio.hpp>
 #include <asio3/core/netconcepts.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
@@ -24,9 +22,9 @@
 #include <asio3/proxy/match_condition.hpp>
 #include <asio3/proxy/udp_header.hpp>
 
-namespace asio::detail
+namespace asio::socks5::detail
 {
-	struct ext_async_transfer_op
+	struct async_ext_transfer_op
 	{
 		auto operator()(auto state, auto from_ref, auto to_ref, auto dynamic_buf) -> void
 		{
@@ -76,7 +74,7 @@ namespace asio::detail
 	};
 }
 
-namespace asio
+namespace asio::socks5
 {
 	/**
 	 * @brief Start an asynchronous operation to transfer data between front and back.
@@ -92,7 +90,7 @@ namespace asio
 		typename UdpAsyncStream,
 		typename TransferToken = asio::default_token_type<TcpAsyncStream>>
 	requires (is_basic_stream_socket<TcpAsyncStream> && is_basic_datagram_socket<UdpAsyncStream>)
-	inline auto async_transfer(
+	inline auto async_ext_transfer(
 		TcpAsyncStream& from,
 		UdpAsyncStream& to,
 		auto&& dynamic_buf,
@@ -100,7 +98,7 @@ namespace asio
 	{
 		return async_initiate<TransferToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
-				detail::ext_async_transfer_op{}, from),
+				detail::async_ext_transfer_op{}, from),
 			token,
 			std::ref(from), std::ref(to),
 			std::forward_like<decltype(dynamic_buf)>(dynamic_buf));

@@ -173,44 +173,42 @@ net::awaitable<void> ext_transfer(
 
 net::awaitable<void> proxy(std::shared_ptr<net::socks5_connection> conn)
 {
-	auto result1 = co_await(
+	auto handsk_result = co_await(
 		socks5::async_accept(conn->socket, conn->auth_config, net::use_nothrow_awaitable) ||
 		net::timeout(std::chrono::seconds(5)));
-	if (net::is_timeout(result1))
+	if (net::is_timeout(handsk_result))
 		co_return; // timed out
-	auto [e1, info] = std::get<0>(std::move(result1));
+	auto [e1, handsk_info] = std::get<0>(std::move(handsk_result));
 	if (e1)
 	{
 		co_return;
 	}
-	conn->handshake_info = std::move(info);
 
-	if (info.cmd == socks5::command::connect)
+	conn->handshake_info = std::move(handsk_info);
+
+	if (!conn->load_backend_client_from_handshake_info())
+		co_return;
+
+	if (conn->handshake_info.cmd == socks5::command::connect)
 	{
-		net::ip::tcp::socket* ptr = std::any_cast<net::ip::tcp::socket>(std::addressof(info.bound_socket));
-		if (ptr)
+		asio::tcp_socket& front_client = conn->socket;
+		asio::tcp_socket& back_client = std::get<asio::tcp_socket>(conn->backend_client);
+		std::array<char, 1024> buf1, buf2;
+		for (;;)
 		{
-			net::tcp_socket back_client = std::move(*ptr);
-
 			co_await(
-				tcp_transfer(front_client, back_client, info) ||
-				tcp_transfer(back_client, front_client, info)
+				socks5::async_tcp_transfer(front_client, back_client, asio::buffer(buf1)) ||
+				socks5::async_tcp_transfer(back_client, front_client, asio::buffer(buf2))
 				);
 		}
 	}
-	else if(info.cmd == socks5::command::udp_associate)
-	{
-		net::ip::udp::socket* ptr = std::any_cast<net::ip::udp::socket>(std::addressof(info.bound_socket));
-		if (ptr)
-		{
-			net::udp_socket back_client = std::move(*ptr);
-			asio::protocol  last_read_channel{};
-			co_await(
-				udp_transfer(front_client, back_client, info, last_read_channel) ||
-				ext_transfer(front_client, back_client, info, last_read_channel)
-				);
-		}
-	}
+	//else if (conn->handshake_info.cmd == socks5::command::udp_associate)
+	//{
+	//	co_await(
+	//		udp_transfer(front_client, back_client, info, last_read_channel) ||
+	//		ext_transfer(front_client, back_client, info, last_read_channel)
+	//		);
+	//}
 }
 
 net::awaitable<void> client_join(net::socks5_server& server, std::shared_ptr<net::socks5_connection> conn)

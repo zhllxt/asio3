@@ -10,7 +10,12 @@
 
 #pragma once
 
+#include <variant>
+
 #include <asio3/proxy/accept.hpp>
+#include <asio3/proxy/tcp_transfer.hpp>
+#include <asio3/proxy/udp_transfer.hpp>
+#include <asio3/proxy/ext_transfer.hpp>
 #include <asio3/tcp/tcp_connection.hpp>
 
 namespace asio
@@ -28,19 +33,27 @@ namespace asio
 		{
 		}
 
-		/**
-		 * @brief Safety start an asynchronous operation to transfer data between front and back.
-		 * @param token - The completion handler to invoke when the operation completes.
-		 *	  The equivalent function signature of the handler must be:
-		 *    @code
-		 *    void handler(const asio::error_code& ec);
-		 */
-		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
-		inline auto async_transfer(
-			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
+		bool load_backend_client_from_handshake_info()
 		{
-			return asio::async_send(socket,
-				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+			if (handshake_info.cmd == socks5::command::connect)
+			{
+				auto* p = std::any_cast<asio::ip::tcp::socket>(std::addressof(handshake_info.bound_socket));
+				if (p)
+				{
+					backend_client = std::move(*p);
+					return true;
+				}
+			}
+			else if (handshake_info.cmd == socks5::command::udp_associate)
+			{
+				auto* p = std::any_cast<asio::ip::udp::socket>(std::addressof(handshake_info.bound_socket));
+				if (p)
+				{
+					backend_client = std::move(*p);
+					return true;
+				}
+			}
+			return false;
 		}
 
 	public:
@@ -49,5 +62,7 @@ namespace asio
 		socks5::auth_config    auth_config{};
 
 		socks5::handshake_info handshake_info{};
+
+		std::variant<std::monostate, asio::tcp_socket, asio::udp_socket> backend_client;
 	};
 }
