@@ -47,13 +47,13 @@ public:
     /// Construct the adapted executor from the inner executor type.
     template <typename InnerExecutor1>
     executor_with_default(const InnerExecutor1& ex,
-        constraint_t<
-          conditional_t<
+        typename constraint<
+          conditional<
             !is_same<InnerExecutor1, executor_with_default>::value,
             is_convertible<InnerExecutor1, InnerExecutor>,
             false_type
-          >::value
-        > = 0) noexcept
+          >::type::value
+        >::type = 0) noexcept
       : InnerExecutor(ex)
     {
         lock = std::make_shared<experimental::channel<void()>>(ex, 1);
@@ -71,13 +71,13 @@ public:
   /// Function helper to adapt an I/O object to use @c with_lock_t as its
   /// default completion token type.
   template <typename T>
-  static typename decay_t<T>::template rebind_executor<
-      executor_with_default<typename decay_t<T>::executor_type>
+  static typename decay<T>::type::template rebind_executor<
+      executor_with_default<typename decay<T>::type::executor_type>
     >::other
   as_default_on(T&& object)
   {
-    return typename decay_t<T>::template rebind_executor<
-        executor_with_default<typename decay_t<T>::executor_type>
+    return typename decay<T>::type::template rebind_executor<
+        executor_with_default<typename decay<T>::type::executor_type>
       >::other(static_cast<T&&>(object));
   }
 
@@ -89,11 +89,11 @@ public:
 /// arguments should be combined into a single tuple argument.
 template <typename CompletionToken>
 ASIO_NODISCARD inline
-constexpr with_lock_t<decay_t<CompletionToken>>
+constexpr with_lock_t<typename decay<CompletionToken>::type>
 with_lock(CompletionToken&& completion_token)
 {
-  return with_lock_t<decay_t<CompletionToken>>(
-	  static_cast<CompletionToken&&>(completion_token));
+  return with_lock_t<typename decay<CompletionToken>::type>(
+      static_cast<CompletionToken&&>(completion_token));
 }
 
 }

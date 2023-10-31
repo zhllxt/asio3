@@ -82,8 +82,6 @@ namespace asio::socks5
 
 	struct handshake_info
 	{
-		asio::protocol     last_read_channel{};
-
 		std::uint16_t      dest_port{};
 		std::string        dest_address{};
 
@@ -147,6 +145,19 @@ namespace asio::socks5
 			//if (opt.cmd == command::udp_associate && opt.dest_port == 0)
 			//	return false;
 			return true;
+		}
+
+		inline bool is_data_come_from_frontend(auto& tcp_sock, auto& sender_endpoint, auto& handsk_info)
+		{
+			asio::error_code ec{};
+			asio::ip::address front_addr = tcp_sock.remote_endpoint(ec).address();
+			if (ec)
+				return false;
+
+			if (front_addr.is_loopback())
+				return sender_endpoint.address() == front_addr && sender_endpoint.port() == handsk_info.dest_port;
+			else
+				return sender_endpoint.address() == front_addr;
 		}
 	}
 }

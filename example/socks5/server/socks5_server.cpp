@@ -1,18 +1,11 @@
 #include <asio3/core/fmt.hpp>
-#include <asio3/proxy/accept.hpp>
-#include <asio3/core/timer.hpp>
-#include <asio3/tcp/start.hpp>
-#include <asio3/udp/read.hpp>
-#include <asio3/udp/write.hpp>
-#include <asio3/proxy/parser.hpp>
-#include <asio3/proxy/match_condition.hpp>
-#include <asio3/proxy/udp_header.hpp>
+#include <asio3/proxy/socks5_server.hpp>
 
 namespace net = ::asio;
 using time_point = std::chrono::steady_clock::time_point;
 
 net::awaitable<void> tcp_transfer(
-	net::tcp_socket& from, net::tcp_socket& to, socks5::handshake_info& info, time_point& deadline)
+	net::tcp_socket& from, net::tcp_socket& to, socks5::handshake_info& info)
 {
 	std::array<char, 1024> data;
 
@@ -33,6 +26,7 @@ net::awaitable<void> tcp_transfer(
 // recvd data from udp
 net::awaitable<net::error_code> forward_udp_data(
 	net::tcp_socket& from, net::udp_socket& bound, socks5::handshake_info& info,
+	asio::protocol& last_read_channel,
 	std::vector<std::uint8_t> reply_buffer,
 	const net::ip::udp::endpoint& sender_endpoint, std::string_view data)
 {
@@ -77,7 +71,7 @@ net::awaitable<net::error_code> forward_udp_data(
 	{
 		reply_buffer.clear();
 
-		if /**/ (info.last_read_channel == net::protocol::tcp)
+		if /**/ (last_read_channel == net::protocol::tcp)
 		{
 			auto head = socks5::make_udp_header(sender_endpoint.address(), sender_endpoint.port(), data.size());
 
@@ -87,7 +81,7 @@ net::awaitable<net::error_code> forward_udp_data(
 			auto [e1, n1] = co_await net::async_write(from, net::buffer(reply_buffer));
 			co_return e1;
 		}
-		else if (info.last_read_channel == net::protocol::udp)
+		else if (last_read_channel == net::protocol::udp)
 		{
 			auto head = socks5::make_udp_header(sender_endpoint.address(), sender_endpoint.port(), 0);
 
@@ -102,7 +96,8 @@ net::awaitable<net::error_code> forward_udp_data(
 }
 
 net::awaitable<void> udp_transfer(
-	net::tcp_socket& from, net::udp_socket& bound, socks5::handshake_info& info, time_point& deadline)
+	net::tcp_socket& from, net::udp_socket& bound, socks5::handshake_info& info,
+	asio::protocol& last_read_channel, time_point& deadline)
 {
 	// ############## should has a choice to set the udp recv buffer size.
 	std::string data(1024, '\0');
@@ -120,37 +115,32 @@ net::awaitable<void> udp_transfer(
 		if (e1)
 			co_return;
 
-		info.last_read_channel = net::protocol::udp;
+		last_read_channel = net::protocol::udp;
 
-		net::error_code tp = co_await forward_udp_data(
-			from, bound, info, reply_buffer, sender_endpoint, std::string_view{ data.data(), n1 });
-
-		auto [e2, n2] = co_await net::async_send_to(bound, net::buffer(data, n1), sender_endpoint);
-		if (e2)
-			co_return;
-
-		if (n1 == data.size())
-			data.resize(data.size() * 3 / 2);
+		co_await forward_udp_data(
+			from, bound, info, last_read_channel,
+			reply_buffer, sender_endpoint, std::string_view{ data.data(), n1 });
 	}
 }
 
 net::awaitable<void> ext_transfer(
-	net::tcp_socket& from, net::udp_socket& bound, socks5::handshake_info& info, time_point& deadline)
+	net::tcp_socket& from, net::udp_socket& bound, socks5::handshake_info& info,
+	asio::protocol& last_read_channel, time_point& deadline)
 {
-	net::streambuf buf{ 1024 * 1024 };
+	std::string buf;
 
 	for (;;)
 	{
 		deadline = std::chrono::steady_clock::now() + std::chrono::minutes(10);
 
 		// recvd data from the front client by tcp, forward the data to back client.
-		auto [e1, n1] = co_await net::async_read_until(from, buf, socks5::udp_match_condition);
+		auto [e1, n1] = co_await net::async_read_until(from, net::dynamic_buffer(buf), socks5::udp_match_condition);
 		if (e1)
 			co_return;
 
-		info.last_read_channel = net::protocol::tcp;
+		last_read_channel = net::protocol::tcp;
 
-		std::string_view data{ (std::string_view::value_type*)(buf.data().data()), buf.data().size() };
+		std::string_view data{ buf.data(), n1 };
 
 		// this packet is a extension protocol base of below:
 		// +----+------+------+----------+----------+----------+
@@ -172,35 +162,28 @@ net::awaitable<void> ext_transfer(
 				co_await net::async_send_to(bound, net::buffer(real_data), std::move(domain), ep.port());
 			}
 		}
+		else
+		{
+			co_return;
+		}
 
-		buf.consume(n1);
+		buf.erase(0, n1);
 	}
 }
 
-net::awaitable<void> watchdog(time_point& deadline)
-{
-	net::timer timer(co_await net::this_coro::executor);
-	auto now = std::chrono::steady_clock::now();
-	while (deadline > now)
-	{
-		timer.expires_at(deadline);
-		co_await timer.async_wait();
-		now = std::chrono::steady_clock::now();
-	}
-}
-
-net::awaitable<void> proxy(net::tcp_socket front_client, socks5::auth_config& auth_cfg)
+net::awaitable<void> proxy(std::shared_ptr<net::socks5_connection> conn)
 {
 	auto result1 = co_await(
-		socks5::async_accept(front_client, auth_cfg, net::use_nothrow_awaitable) ||
+		socks5::async_accept(conn->socket, conn->auth_config, net::use_nothrow_awaitable) ||
 		net::timeout(std::chrono::seconds(5)));
 	if (net::is_timeout(result1))
 		co_return; // timed out
 	auto [e1, info] = std::get<0>(std::move(result1));
 	if (e1)
+	{
 		co_return;
-
-	time_point deadline{};
+	}
+	conn->handshake_info = std::move(info);
 
 	if (info.cmd == socks5::command::connect)
 	{
@@ -210,9 +193,9 @@ net::awaitable<void> proxy(net::tcp_socket front_client, socks5::auth_config& au
 			net::tcp_socket back_client = std::move(*ptr);
 
 			co_await(
-				tcp_transfer(front_client, back_client, info, deadline) ||
-				tcp_transfer(back_client, front_client, info, deadline) ||
-				watchdog(deadline));
+				tcp_transfer(front_client, back_client, info) ||
+				tcp_transfer(back_client, front_client, info)
+				);
 		}
 	}
 	else if(info.cmd == socks5::command::udp_associate)
@@ -221,40 +204,55 @@ net::awaitable<void> proxy(net::tcp_socket front_client, socks5::auth_config& au
 		if (ptr)
 		{
 			net::udp_socket back_client = std::move(*ptr);
-
+			asio::protocol  last_read_channel{};
 			co_await(
-				udp_transfer(front_client, back_client, info, deadline) ||
-				ext_transfer(front_client, back_client, info, deadline) ||
-				watchdog(deadline));
+				udp_transfer(front_client, back_client, info, last_read_channel) ||
+				ext_transfer(front_client, back_client, info, last_read_channel)
+				);
 		}
 	}
-
-	co_return;
 }
 
-net::awaitable<void> listen(std::string listen_address, std::uint16_t listen_port, socks5::auth_config auth_cfg)
+net::awaitable<void> client_join(net::socks5_server& server, std::shared_ptr<net::socks5_connection> conn)
 {
-	auto executor = co_await net::this_coro::executor;
-	net::tcp_acceptor acceptor(executor);
-	auto [e1, endp] = co_await net::async_start(acceptor, listen_address, listen_port);
-	if (e1)
+	co_await server.connection_map.async_emplace(conn);
+
+	conn->socket.set_option(net::ip::tcp::no_delay(true));
+	conn->socket.set_option(net::socket_base::keep_alive(true));
+
+	net::co_spawn(server.get_executor(), proxy(conn), net::detached);
+
+	co_await conn->async_wait_error_or_idle_timeout(net::proxy_idle_timeout);
+	co_await conn->async_disconnect();
+
+	co_await server.connection_map.async_erase(conn);
+}
+
+net::awaitable<void> start_server(net::socks5_server& server,
+	std::string listen_address, std::uint16_t listen_port, socks5::auth_config auth_cfg)
+{
+	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
+	if (ec)
 	{
-		fmt::print("Listen failure: {}\n", e1.message());
+		fmt::print("listen failure: {}\n", ec.message());
 		co_return;
 	}
-	else
+
+	fmt::print("listen success: {} {}\n", server.get_listen_address(), server.get_listen_port());
+
+	while (!server.is_aborted())
 	{
-		fmt::print("Listen success: {} {}\n",
-			acceptor.local_endpoint().address().to_string(),
-			acceptor.local_endpoint().port());
-	}
-	for (;;)
-	{
-		auto [e2, client] = co_await acceptor.async_accept();
-		if (e2)
+		auto [e1, client] = co_await server.acceptor.async_accept();
+		if (e1)
+		{
 			co_await net::delay(std::chrono::milliseconds(100));
+		}
 		else
-			net::co_spawn(executor, proxy(std::move(client), auth_cfg), net::detached);
+		{
+			auto conn = std::make_shared<net::socks5_connection>(std::move(client));
+			conn->auth_config = auth_cfg;
+			net::co_spawn(server.get_executor(), client_join(server, conn), net::detached);
+		}
 	}
 }
 
@@ -270,7 +268,7 @@ int main()
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	net::io_context ctx(1);
+	net::io_context_thread ctx;
 
 	socks5::auth_config auth_cfg
 	{
@@ -278,15 +276,17 @@ int main()
 		.on_auth = socks5_auth,
 	};
 
-	net::signal_set signals(ctx, SIGINT, SIGTERM);
+	net::socks5_server server(ctx.get_executor());
+
+	net::co_spawn(ctx.get_executor(), start_server(server, "127.0.0.1", 20808, auth_cfg), net::detached);
+
+	net::signal_set signals(ctx.get_executor(), SIGINT, SIGTERM);
 	signals.async_wait([&](auto, auto)
 	{
-		ctx.stop();
+		server.async_stop([](auto) {});
 	});
 
-	net::co_spawn(ctx, listen("127.0.0.1", 20808, std::move(auth_cfg)), net::detached);
-
-	ctx.run();
+	ctx.join();
 
 	return 0;
 }

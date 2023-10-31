@@ -9,15 +9,15 @@ net::awaitable<void> do_recv(net::udp_client& client)
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_receive(client.socket, asio::buffer(recv_buffer));
+		auto [e1, n1] = co_await net::async_receive(client.socket, net::buffer(recv_buffer));
 		if (e1)
 			break;
 
-		auto data = asio::buffer(recv_buffer.data(), n1);
+		auto data = net::buffer(recv_buffer.data(), n1);
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
-		auto [e2, n2] = co_await client.async_send(asio::buffer(data));
+		auto [e2, n2] = co_await client.async_send(net::buffer(data));
 		if (e2)
 			break;
 	}

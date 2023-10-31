@@ -29,14 +29,12 @@ namespace asio::socks5::detail
 {
 	struct async_accept_op
 	{
-		template<typename AsyncStream, typename AuthConfig>
-		auto operator()(auto state,
-			std::reference_wrapper<AsyncStream> sock_ref,
-			std::reference_wrapper<AuthConfig> auth_cfg_ref) -> void
+		template<typename AuthConfig>
+		auto operator()(auto state, auto sock_ref, std::reference_wrapper<AuthConfig> auth_cfg_ref) -> void
 		{
-			using ::asio::detail::read;
-			using ::asio::detail::write;
-			using ::asio::detail::to_underlying;
+			using ::asio::read;
+			using ::asio::write;
+			using ::std::to_underlying;
 
 			auto& sock = sock_ref.get();
 
@@ -219,12 +217,12 @@ namespace asio::socks5::detail
 
 				password.assign(p, plen);
 
-				auto [auth_ec, auth_result] = co_await asio::async_call_coroutine(
+				auto [auth_result] = co_await asio::async_call_coroutine(
 					sock.get_executor(), auth_cfg.on_auth(hdshak_info), asio::use_nothrow_deferred);
 
 				// compare username and password
 				// failed
-				if (auth_ec || !auth_result)
+				if (!auth_result)
 				{
 					strbuf.consume(strbuf.size());
 

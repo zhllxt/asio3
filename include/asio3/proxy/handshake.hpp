@@ -30,10 +30,7 @@ namespace asio::socks5::detail
 {
 	struct async_handshake_op
 	{
-		template<typename AsyncStream, typename Socks5Option>
-		auto operator()(auto state,
-			std::reference_wrapper<AsyncStream> sock_ref,
-			std::reference_wrapper<Socks5Option> sock5_opt_ref) -> void
+		auto operator()(auto state, auto sock_ref, auto sock5_opt_ref) -> void
 		{
 			using ::asio::read;
 			using ::asio::write;

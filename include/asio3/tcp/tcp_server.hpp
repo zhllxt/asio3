@@ -38,12 +38,11 @@ namespace asio
 		 */
 		template<typename ListenToken = asio::default_token_type<asio::tcp_acceptor>>
 		inline auto async_listen(
-			this auto&& self,
 			is_string auto&& listen_address,
 			is_string_or_integral auto&& listen_port,
 			ListenToken&& token = asio::default_token_type<asio::tcp_acceptor>())
 		{
-			return asio::async_listen(self.get_acceptor(),
+			return asio::async_listen(acceptor,
 				std::forward_like<decltype(listen_address)>(listen_address),
 				std::forward_like<decltype(listen_port)>(listen_port),
 				true,
@@ -55,7 +54,6 @@ namespace asio
 		 */
 		template<typename StopToken = asio::default_token_type<asio::tcp_acceptor>>
 		inline auto async_stop(
-			this auto&& self,
 			StopToken&& token = asio::default_token_type<asio::tcp_acceptor>())
 		{
 			return asio::async_initiate<StopToken, void(error_code)>(
@@ -64,26 +62,23 @@ namespace asio
 					{
 						auto& self = self_ref.get();
 
-						state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-						co_await asio::dispatch(self.get_acceptor().get_executor(), use_nothrow_deferred);
+						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
 
 						error_code ec{};
-						self.get_acceptor().close(ec);
+						self.acceptor.close(ec);
 
-						co_await self.get_connection_map().async_disconnect_all(use_nothrow_deferred);
+						co_await self.connection_map.async_disconnect_all(use_nothrow_deferred);
 
 						co_return ec;
-					}, self.get_acceptor()),
-				token, std::ref(self));
+					}, acceptor), token, std::ref(*this));
 		}
 
 		/**
 		 * @brief Check whether the acceptor is stopped or not.
 		 */
-		inline bool is_aborted(this auto&& self) noexcept
+		inline bool is_aborted() noexcept
 		{
-			return !self.get_acceptor().is_open();
+			return !acceptor.is_open();
 		}
 
 		/**
@@ -96,11 +91,10 @@ namespace asio
 		 */
 		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
 		inline auto async_send(
-			this auto&& self,
 			auto&& data,
 			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			return self.get_connection_map().async_send_all(
+			return connection_map.async_send_all(
 				std::forward_like<decltype(data)>(data),
 				std::forward<WriteToken>(token));
 		}
@@ -108,25 +102,25 @@ namespace asio
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor(this auto&& self) noexcept
+		inline const auto& get_executor() noexcept
 		{
-			return self.get_acceptor().get_executor();
+			return acceptor.get_executor();
 		}
 
 		/**
 		 * @brief Get the listen address.
 		 */
-		inline std::string get_listen_address(this auto&& self) noexcept
+		inline std::string get_listen_address() noexcept
 		{
-			return asio::get_local_address(self.get_acceptor());
+			return asio::get_local_address(acceptor);
 		}
 
 		/**
 		 * @brief Get the listen port number.
 		 */
-		inline ip::port_type get_listen_port(this auto&& self) noexcept
+		inline ip::port_type get_listen_port() noexcept
 		{
-			return asio::get_local_port(self.get_acceptor());
+			return asio::get_local_port(acceptor);
 		}
 
 		/**

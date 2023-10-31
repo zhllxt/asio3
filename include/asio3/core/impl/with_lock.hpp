@@ -12,13 +12,12 @@ template <typename CompletionToken, typename... Signatures>
 struct async_result<with_lock_t<CompletionToken>, Signatures...>
 {
   template <typename Initiation, typename RawCompletionToken, typename... Args>
-  static auto
-  initiate(
-      Initiation&& initiation,
-      RawCompletionToken&& token,
-      Args&&... args)
+  static auto initiate(Initiation&& initiation,
+      RawCompletionToken&& token, Args&&... args)
   {
-    return asio::async_initiate<CompletionToken, Signatures...>(
+    return asio::async_initiate<typename conditional<
+        is_const<typename remove_reference<RawCompletionToken>::type>::value,
+          const CompletionToken, CompletionToken>::type, Signatures...>(
           static_cast<Initiation&&>(initiation),
         token.token_, static_cast<Args&&>(args)...);
   }
@@ -32,13 +31,12 @@ template <typename CompletionToken, typename Signature>
 struct async_result<with_lock_t<CompletionToken>, Signature>
 {
   template <typename Initiation, typename RawCompletionToken, typename... Args>
-  static auto
-  initiate(
-      Initiation&& initiation,
-      RawCompletionToken&& token,
-      Args&&... args)
+  static auto initiate(Initiation&& initiation,
+      RawCompletionToken&& token, Args&&... args)
   {
-    return async_initiate<CompletionToken, Signature>(
+    return async_initiate<typename conditional<
+        is_const<typename remove_reference<RawCompletionToken>::type>::value,
+          const CompletionToken, CompletionToken>::type, Signature>(
         static_cast<Initiation&&>(initiation),
         token.token_, static_cast<Args&&>(args)...);
   }

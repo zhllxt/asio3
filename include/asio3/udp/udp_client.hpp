@@ -38,11 +38,10 @@ namespace asio
 
 		template<typename ConnectToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_connect(
-			this auto&& self,
 			is_string auto&& server_address, is_string_or_integral auto&& server_port,
 			ConnectToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			return asio::async_connect(self.get_socket(),
+			return asio::async_connect(socket,
 				std::forward_like<decltype(server_address)>(server_address),
 				std::forward_like<decltype(server_port)>(server_port),
 				std::forward<ConnectToken>(token));
@@ -53,28 +52,27 @@ namespace asio
 		 */
 		template<typename StopToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_stop(
-			this auto&& self,
 			StopToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			self.aborted.test_and_set();
+			aborted.test_and_set();
 
-			return asio::async_disconnect(self.get_socket(), std::forward<StopToken>(token));
+			return asio::async_disconnect(socket, std::forward<StopToken>(token));
 		}
 
 		/**
 		 * @brief Set the aborted flag to false.
 		 */
-		inline void restart(this auto&& self) noexcept
+		inline void restart() noexcept
 		{
-			self.aborted.clear();
+			aborted.clear();
 		}
 
 		/**
 		 * @brief Check whether the client is aborted or not.
 		 */
-		inline bool is_aborted(this auto&& self) noexcept
+		inline bool is_aborted() noexcept
 		{
-			return self.aborted.test();
+			return aborted.test();
 		}
 
 		/**
@@ -87,11 +85,10 @@ namespace asio
 		 */
 		template<typename WriteToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_send(
-			this auto&& self,
 			auto&& data,
 			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
 		{
-			return asio::async_send(self.get_socket(),
+			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data),
 				std::forward<WriteToken>(token));
 		}
@@ -99,41 +96,41 @@ namespace asio
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor(this auto&& self) noexcept
+		inline const auto& get_executor() noexcept
 		{
-			return self.get_socket().get_executor();
+			return socket.get_executor();
 		}
 
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address(this auto&& self) noexcept
+		inline std::string get_local_address() noexcept
 		{
-			return asio::get_local_address(self.get_socket());
+			return asio::get_local_address(socket);
 		}
 
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port(this auto&& self) noexcept
+		inline ip::port_type get_local_port() noexcept
 		{
-			return asio::get_local_port(self.get_socket());
+			return asio::get_local_port(socket);
 		}
 
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address(this auto&& self) noexcept
+		inline std::string get_remote_address() noexcept
 		{
-			return asio::get_remote_address(self.get_socket());
+			return asio::get_remote_address(socket);
 		}
 
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port(this auto&& self) noexcept
+		inline ip::port_type get_remote_port() noexcept
 		{
-			return asio::get_remote_port(self.get_socket());
+			return asio::get_remote_port(socket);
 		}
 
 		/**

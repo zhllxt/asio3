@@ -131,5 +131,17 @@ parse_udp_packet(std::string_view data, bool rsv_as_datalen = false)
 
 	return { 0, std::move(endpoint), domain, data };
 }
+
+std::tuple<int, asio::ip::udp::endpoint, std::string_view, std::string_view>
+parse_udp_packet(asio::const_buffer buffer, bool rsv_as_datalen = false)
+{
+	return parse_udp_packet(asio::to_string_view(buffer), rsv_as_datalen);
+}
+
+std::tuple<int, asio::ip::udp::endpoint, std::string_view, std::string_view>
+parse_udp_packet(asio::mutable_buffer buffer, bool rsv_as_datalen = false)
+{
+	return parse_udp_packet(asio::to_string_view(buffer), rsv_as_datalen);
+}
 }
 }

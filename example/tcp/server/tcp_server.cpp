@@ -5,17 +5,17 @@ namespace net = ::asio;
 
 net::awaitable<void> do_recv(std::shared_ptr<net::tcp_connection> conn)
 {
-	net::streambuf strbuf{ 1024 * 1024 };
+	std::string strbuf;
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_read_until(conn->socket, strbuf, '\n');
+		auto [e1, n1] = co_await net::async_read_until(conn->socket, asio::dynamic_buffer(strbuf), '\n');
 		if (e1)
 			break;
 
 		conn->update_alive_time();
 
-		auto data = net::buffer(strbuf.data().data(), n1);
+		auto data = net::buffer(strbuf.data(), n1);
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
@@ -23,7 +23,7 @@ net::awaitable<void> do_recv(std::shared_ptr<net::tcp_connection> conn)
 		if (e2)
 			break;
 
-		strbuf.consume(n1);
+		strbuf.erase(0, n1);
 	}
 
 	conn->socket.shutdown(net::socket_base::shutdown_both);
@@ -39,17 +39,15 @@ net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::t
 
 	net::co_spawn(server.get_executor(), do_recv(conn), net::detached);
 
-	co_await server.async_send("abc");
-
-	co_await net::wait_error_or_idle_timeout(conn->socket, conn->alive_time, net::tcp_idle_timeout);
-	co_await net::async_disconnect(conn->socket);
+	co_await conn->async_wait_error_or_idle_timeout(net::tcp_idle_timeout);
+	co_await conn->async_disconnect();
 
 	co_await server.connection_map.async_erase(conn);
 }
 
-net::awaitable<void> start_server(net::tcp_server& server)
+net::awaitable<void> start_server(net::tcp_server& server, std::string listen_address, std::uint16_t listen_port)
 {
-	auto [ec, ep] = co_await server.async_listen("0.0.0.0", 8028);
+	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
 	if (ec)
 	{
 		fmt::print("listen failure: {}\n", ec.message());
@@ -79,7 +77,7 @@ int main()
 
 	net::tcp_server server(ctx.get_executor());
 
-	net::co_spawn(ctx.get_executor(), start_server(server), net::detached);
+	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8028), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
 	sigset.async_wait([&server](net::error_code, int) mutable

@@ -35,9 +35,9 @@ namespace asio
 		/**
 		 * @brief Get this object hash key, used for connection map
 		 */
-		inline key_type hash_key(this auto&& self) noexcept
+		inline key_type hash_key() noexcept
 		{
-			return reinterpret_cast<key_type>(std::addressof(self));
+			return reinterpret_cast<key_type>(this);
 		}
 
 		/**
@@ -45,10 +45,13 @@ namespace asio
 		 */
 		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
 		inline auto async_disconnect(
-			this auto&& self,
 			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			return asio::async_disconnect(self.get_socket(),
+			asio::dispatch(socket.get_executor(), [this]()
+			{
+				asio::cancel_timer(alive_timer);
+			});
+			return asio::async_disconnect(socket,
 				asio::tcp_disconnect_timeout,
 				std::forward<DisconnectToken>(token));
 		}
@@ -63,52 +66,69 @@ namespace asio
 		 */
 		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
 		inline auto async_send(
-			this auto&& self,
 			auto&& data,
 			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			return asio::async_send(self.get_socket(),
+			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief Start a asynchronously idle timeout check operation.
+		 * @param idle_timeout - The idle timeout.
+		 * @param token - The completion handler to invoke when the operation completes.
+		 *	  The equivalent function signature of the handler must be:
+		 *    @code
+		 *    void handler(const asio::error_code& ec);
+		 */
+		template<typename CheckToken = asio::default_token_type<asio::tcp_socket>>
+		inline auto async_wait_error_or_idle_timeout(
+			std::chrono::system_clock::duration idle_timeout = asio::tcp_idle_timeout,
+			CheckToken&& token = asio::default_token_type<asio::tcp_socket>())
+		{
+			return asio::async_wait_error_or_idle_timeout(
+				socket, alive_timer, alive_time, idle_timeout,
+				std::forward<CheckToken>(token));
 		}
 
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor(this auto&& self) noexcept
+		inline const auto& get_executor() noexcept
 		{
-			return self.get_socket().get_executor();
+			return socket.get_executor();
 		}
 
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address(this auto&& self) noexcept
+		inline std::string get_local_address() noexcept
 		{
-			return asio::get_local_address(self.get_socket());
+			return asio::get_local_address(socket);
 		}
 
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port(this auto&& self) noexcept
+		inline ip::port_type get_local_port() noexcept
 		{
-			return asio::get_local_port(self.get_socket());
+			return asio::get_local_port(socket);
 		}
 
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address(this auto&& self) noexcept
+		inline std::string get_remote_address() noexcept
 		{
-			return asio::get_remote_address(self.get_socket());
+			return asio::get_remote_address(socket);
 		}
 
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port(this auto&& self) noexcept
+		inline ip::port_type get_remote_port() noexcept
 		{
-			return asio::get_remote_port(self.get_socket());
+			return asio::get_remote_port(socket);
 		}
 
 		/**
@@ -120,13 +140,15 @@ namespace asio
 			return std::forward_like<decltype(self)>(self).socket;
 		}
 
-		inline void update_alive_time(this auto&& self) noexcept
+		inline void update_alive_time() noexcept
 		{
-			self.alive_time = std::chrono::system_clock::now();
+			alive_time = std::chrono::system_clock::now();
 		}
 
 	public:
 		asio::tcp_socket      socket;
+
+		asio::steady_timer    alive_timer{ socket.get_executor() };
 
 		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
 	};

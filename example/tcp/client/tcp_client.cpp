@@ -5,15 +5,15 @@ namespace net = ::asio;
 
 net::awaitable<void> do_recv(net::tcp_client& client)
 {
-	net::streambuf strbuf{ 1024 * 1024 };
+	std::string strbuf;
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_read_until(client.socket, strbuf, '\n');
+		auto [e1, n1] = co_await net::async_read_until(client.socket, net::dynamic_buffer(strbuf), '\n');
 		if (e1)
 			break;
 
-		auto data = asio::buffer(strbuf.data().data(), n1);
+		auto data = net::buffer(strbuf.data(), n1);
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
@@ -21,7 +21,7 @@ net::awaitable<void> do_recv(net::tcp_client& client)
 		if (e2)
 			break;
 
-		strbuf.consume(n1);
+		strbuf.erase(0, n1);
 	}
 
 	client.socket.shutdown(net::socket_base::shutdown_both);
@@ -45,7 +45,7 @@ net::awaitable<void> connect(net::tcp_client& client)
 		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
 
 		// connect success, send some message to the server...
-		client.async_send("<0123456789>", [](auto...) {});
+		client.async_send("<0123456789>\n", [](auto...) {});
 
 		co_await do_recv(client);
 	}
