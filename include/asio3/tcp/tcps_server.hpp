@@ -21,9 +21,9 @@ namespace asio
 	public:
 		using super = tcp_server_t<SessionT>;
 
-		explicit tcps_server_t(const auto& ex, ssl::context::method method = ssl::context::sslv23)
+		explicit tcps_server_t(const auto& ex, ssl::context&& sslctx)
 			: super(ex)
-			, ssl_context(method)
+			, ssl_context(std::move(sslctx))
 		{
 		}
 

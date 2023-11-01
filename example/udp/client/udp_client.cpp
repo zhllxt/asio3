@@ -22,8 +22,7 @@ net::awaitable<void> do_recv(net::udp_client& client)
 			break;
 	}
 
-	client.socket.shutdown(net::socket_base::shutdown_both);
-	client.socket.close();
+	client.close();
 }
 
 net::awaitable<void> connect(net::udp_client& client)
@@ -41,7 +40,7 @@ net::awaitable<void> connect(net::udp_client& client)
 		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
 
 		// connect success, send some message to the server...
-		client.async_send("<0123456789>", [](auto...) {});
+		co_await client.async_send("<0123456789>");
 
 		co_await do_recv(client);
 	}

@@ -17,7 +17,7 @@
 // When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 
 // linux need linker "ssl;crypto;", if link failed under gcc, try ":libssl.a;:libcrypto.a;"
 // ssl must be before crypto.
-#define ASIO3_ENABLE_SSL
+//#define ASIO3_ENABLE_SSL
 
 // Define ASIO_NO_EXCEPTIONS to disable the exception. so when the exception occurs, you can
 // check the stack trace.

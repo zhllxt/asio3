@@ -24,8 +24,7 @@ net::awaitable<void> do_recv(net::tcp_client& client)
 		strbuf.erase(0, n1);
 	}
 
-	client.socket.shutdown(net::socket_base::shutdown_both);
-	client.socket.close();
+	client.close();
 }
 
 net::awaitable<void> connect(net::tcp_client& client)
@@ -38,14 +37,14 @@ net::awaitable<void> connect(net::tcp_client& client)
 			// connect failed, reconnect...
 			fmt::print("connect failure: {}\n", ec.message());
 			co_await net::delay(std::chrono::seconds(1));
-			client.socket.close();
+			client.close();
 			continue;
 		}
 
 		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
 
 		// connect success, send some message to the server...
-		client.async_send("<0123456789>\n", [](auto...) {});
+		co_await client.async_send("<0123456789>\n");
 
 		co_await do_recv(client);
 	}

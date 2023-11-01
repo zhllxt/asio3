@@ -1,5 +1,10 @@
+#ifndef ASIO3_ENABLE_SSL
+#define ASIO3_ENABLE_SSL
+#endif
+
 #include <asio3/tcp/tcps_client.hpp>
 #include <asio3/core/fmt.hpp>
+#include "../../certs.hpp"
 
 namespace net = ::asio;
 
@@ -24,22 +29,20 @@ net::awaitable<void> do_recv(net::tcps_client& client)
 		strbuf.erase(0, n1);
 	}
 
-	//co_await client.ssl_stream.async_shutdown(net::use_nothrow_awaitable);
-	client.socket.shutdown(net::socket_base::shutdown_both);
-	client.socket.close();
+	client.close();
 }
 
 net::awaitable<void> connect(net::tcps_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8002);
-		if (ec)
+		auto [e1, ep] = co_await client.async_connect("127.0.0.1", 8002);
+		if (e1)
 		{
 			// connect failed, reconnect...
-			fmt::print("connect failure: {}\n", ec.message());
+			fmt::print("connect failure: {}\n", e1.message());
 			co_await net::delay(std::chrono::seconds(1));
-			client.socket.close();
+			client.close();
 			continue;
 		}
 
@@ -48,16 +51,16 @@ net::awaitable<void> connect(net::tcps_client& client)
 		if (e2)
 		{
 			// handshake failed, reconnect...
-			fmt::print("handshake failure: {}\n", ec.message());
+			fmt::print("handshake failure: {}\n", e2.message());
 			co_await net::delay(std::chrono::seconds(1));
-			client.socket.close();
+			client.close();
 			continue;
 		}
 
 		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
 
 		// connect success, send some message to the server...
-		client.async_send("<0123456789>\n", [](auto...) {});
+		co_await client.async_send("<0123456789>\n");
 
 		co_await do_recv(client);
 	}
@@ -67,7 +70,9 @@ int main()
 {
 	net::io_context ctx;
 
-	net::tcps_client client(ctx.get_executor());
+	asio::ssl::context sslctx(net::ssl::context::sslv23);
+	net::set_cert_buffer(sslctx, net::ssl::verify_peer, ca_crt, client_crt, client_key, "123456");
+	net::tcps_client client(ctx.get_executor(), std::move(sslctx));
 
 	net::co_spawn(ctx.get_executor(), connect(client), net::detached);
 

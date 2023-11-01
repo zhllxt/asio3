@@ -26,8 +26,7 @@ net::awaitable<void> do_recv(std::shared_ptr<net::tcp_session> session)
 		strbuf.erase(0, n1);
 	}
 
-	session->socket.shutdown(net::socket_base::shutdown_both);
-	session->socket.close();
+	session->close();
 }
 
 net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::tcp_session> session)

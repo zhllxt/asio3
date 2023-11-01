@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/tcp/tcp_session.hpp>
+#include <asio3/tcp/sslutil.hpp>
 
 namespace asio
 {
@@ -28,6 +29,7 @@ namespace asio
 
 		~tcps_session()
 		{
+			close();
 		}
 
 		/**
@@ -45,7 +47,11 @@ namespace asio
 
 						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
 
+						co_await asio::async_lock(self.socket, use_nothrow_deferred);
+
 						co_await self.ssl_stream.async_shutdown(use_nothrow_deferred);
+
+						detail::unlock_channel(self.socket);
 
 						co_await self.base().async_disconnect(use_nothrow_deferred);
 
@@ -70,6 +76,16 @@ namespace asio
 		{
 			return asio::async_send(ssl_stream,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief shutdown and close the socket directly.
+		 */
+		inline void close()
+		{
+			super::close();
+
+			SSL_clear(ssl_stream.native_handle());
 		}
 
 		inline super& base() noexcept

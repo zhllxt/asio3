@@ -1,33 +1,35 @@
+#ifndef ASIO3_ENABLE_SSL
+#define ASIO3_ENABLE_SSL
+#endif
+
 #include <asio3/core/fmt.hpp>
 #include <asio3/tcp/tcps_server.hpp>
+#include "../../certs.hpp"
 
 namespace net = ::asio;
 
 net::awaitable<void> do_recv(std::shared_ptr<net::tcps_session> session)
 {
-	std::string strbuf;
+	std::array<char, 1024> buf;
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_read_until(session->socket, asio::dynamic_buffer(strbuf), '\n');
+		auto [e1, n1] = co_await net::async_read_some(session->ssl_stream, asio::buffer(buf));
 		if (e1)
 			break;
 
 		session->update_alive_time();
 
-		auto data = net::buffer(strbuf.data(), n1);
+		auto data = net::buffer(buf.data(), n1);
 
-		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
+		fmt::print("{} {} {}\n", std::chrono::system_clock::now(), data.size(), data);
 
-		auto [e2, n2] = co_await net::async_send(session->socket, data);
+		auto [e2, n2] = co_await net::async_send(session->ssl_stream, data);
 		if (e2)
 			break;
-
-		strbuf.erase(0, n1);
 	}
 
-	session->socket.shutdown(net::socket_base::shutdown_both);
-	session->socket.close();
+	session->close();
 }
 
 net::awaitable<void> client_join(net::tcps_server& server, std::shared_ptr<net::tcps_session> session)
@@ -36,6 +38,13 @@ net::awaitable<void> client_join(net::tcps_server& server, std::shared_ptr<net::
 
 	session->socket.set_option(net::ip::tcp::no_delay(true));
 	session->socket.set_option(net::socket_base::keep_alive(true));
+
+	auto [e2] = co_await session->ssl_stream.async_handshake(net::ssl::stream_base::handshake_type::server);
+	if (e2)
+	{
+		fmt::print("handshake failure: {}\n", e2.message());
+		co_return;
+	}
 
 	co_await(do_recv(session) || net::watchdog(session->alive_time, net::tcp_idle_timeout));
 
@@ -63,7 +72,7 @@ net::awaitable<void> start_server(net::tcps_server& server, std::string listen_a
 		else
 		{
 			net::co_spawn(server.get_executor(), client_join(server,
-				std::make_shared<net::tcps_session>(std::move(client))), net::detached);
+				std::make_shared<net::tcps_session>(std::move(client), server.ssl_context)), net::detached);
 		}
 	}
 }
@@ -72,9 +81,12 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	net::tcps_server server(ctx.get_executor());
+	asio::ssl::context sslctx(net::ssl::context::sslv23);
+	net::set_cert_buffer(sslctx, net::ssl::verify_peer | net::ssl::verify_fail_if_no_peer_cert,
+		ca_crt, server_crt, server_key, "123456", dh);
+	net::tcps_server server(ctx.get_executor(), std::move(sslctx));
 
-	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8028), net::detached);
+	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8002), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
 	sigset.async_wait([&server](net::error_code, int) mutable

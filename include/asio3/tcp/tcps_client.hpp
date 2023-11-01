@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/tcp/tcp_client.hpp>
+#include <asio3/tcp/sslutil.hpp>
 
 namespace asio
 {
@@ -19,15 +20,16 @@ namespace asio
 	public:
 		using super = tcp_client;
 
-		explicit tcps_client(const auto& ex, ssl::context::method method = ssl::context::sslv23)
+		explicit tcps_client(const auto& ex, ssl::context&& sslctx)
 			: tcp_client(ex)
-			, ssl_context(method)
+			, ssl_context(std::move(sslctx))
 			, ssl_stream(socket, ssl_context)
 		{
 		}
 
 		~tcps_client()
 		{
+			close();
 		}
 
 		/**
@@ -74,6 +76,16 @@ namespace asio
 		{
 			return asio::async_send(ssl_stream,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief shutdown and close the socket directly.
+		 */
+		inline void close()
+		{
+			super::close();
+
+			SSL_clear(ssl_stream.native_handle());
 		}
 
 		inline super& base() noexcept

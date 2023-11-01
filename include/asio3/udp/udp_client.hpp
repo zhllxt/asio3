@@ -33,6 +33,7 @@ namespace asio
 
 		~udp_client()
 		{
+			close();
 		}
 
 		template<typename ConnectToken = asio::default_token_type<asio::udp_socket>>
@@ -74,6 +75,16 @@ namespace asio
 			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data),
 				std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief shutdown and close the socket directly.
+		 */
+		inline void close()
+		{
+			asio::error_code ec{};
+			socket.shutdown(asio::socket_base::shutdown_both, ec);
+			socket.close(ec);
 		}
 
 		/**
