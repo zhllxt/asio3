@@ -16,6 +16,8 @@
 #include <asio3/core/fixed_capacity_vector.hpp>
 #include <asio3/core/move_only_any.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/tcp/core.hpp>
+#include <asio3/udp/core.hpp>
 
 namespace asio::socks5
 {
@@ -104,8 +106,8 @@ namespace asio::socks5
 	{
 		// you can declare a custom struct that derive from this, and redefine these two 
 		// bound socket type to let the async_accept function create a custom bound socket.
-		using connect_bound_socket_type = asio::ip::tcp::socket;
-		using udp_associate_bound_socket_type = asio::ip::udp::socket;
+		using connect_bound_socket_type = asio::tcp_socket;
+		using udp_associate_bound_socket_type = asio::udp_socket;
 
 		auth_method_vector supported_method{};
 

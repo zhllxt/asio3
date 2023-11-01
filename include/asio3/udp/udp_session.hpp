@@ -13,7 +13,6 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/udp/read.hpp>
 #include <asio3/udp/write.hpp>
-#include <asio3/udp/send.hpp>
 #include <asio3/udp/disconnect.hpp>
 
 namespace asio
@@ -35,15 +34,7 @@ namespace asio
 		}
 
 		/**
-		 * @brief Get this object hash key, used for connection map
-		 */
-		inline key_type hash_key() noexcept
-		{
-			return remote_endpoint;
-		}
-
-		/**
-		 * @brief Asynchronously graceful disconnect the connection, this function does not block.
+		 * @brief Asynchronously graceful disconnect the session, this function does not block.
 		 */
 		template<typename DisconnectToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_disconnect(
@@ -57,7 +48,7 @@ namespace asio
 
 						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
 
-						asio::cancel_timer(self.alive_timer);
+						asio::cancel_timer(self.watchdog_timer);
 
 						co_return error_code{};
 					}, socket), token, std::ref(*this));
@@ -83,21 +74,11 @@ namespace asio
 		}
 
 		/**
-		 * @brief Start a asynchronously idle timeout check operation.
-		 * @param idle_timeout - The idle timeout.
-		 * @param token - The completion handler to invoke when the operation completes.
-		 *	  The equivalent function signature of the handler must be:
-		 *    @code
-		 *    void handler(const asio::error_code& ec);
+		 * @brief Get this object hash key, used for session map
 		 */
-		template<typename CheckToken = asio::default_token_type<asio::udp_socket>>
-		inline auto async_wait_error_or_idle_timeout(
-			std::chrono::system_clock::duration idle_timeout = asio::udp_idle_timeout,
-			CheckToken&& token = asio::default_token_type<asio::udp_socket>())
+		inline key_type hash_key() noexcept
 		{
-			return asio::async_wait_error_or_idle_timeout(
-				socket, alive_timer, alive_time, idle_timeout,
-				std::forward<CheckToken>(token));
+			return remote_endpoint;
 		}
 
 		/**
@@ -155,13 +136,18 @@ namespace asio
 			alive_time = std::chrono::system_clock::now();
 		}
 
+		static auto create(asio::udp_socket& sock, ip::udp::endpoint& remote_endpoint)
+		{
+			return std::make_shared<udp_session>(sock, remote_endpoint);
+		};
+
 	public:
 		asio::udp_socket&     socket;
 
 		ip::udp::endpoint     remote_endpoint{};
 
-		asio::steady_timer    alive_timer{ socket.get_executor() };
-
 		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
+
+		asio::steady_timer    watchdog_timer{ socket.get_executor() };
 	};
 }

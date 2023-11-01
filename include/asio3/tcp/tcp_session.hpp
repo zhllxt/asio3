@@ -13,31 +13,22 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
-#include <asio3/tcp/send.hpp>
 #include <asio3/tcp/disconnect.hpp>
 
 namespace asio
 {
-	class tcp_connection : public std::enable_shared_from_this<tcp_connection>
+	class tcp_session : public std::enable_shared_from_this<tcp_session>
 	{
 	public:
 		using key_type = std::size_t;
 
 	public:
-		explicit tcp_connection(tcp_socket sock) : socket(std::move(sock))
+		explicit tcp_session(tcp_socket sock) : socket(std::move(sock))
 		{
 		}
 
-		~tcp_connection()
+		~tcp_session()
 		{
-		}
-
-		/**
-		 * @brief Get this object hash key, used for connection map
-		 */
-		inline key_type hash_key() noexcept
-		{
-			return reinterpret_cast<key_type>(this);
 		}
 
 		/**
@@ -47,10 +38,6 @@ namespace asio
 		inline auto async_disconnect(
 			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			asio::dispatch(socket.get_executor(), [this]()
-			{
-				asio::cancel_timer(alive_timer);
-			});
 			return asio::async_disconnect(socket,
 				asio::tcp_disconnect_timeout,
 				std::forward<DisconnectToken>(token));
@@ -74,21 +61,11 @@ namespace asio
 		}
 
 		/**
-		 * @brief Start a asynchronously idle timeout check operation.
-		 * @param idle_timeout - The idle timeout.
-		 * @param token - The completion handler to invoke when the operation completes.
-		 *	  The equivalent function signature of the handler must be:
-		 *    @code
-		 *    void handler(const asio::error_code& ec);
+		 * @brief Get this object hash key, used for session map
 		 */
-		template<typename CheckToken = asio::default_token_type<asio::tcp_socket>>
-		inline auto async_wait_error_or_idle_timeout(
-			std::chrono::system_clock::duration idle_timeout = asio::tcp_idle_timeout,
-			CheckToken&& token = asio::default_token_type<asio::tcp_socket>())
+		inline key_type hash_key() noexcept
 		{
-			return asio::async_wait_error_or_idle_timeout(
-				socket, alive_timer, alive_time, idle_timeout,
-				std::forward<CheckToken>(token));
+			return reinterpret_cast<key_type>(this);
 		}
 
 		/**
@@ -147,8 +124,6 @@ namespace asio
 
 	public:
 		asio::tcp_socket      socket;
-
-		asio::steady_timer    alive_timer{ socket.get_executor() };
 
 		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
 	};

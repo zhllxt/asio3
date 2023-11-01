@@ -11,21 +11,20 @@
 #pragma once
 
 #include <asio3/core/io_context_thread.hpp>
-#include <asio3/core/connection_map.hpp>
-#include <asio3/core/alive.hpp>
+#include <asio3/core/session_map.hpp>
 #include <asio3/tcp/listen.hpp>
-#include <asio3/tcp/tcp_connection.hpp>
+#include <asio3/tcp/tcp_session.hpp>
 
 namespace asio
 {
-	template<typename ConnectionT>
+	template<typename SessionT>
 	class tcp_server_t
 	{
 	public:
-		using connection_type = ConnectionT;
+		using session_type = SessionT;
 
 	public:
-		explicit tcp_server_t(const auto& ex) : acceptor(ex), connection_map(ex)
+		explicit tcp_server_t(const auto& ex) : acceptor(ex), session_map(ex)
 		{
 		}
 
@@ -67,18 +66,10 @@ namespace asio
 						error_code ec{};
 						self.acceptor.close(ec);
 
-						co_await self.connection_map.async_disconnect_all(use_nothrow_deferred);
+						co_await self.session_map.async_disconnect_all(use_nothrow_deferred);
 
 						co_return ec;
 					}, acceptor), token, std::ref(*this));
-		}
-
-		/**
-		 * @brief Check whether the acceptor is stopped or not.
-		 */
-		inline bool is_aborted() noexcept
-		{
-			return !acceptor.is_open();
 		}
 
 		/**
@@ -94,9 +85,17 @@ namespace asio
 			auto&& data,
 			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
 		{
-			return connection_map.async_send_all(
+			return session_map.async_send_all(
 				std::forward_like<decltype(data)>(data),
 				std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief Check whether the acceptor is stopped or not.
+		 */
+		inline bool is_aborted() noexcept
+		{
+			return !acceptor.is_open();
 		}
 
 		/**
@@ -133,18 +132,18 @@ namespace asio
 		}
 
 		/**
-		 * @brief Get the connection map.
+		 * @brief Get the session map.
 		 */
-		constexpr inline auto&& get_connection_map(this auto&& self)
+		constexpr inline auto&& get_session_map(this auto&& self)
 		{
-			return std::forward_like<decltype(self)>(self).connection_map;
+			return std::forward_like<decltype(self)>(self).session_map;
 		}
 
 	public:
 		asio::tcp_acceptor  acceptor;
 
-		connection_map_t<connection_type> connection_map;
+		session_map_t<session_type> session_map;
 	};
 
-	using tcp_server = tcp_server_t<tcp_connection>;
+	using tcp_server = tcp_server_t<tcp_session>;
 }

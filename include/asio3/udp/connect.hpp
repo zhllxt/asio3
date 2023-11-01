@@ -91,7 +91,7 @@ namespace asio::detail
 namespace asio
 {
 	/**
-	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @brief Asynchronously establishes a socket session by trying each endpoint in a sequence.
 	 * @param sock - The socket reference to be connected.
 	 * @param server_address - The target server address. 
 	 * @param server_port - The target server port. 
@@ -103,7 +103,7 @@ namespace asio
 	template<
 		typename AsyncStream,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
-	requires (is_basic_datagram_socket<AsyncStream>)
+	requires (is_udp_socket<AsyncStream>)
 	inline auto async_connect(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
@@ -119,7 +119,7 @@ namespace asio
 	}
 
 	/**
-	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @brief Asynchronously establishes a socket session by trying each endpoint in a sequence.
 	 * @param sock - The socket reference to be connected.
 	 * @param server_address - The target server address. 
 	 * @param server_port - The target server port. 
@@ -133,7 +133,7 @@ namespace asio
 		typename AsyncStream,
 		typename SetOptionFn,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
-	requires (is_basic_datagram_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	requires (is_udp_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
 	inline auto async_connect(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,

@@ -44,7 +44,7 @@ namespace asio::detail
 namespace asio
 {
 	/**
-	 * @brief Asynchronously graceful disconnect the socket connection.
+	 * @brief Asynchronously graceful disconnect the socket session.
 	 * @param sock - The socket reference to be connected.
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
@@ -54,7 +54,7 @@ namespace asio
 	template<
 		typename AsyncStream,
 		typename DisconnectToken = asio::default_token_type<AsyncStream>>
-	requires (is_basic_datagram_socket<AsyncStream>)
+	requires (is_udp_socket<AsyncStream>)
 	inline auto async_disconnect(
 		AsyncStream& sock,
 		DisconnectToken&& token = asio::default_token_type<AsyncStream>())

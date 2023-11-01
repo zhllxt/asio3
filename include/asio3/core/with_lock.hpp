@@ -119,11 +119,9 @@ namespace asio::detail
 			{
 				//assert(s.get_executor().running_in_this_thread());
 
-				auto& lock = s.get_executor().lock;
-				
-				if (!lock->try_send())
+				if (!s.get_executor().lock->try_send())
 				{
-					auto [ec] = co_await lock->async_send(asio::use_nothrow_deferred);
+					auto [ec] = co_await s.get_executor().lock->async_send(asio::use_nothrow_deferred);
 					co_return ec;
 				}
 			}
@@ -132,21 +130,16 @@ namespace asio::detail
 		}
 	};
 
-	struct unlock_op
+	template<typename AsyncStream>
+	inline void unlock_channel(AsyncStream& s)
 	{
-		template<typename AsyncStream>
-		inline auto operator()(AsyncStream& s) -> void
+		if constexpr (has_member_variable_lock<std::remove_cvref_t<AsyncStream>>)
 		{
-			if constexpr (has_member_variable_lock<std::remove_cvref_t<AsyncStream>>)
-			{
-				//assert(s.get_executor().running_in_this_thread());
+			//assert(s.get_executor().running_in_this_thread());
 
-				auto& lock = s.get_executor().lock;
-				
-				lock->try_receive([](auto...) {});
-			}
+			s.get_executor().lock->try_receive([](auto...) {});
 		}
-	};
+	}
 }
 
 namespace asio
@@ -180,7 +173,7 @@ namespace asio
 		}
 		~defer_unlock()
 		{
-			detail::unlock_op{}(s);
+			detail::unlock_channel(s);
 		}
 
 		AsyncStream& s;

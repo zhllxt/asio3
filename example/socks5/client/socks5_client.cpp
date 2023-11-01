@@ -44,11 +44,11 @@ net::awaitable<void> tcp_connect(socks5::option sock5_opt)
 	{
 		auto [e3, n3] = co_await net::async_read_some(client, net::buffer(data));
 		if (e3)
-			co_return;
+			break;
 
 		auto [e4, n4] = co_await net::async_write(client, net::buffer(data, n3));
 		if (e4)
-			co_return;
+			break;
 	}
 }
 
@@ -92,9 +92,8 @@ net::awaitable<void> udp_connect(socks5::option sock5_opt)
 	net::ip::udp::endpoint remote_endp{ ep1.address(), sock5_opt.bound_port };
 	net::ip::udp::endpoint sender_endp;
 
-
 	std::string msg = "<abc0123456789def>";
-	std::string data(1024, '\0');
+	std::array<char, 1024> data;
 
 	socks5::insert_udp_header(msg, sock5_opt.dest_address, dest_port);
 
@@ -102,18 +101,15 @@ net::awaitable<void> udp_connect(socks5::option sock5_opt)
 	{
 		auto [e4, n4] = co_await net::async_send_to(cast, net::buffer(msg), remote_endp);
 		if (e4)
-			co_return;
+			break;
 
 		auto [e5, n5] = co_await net::async_receive_from(cast, net::buffer(data), sender_endp);
 		if (e5)
-			co_return;
+			break;
 
 		auto [err, ep, domain, real_data] = socks5::parse_udp_packet(std::string_view{ data.data(),n5 }, false);
 
 		net::ignore_unused(err, ep, domain, real_data);
-
-		if (n5 == data.size())
-			data.resize(data.size() * 3 / 2);
 	}
 }
 
@@ -138,14 +134,14 @@ int main()
 		.cmd = socks5::command::udp_associate,
 	};
 
+	//net::co_spawn(ctx, tcp_connect(std::move(sock5_opt)), net::detached);
+	net::co_spawn(ctx, udp_connect(std::move(sock5_opt)), net::detached);
+
 	net::signal_set signals(ctx, SIGINT, SIGTERM);
 	signals.async_wait([&](auto, auto)
 	{
 		ctx.stop();
 	});
-
-	//net::co_spawn(ctx, tcp_connect(std::move(sock5_opt)), net::detached);
-	net::co_spawn(ctx, udp_connect(std::move(sock5_opt)), net::detached);
 
 	ctx.run();
 

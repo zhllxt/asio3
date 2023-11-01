@@ -1,9 +1,9 @@
 #include <asio3/core/fmt.hpp>
-#include <asio3/tcp/tcp_server.hpp>
+#include <asio3/tcp/tcps_server.hpp>
 
 namespace net = ::asio;
 
-net::awaitable<void> do_recv(std::shared_ptr<net::tcp_session> session)
+net::awaitable<void> do_recv(std::shared_ptr<net::tcps_session> session)
 {
 	std::string strbuf;
 
@@ -30,7 +30,7 @@ net::awaitable<void> do_recv(std::shared_ptr<net::tcp_session> session)
 	session->socket.close();
 }
 
-net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::tcp_session> session)
+net::awaitable<void> client_join(net::tcps_server& server, std::shared_ptr<net::tcps_session> session)
 {
 	co_await server.session_map.async_emplace(session);
 
@@ -42,7 +42,7 @@ net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::t
 	co_await server.session_map.async_erase(session);
 }
 
-net::awaitable<void> start_server(net::tcp_server& server, std::string listen_address, std::uint16_t listen_port)
+net::awaitable<void> start_server(net::tcps_server& server, std::string listen_address, std::uint16_t listen_port)
 {
 	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
 	if (ec)
@@ -63,7 +63,7 @@ net::awaitable<void> start_server(net::tcp_server& server, std::string listen_ad
 		else
 		{
 			net::co_spawn(server.get_executor(), client_join(server,
-				std::make_shared<net::tcp_session>(std::move(client))), net::detached);
+				std::make_shared<net::tcps_session>(std::move(client))), net::detached);
 		}
 	}
 }
@@ -72,7 +72,7 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	net::tcp_server server(ctx.get_executor());
+	net::tcps_server server(ctx.get_executor());
 
 	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8028), net::detached);
 

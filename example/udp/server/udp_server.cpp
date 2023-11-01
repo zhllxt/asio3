@@ -5,9 +5,7 @@ namespace net = ::asio;
 
 net::awaitable<void> client_join(net::udp_server& server, std::shared_ptr<net::udp_session> session)
 {
-	co_await session->async_send("<123456789>");
-
-	co_await session->async_wait_error_or_idle_timeout(net::udp_idle_timeout);
+	co_await net::watchdog(session->watchdog_timer, session->alive_time, net::udp_idle_timeout);
 	co_await session->async_disconnect();
 
 	co_await server.session_map.async_erase(session);
@@ -24,35 +22,32 @@ net::awaitable<void> start_server(net::udp_server& server, std::string listen_ad
 
 	fmt::print("listen success: {} {}\n", server.get_listen_address(), server.get_listen_port());
 
+	std::array<char, 1024> buf;
+	net::ip::udp::endpoint remote_endpoint{};
+
 	while (!server.is_aborted())
 	{
-		std::vector<std::uint8_t> recv_buffer(1024);
-
-		net::ip::udp::endpoint remote_endpoint{};
-
 		auto [e1, n1] = co_await net::async_receive_from(
-			server.socket, net::buffer(recv_buffer), remote_endpoint);
+			server.socket, net::buffer(buf), remote_endpoint);
 		if (e1)
 			break;
 
-		static auto make_conn = [&server, &remote_endpoint]()
+		auto [session] = co_await server.session_map.async_find(remote_endpoint);
+		if (!session)
 		{
-			return std::make_shared<net::udp_session>(server.socket, remote_endpoint);
-		};
-
-		auto [session, is_new_session] = co_await server.session_map.async_find_or_emplace(
-			remote_endpoint, make_conn);
-		if (is_new_session)
-		{
+			session = net::udp_session::create(server.socket, remote_endpoint);
+			co_await server.session_map.async_emplace(session);
 			net::co_spawn(server.get_executor(), client_join(server, session), net::detached);
 		}
 
 		session->update_alive_time();
 
-		auto data = net::buffer(recv_buffer.data(), n1);
+		auto data = net::buffer(buf.data(), n1);
 
 		fmt::print("{} {} {} {}\n", std::chrono::system_clock::now(),
 			session->get_remote_address(), session->get_remote_port(), data);
+
+		co_await session->async_send(data);
 	}
 }
 

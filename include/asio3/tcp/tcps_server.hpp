@@ -11,26 +11,29 @@
 #pragma once
 
 #include <asio3/tcp/tcp_server.hpp>
-#include <asio3/proxy/socks5_session.hpp>
+#include <asio3/tcp/tcps_session.hpp>
 
 namespace asio
 {
 	template<typename SessionT>
-	class socks5_server_t : public tcp_server_t<SessionT>
+	class tcps_server_t : public tcp_server_t<SessionT>
 	{
 	public:
 		using super = tcp_server_t<SessionT>;
 
-		explicit socks5_server_t(const auto& ex) : super(ex)
+		explicit tcps_server_t(const auto& ex, ssl::context::method method = ssl::context::sslv23)
+			: super(ex)
+			, ssl_context(method)
 		{
 		}
 
-		~socks5_server_t()
+		~tcps_server_t()
 		{
 		}
 
 	public:
+		asio::ssl::context                   ssl_context;
 	};
 
-	using socks5_server = socks5_server_t<socks5_session>;
+	using tcps_server = tcps_server_t<tcps_session>;
 }

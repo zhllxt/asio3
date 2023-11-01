@@ -557,6 +557,7 @@ public:
       ASIO_COMPLETION_TOKEN_FOR(void (asio::error_code,
         std::size_t)) BufferedHandshakeToken
           = default_completion_token_t<executor_type>>
+  requires asio::is_const_buffer_sequence<ConstBufferSequence>::value
   auto async_handshake(handshake_type type, const ConstBufferSequence& buffers,
       BufferedHandshakeToken&& token
         = default_completion_token_t<executor_type>())

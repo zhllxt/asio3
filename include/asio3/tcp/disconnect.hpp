@@ -54,6 +54,14 @@ namespace asio::detail
 							sock.close(ec);
 						});
 
+					// https://github.com/chriskohlhoff/asio/issues/715
+					// when use wait_error like below:
+					// auto result = co_await
+					// (
+					// 	async_check_error(sock, use_nothrow_awaitable) ||
+					// 	async_check_idle(sock, alive_time, idle_timeout, use_nothrow_awaitable)
+					// );
+					// even if the async_check_idle is returned, the async_check_error won't returned.
 					co_await sock.async_wait(asio::socket_base::wait_error, use_nothrow_deferred);
 
 					sock.close(ec);

@@ -12,8 +12,8 @@
 
 namespace asio
 {
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_emplace_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_emplace_op
 	{
 		auto operator()(auto state, auto self_ref, value_type conn) -> void
 		{
@@ -34,8 +34,8 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_find_or_emplace_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_find_or_emplace_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key, auto&& create_func) -> void
 		{
@@ -64,8 +64,8 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_erase_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_erase_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
 		{
@@ -86,8 +86,8 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_find_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_find_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
 		{
@@ -108,8 +108,8 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_disconnect_all_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_disconnect_all_op
 	{
 		auto operator()(auto state, auto self_ref, auto&& pred) -> void
 		{
@@ -146,8 +146,8 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_send_all_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_send_all_op
 	{
 		auto operator()(auto state, auto self_ref, auto&& data, auto&& pred) -> void
 		{
@@ -170,7 +170,7 @@ namespace asio
 				if (!fun(conn))
 					continue;
 
-				auto [e1, n1] = co_await conn->async_send(asio::buffer(msg), asio::use_nothrow_deferred);
+				auto [e1, n1] = co_await conn->async_send(asio::to_buffer(msg), asio::use_nothrow_deferred);
 				total += n1;
 			}
 
@@ -180,8 +180,8 @@ namespace asio
 		}
 	};
 
-	template<typename ConnectionT>
-	struct connection_map_t<ConnectionT>::async_for_each_op
+	template<typename SessionT>
+	struct session_map_t<SessionT>::async_for_each_op
 	{
 		template<class Function>
 		auto operator()(auto state, auto self_ref, Function&& func) -> void

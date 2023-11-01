@@ -15,7 +15,3 @@
 #
 
 add_subdirectory (tcp          )
-add_subdirectory (udp          )
-add_subdirectory (socks5       )
-
-add_subdirectory (ssl          )

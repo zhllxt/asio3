@@ -88,7 +88,7 @@ namespace asio
 	template<
 		typename AsyncStream,
 		typename OpenToken = asio::default_token_type<AsyncStream>>
-	requires (is_basic_datagram_socket<AsyncStream>)
+	requires (is_udp_socket<AsyncStream>)
 	inline auto async_open(
 		AsyncStream& sock,
 		is_string auto&& listen_address, is_string_or_integral auto&& listen_port,
@@ -118,7 +118,7 @@ namespace asio
 		typename AsyncStream,
 		typename SetOptionFn,
 		typename OpenToken = asio::default_token_type<AsyncStream>>
-	requires (is_basic_datagram_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	requires (is_udp_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
 	inline auto async_open(
 		AsyncStream& sock,
 		is_string auto&& listen_address, is_string_or_integral auto&& listen_port,

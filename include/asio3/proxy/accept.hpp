@@ -19,7 +19,6 @@
 #include <asio3/proxy/core.hpp>
 #include <asio3/proxy/error.hpp>
 
-#include <asio3/tcp/connect.hpp>
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
 
@@ -29,6 +28,14 @@ namespace asio::socks5::detail
 {
 	struct async_accept_op
 	{
+		struct tcp_connect_condition
+		{
+			inline bool operator()(const asio::error_code&, const asio::ip::tcp::endpoint&) noexcept
+			{
+				return true;
+			}
+		};
+
 		template<typename AuthConfig>
 		auto operator()(auto state, auto sock_ref, std::reference_wrapper<AuthConfig> auth_cfg_ref) -> void
 		{
@@ -51,12 +58,12 @@ namespace asio::socks5::detail
 
 			asio::ip::tcp::endpoint dst_endpoint{};
 
-			handshake_info hdshak_info{};
+			handshake_info handsk_info{};
 
-			hdshak_info.client_endpoint = sock.remote_endpoint(ec);
+			handsk_info.client_endpoint = sock.remote_endpoint(ec);
 
-			std::string  & dst_addr = hdshak_info.dest_address;
-			std::uint16_t& dst_port = hdshak_info.dest_port;
+			std::string  & dst_addr = handsk_info.dest_address;
+			std::uint16_t& dst_port = handsk_info.dest_port;
 
 			// The client connects to the server, and sends a version
 			// identifier / method selection message :
@@ -72,21 +79,21 @@ namespace asio::socks5::detail
 			auto [e1, n1] = co_await asio::async_read(
 				sock, strbuf, asio::transfer_exactly(1 + 1), use_nothrow_deferred);
 			if (e1)
-				co_return{ e1, std::move(hdshak_info) };
+				co_return{ e1, std::move(handsk_info) };
 
 			p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
 			if (std::uint8_t version = read<std::uint8_t>(p); version != std::uint8_t(0x05))
 			{
 				ec = socks5::make_error_code(socks5::error::unsupported_version);
-				co_return{ ec, std::move(hdshak_info) };
+				co_return{ ec, std::move(handsk_info) };
 			}
 
 			std::uint8_t nmethods{};
 			if (nmethods = read<std::uint8_t>(p); nmethods == std::uint8_t(0))
 			{
 				ec = socks5::make_error_code(socks5::error::no_acceptable_methods);
-				co_return{ ec, std::move(hdshak_info) };
+				co_return{ ec, std::move(handsk_info) };
 			}
 
 			strbuf.consume(strbuf.size());
@@ -94,7 +101,7 @@ namespace asio::socks5::detail
 			auto [e2, n2] = co_await asio::async_read(
 				sock, strbuf, asio::transfer_exactly(nmethods), use_nothrow_deferred);
 			if (e2)
-				co_return{ e2, std::move(hdshak_info) };
+				co_return{ e2, std::move(handsk_info) };
 
 			p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
@@ -114,7 +121,7 @@ namespace asio::socks5::detail
 				}
 			}
 
-			hdshak_info.method.emplace_back(method);
+			handsk_info.method.emplace_back(method);
 
             // +----+--------+
             // |VER | METHOD |
@@ -136,17 +143,17 @@ namespace asio::socks5::detail
 			auto [e3, n3] = co_await asio::async_write(
 				sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
 			if (e3)
-				co_return{ e3, std::move(hdshak_info) };
+				co_return{ e3, std::move(handsk_info) };
 
 			if (method == auth_method::noacceptable)
 			{
 				ec = socks5::make_error_code(socks5::error::no_acceptable_methods);
-				co_return{ ec, std::move(hdshak_info) };
+				co_return{ ec, std::move(handsk_info) };
 			}
 			if (method == auth_method::password)
 			{
-				std::string& username = hdshak_info.username;
-				std::string& password = hdshak_info.password;
+				std::string& username = handsk_info.username;
+				std::string& password = handsk_info.password;
 				std::uint8_t ulen{}, plen{};
 
 				//         +----+------+----------+------+----------+
@@ -160,7 +167,7 @@ namespace asio::socks5::detail
 				auto [e4, n4] = co_await asio::async_read(
 					sock, strbuf, asio::transfer_exactly(1 + 1), use_nothrow_deferred);
 				if (e4)
-					co_return{ e4, std::move(hdshak_info) };
+					co_return{ e4, std::move(handsk_info) };
 
 				p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
@@ -168,13 +175,13 @@ namespace asio::socks5::detail
 				if (std::uint8_t version = read<std::uint8_t>(p); version != std::uint8_t(0x01))
 				{
 					ec = socks5::make_error_code(socks5::error::unsupported_authentication_version);
-					co_return{ ec, std::move(hdshak_info) };
+					co_return{ ec, std::move(handsk_info) };
 				}
 
 				if (ulen = read<std::uint8_t>(p); ulen == std::uint8_t(0))
 				{
 					ec = socks5::make_error_code(socks5::error::authentication_failed);
-					co_return{ ec, std::move(hdshak_info) };
+					co_return{ ec, std::move(handsk_info) };
 				}
 
 				// read username
@@ -183,7 +190,7 @@ namespace asio::socks5::detail
 				auto [e5, n5] = co_await asio::async_read(
 					sock, strbuf, asio::transfer_exactly(ulen), use_nothrow_deferred);
 				if (e5)
-					co_return{ e5, std::move(hdshak_info) };
+					co_return{ e5, std::move(handsk_info) };
 
 				p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
@@ -195,14 +202,14 @@ namespace asio::socks5::detail
 				auto [e6, n6] = co_await asio::async_read(
 					sock, strbuf, asio::transfer_exactly(1), use_nothrow_deferred);
 				if (e6)
-					co_return{ e6, std::move(hdshak_info) };
+					co_return{ e6, std::move(handsk_info) };
 
 				p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
 				if (plen = read<std::uint8_t>(p); plen == std::uint8_t(0))
 				{
 					ec = socks5::make_error_code(socks5::error::authentication_failed);
-					co_return{ ec, std::move(hdshak_info) };
+					co_return{ ec, std::move(handsk_info) };
 				}
 
 				// read password
@@ -211,14 +218,14 @@ namespace asio::socks5::detail
 				auto [e7, n7] = co_await asio::async_read(
 					sock, strbuf, asio::transfer_exactly(plen), use_nothrow_deferred);
 				if (e7)
-					co_return{ e7, std::move(hdshak_info) };
+					co_return{ e7, std::move(handsk_info) };
 
 				p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
 				password.assign(p, plen);
 
 				auto [auth_result] = co_await asio::async_call_coroutine(
-					sock.get_executor(), auth_cfg.on_auth(hdshak_info), asio::use_nothrow_deferred);
+					sock.get_executor(), auth_cfg.on_auth(handsk_info), asio::use_nothrow_deferred);
 
 				// compare username and password
 				// failed
@@ -239,7 +246,7 @@ namespace asio::socks5::detail
 						sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
 
 					ec = socks5::make_error_code(socks5::error::authentication_failed);
-					co_return{ ec, std::move(hdshak_info) };
+					co_return{ ec, std::move(handsk_info) };
 				}
 				else
 				{
@@ -257,7 +264,7 @@ namespace asio::socks5::detail
 					auto [e9, n9] = co_await asio::async_write(
 						sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
 					if (e9)
-						co_return{ e9, std::move(hdshak_info) };
+						co_return{ e9, std::move(handsk_info) };
 				}
 			}
 
@@ -273,7 +280,7 @@ namespace asio::socks5::detail
 			auto [ea, na] = co_await asio::async_read(
 				sock, strbuf, asio::transfer_exactly(5), use_nothrow_deferred);
 			if (ea)
-				co_return{ ea, std::move(hdshak_info) };
+				co_return{ ea, std::move(handsk_info) };
 
 			p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
@@ -281,13 +288,13 @@ namespace asio::socks5::detail
 			if (std::uint8_t ver = read<std::uint8_t>(p); ver != std::uint8_t(0x05))
 			{
 				ec = socks5::make_error_code(socks5::error::unsupported_version);
-				co_return{ ec, std::move(hdshak_info) };
+				co_return{ ec, std::move(handsk_info) };
 			}
 
 			// CMD
 			socks5::command cmd = static_cast<socks5::command>(read<std::uint8_t>(p));
 
-			hdshak_info.cmd = cmd;
+			handsk_info.cmd = cmd;
 
 			// skip RSV.
 			read<std::uint8_t>(p);
@@ -295,7 +302,7 @@ namespace asio::socks5::detail
 			socks5::address_type atyp = static_cast<socks5::address_type>(read<std::uint8_t>(p)); // ATYP
 			std::uint8_t         alen =                                   read<std::uint8_t>(p);  // [LEN]
 
-			hdshak_info.addr_type = atyp;
+			handsk_info.addr_type = atyp;
 
 			// ATYP
 			switch (atyp)
@@ -306,7 +313,7 @@ namespace asio::socks5::detail
 			default:
 			{
 				ec = socks5::make_error_code(socks5::error::address_type_not_supported);
-				co_return{ ec, std::move(hdshak_info) };
+				co_return{ ec, std::move(handsk_info) };
 			}
 			}
 
@@ -315,7 +322,7 @@ namespace asio::socks5::detail
 			auto [eb, nb] = co_await asio::async_read(
 				sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
 			if (eb)
-				co_return{ eb, std::move(hdshak_info) };
+				co_return{ eb, std::move(handsk_info) };
 
 			p = const_cast<char*>(static_cast<const char*>(strbuf.data().data()));
 
@@ -402,11 +409,12 @@ namespace asio::socks5::detail
 				else
 				{
 					connect_socket_t bnd_socket(sock.get_executor());
-					auto [ed, ep] = co_await asio::async_connect(bnd_socket, eps, use_nothrow_deferred);
+					auto [ed, ep] = co_await asio::async_connect(
+						bnd_socket, eps, tcp_connect_condition{}, use_nothrow_deferred);
 
 					if (!ed)
 					{
-						hdshak_info.bound_socket = std::move(bnd_socket);
+						handsk_info.bound_socket = std::move(bnd_socket);
 					}
 
 					if (!ed)
@@ -468,7 +476,7 @@ namespace asio::socks5::detail
 					// port equal to 0 is means use a random port.
 					udpass_socket_t bnd_socket(sock.get_executor(), asio::ip::udp::endpoint(bnd_protocol, 0));
 					bnd_port = bnd_socket.local_endpoint().port();
-					hdshak_info.bound_socket = std::move(bnd_socket);
+					handsk_info.bound_socket = std::move(bnd_socket);
 				}
 				catch (const asio::system_error& e)
 				{
@@ -523,7 +531,7 @@ namespace asio::socks5::detail
 
 			auto [ef, nf] = co_await asio::async_write(
 				sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
-			co_return{ ef ? ef : ec, std::move(hdshak_info) };
+			co_return{ ef ? ef : ec, std::move(handsk_info) };
 		}
 	};
 }

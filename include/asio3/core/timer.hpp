@@ -182,6 +182,68 @@ namespace asio
 	}
 
 	/**
+	 * @brief Asynchronously wait until the idle timeout.
+	 * @param duration - The deadline. 
+	 */
+	asio::awaitable<error_code> watchdog(std::chrono::steady_clock::time_point& deadline)
+	{
+		asio::steady_timer watchdog_timer(co_await asio::this_coro::executor);
+
+		auto now = std::chrono::steady_clock::now();
+
+		while (deadline > now)
+		{
+			watchdog_timer.expires_at(deadline);
+
+			auto [ec] = co_await watchdog_timer.async_wait(use_nothrow_awaitable);
+			if (ec)
+				co_return ec;
+
+			now = std::chrono::steady_clock::now();
+		}
+
+		co_return asio::error::timed_out;
+	}
+
+	/**
+	 * @brief Asynchronously wait until the idle timeout.
+	 * @param duration - The deadline.
+	 */
+	asio::awaitable<error_code> watchdog(
+		asio::steady_timer& watchdog_timer,
+		std::chrono::system_clock::time_point& alive_time,
+		std::chrono::system_clock::duration idle_timeout)
+	{
+		auto idled_duration = std::chrono::system_clock::now() - alive_time;
+
+		while (idled_duration < idle_timeout)
+		{
+			watchdog_timer.expires_after(idle_timeout - idled_duration);
+
+			auto [ec] = co_await watchdog_timer.async_wait(use_nothrow_awaitable);
+			if (ec)
+				co_return ec;
+
+			idled_duration = std::chrono::system_clock::now() - alive_time;
+		}
+
+		co_return asio::error::timed_out;
+	}
+
+	/**
+	 * @brief Asynchronously wait until the idle timeout.
+	 * @param duration - The deadline. 
+	 */
+	asio::awaitable<error_code> watchdog(
+		std::chrono::system_clock::time_point& alive_time,
+		std::chrono::system_clock::duration idle_timeout)
+	{
+		asio::steady_timer watchdog_timer(co_await asio::this_coro::executor);
+
+		co_return co_await watchdog(watchdog_timer, alive_time, idle_timeout);
+	}
+
+	/**
 	 * @brief Check whether the result of the awaitable_operators is timeout.
 	 * @param v - The result of the awaitable_operators which type is std::variant<...>
 	 * @eg:

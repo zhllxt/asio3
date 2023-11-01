@@ -5,15 +5,15 @@ namespace net = ::asio;
 
 net::awaitable<void> do_recv(net::udp_client& client)
 {
-	std::vector<char> recv_buffer(1024);
+	std::array<char, 1024> buf;
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_receive(client.socket, net::buffer(recv_buffer));
+		auto [e1, n1] = co_await net::async_receive(client.socket, net::buffer(buf));
 		if (e1)
 			break;
 
-		auto data = net::buffer(recv_buffer.data(), n1);
+		auto data = net::buffer(buf.data(), n1);
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 

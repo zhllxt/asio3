@@ -31,4 +31,25 @@ namespace asio
 
 	template<typename T, typename U = std::remove_cvref_t<T>>
 	concept is_basic_datagram_socket = is_template_instance_of<asio::basic_datagram_socket, U>;
+
+	template<typename T, typename U = std::remove_cvref_t<T>>
+	concept convertible_to_const_buffer_sequence_adapter = requires(U & a)
+	{
+		{ asio::detail::buffer_sequence_adapter<asio::const_buffer, U>{a}.count() } -> std::integral;
+		asio::const_buffer(*asio::buffer_sequence_begin(a));
+		asio::const_buffer(*asio::buffer_sequence_end(a));
+	};
+
+	template<typename T, typename U = std::remove_cvref_t<T>>
+	concept convertible_to_mutable_buffer_sequence_adapter = requires(U & a)
+	{
+		{ asio::detail::buffer_sequence_adapter<asio::mutable_buffer, U>{a}.count() } -> std::integral;
+		asio::mutable_buffer(*asio::buffer_sequence_begin(a));
+		asio::mutable_buffer(*asio::buffer_sequence_end(a));
+	};
+
+	template<typename T, typename U = std::remove_cvref_t<T>>
+	concept convertible_to_buffer_sequence_adapter =
+		convertible_to_const_buffer_sequence_adapter<U> ||
+		convertible_to_mutable_buffer_sequence_adapter<U>;
 }

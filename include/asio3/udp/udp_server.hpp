@@ -11,8 +11,7 @@
 #pragma once
 
 #include <asio3/core/io_context_thread.hpp>
-#include <asio3/core/connection_map.hpp>
-#include <asio3/core/alive.hpp>
+#include <asio3/core/session_map.hpp>
 #include <asio3/udp/open.hpp>
 #include <asio3/udp/udp_session.hpp>
 
@@ -75,14 +74,6 @@ namespace asio
 		}
 
 		/**
-		 * @brief Check whether the socket is stopped or not.
-		 */
-		inline bool is_aborted() noexcept
-		{
-			return !socket.is_open();
-		}
-
-		/**
 		 * @brief Safety start an asynchronous operation to write all of the supplied data to all clients.
 		 * @param data - The written data.
 		 * @param token - The completion handler to invoke when the operation completes.
@@ -98,6 +89,14 @@ namespace asio
 			return session_map.async_send_all(
 				std::forward_like<decltype(data)>(data),
 				std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief Check whether the socket is stopped or not.
+		 */
+		inline bool is_aborted() noexcept
+		{
+			return !socket.is_open();
 		}
 
 		/**
@@ -144,7 +143,7 @@ namespace asio
 	public:
 		asio::udp_socket    socket;
 
-		connection_map_t<session_type> session_map;
+		session_map_t<session_type> session_map;
 	};
 
 	using udp_server = udp_server_t<udp_session>;

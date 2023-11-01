@@ -1,15 +1,15 @@
-#include <asio3/tcp/tcp_client.hpp>
+#include <asio3/tcp/tcps_client.hpp>
 #include <asio3/core/fmt.hpp>
 
 namespace net = ::asio;
 
-net::awaitable<void> do_recv(net::tcp_client& client)
+net::awaitable<void> do_recv(net::tcps_client& client)
 {
 	std::string strbuf;
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_read_until(client.socket, net::dynamic_buffer(strbuf), '\n');
+		auto [e1, n1] = co_await net::async_read_until(client.ssl_stream, net::dynamic_buffer(strbuf), '\n');
 		if (e1)
 			break;
 
@@ -17,26 +17,38 @@ net::awaitable<void> do_recv(net::tcp_client& client)
 
 		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
 
-		auto [e2, n2] = co_await net::async_send(client.socket, data);
+		auto [e2, n2] = co_await net::async_send(client.ssl_stream, data);
 		if (e2)
 			break;
 
 		strbuf.erase(0, n1);
 	}
 
+	//co_await client.ssl_stream.async_shutdown(net::use_nothrow_awaitable);
 	client.socket.shutdown(net::socket_base::shutdown_both);
 	client.socket.close();
 }
 
-net::awaitable<void> connect(net::tcp_client& client)
+net::awaitable<void> connect(net::tcps_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8028);
+		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8002);
 		if (ec)
 		{
 			// connect failed, reconnect...
 			fmt::print("connect failure: {}\n", ec.message());
+			co_await net::delay(std::chrono::seconds(1));
+			client.socket.close();
+			continue;
+		}
+
+		auto [e2] = co_await client.ssl_stream.async_handshake(
+			net::ssl::stream_base::handshake_type::client);
+		if (e2)
+		{
+			// handshake failed, reconnect...
+			fmt::print("handshake failure: {}\n", ec.message());
 			co_await net::delay(std::chrono::seconds(1));
 			client.socket.close();
 			continue;
@@ -55,7 +67,7 @@ int main()
 {
 	net::io_context ctx;
 
-	net::tcp_client client(ctx.get_executor());
+	net::tcps_client client(ctx.get_executor());
 
 	net::co_spawn(ctx.get_executor(), connect(client), net::detached);
 

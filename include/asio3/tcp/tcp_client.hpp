@@ -13,7 +13,6 @@
 #include <asio3/core/io_context_thread.hpp>
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
-#include <asio3/tcp/send.hpp>
 #include <asio3/tcp/connect.hpp>
 #include <asio3/tcp/disconnect.hpp>
 #include <asio3/proxy/handshake.hpp>
@@ -59,22 +58,6 @@ namespace asio
 		}
 
 		/**
-		 * @brief Set the aborted flag to false.
-		 */
-		inline void restart() noexcept
-		{
-			aborted.clear();
-		}
-
-		/**
-		 * @brief Check whether the client is aborted or not.
-		 */
-		inline bool is_aborted() noexcept
-		{
-			return aborted.test();
-		}
-
-		/**
 		 * @brief Safety start an asynchronous operation to write all of the supplied data.
 		 * @param data - The written data.
 		 * @param token - The completion handler to invoke when the operation completes.
@@ -89,6 +72,22 @@ namespace asio
 		{
 			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief Set the aborted flag to false.
+		 */
+		inline void restart() noexcept
+		{
+			aborted.clear();
+		}
+
+		/**
+		 * @brief Check whether the client is aborted or not.
+		 */
+		inline bool is_aborted() noexcept
+		{
+			return aborted.test();
 		}
 
 		/**

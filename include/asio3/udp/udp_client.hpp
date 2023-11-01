@@ -14,7 +14,6 @@
 #include <asio3/core/timer.hpp>
 #include <asio3/udp/read.hpp>
 #include <asio3/udp/write.hpp>
-#include <asio3/udp/send.hpp>
 #include <asio3/udp/connect.hpp>
 #include <asio3/udp/disconnect.hpp>
 #include <asio3/tcp/connect.hpp>
@@ -48,7 +47,7 @@ namespace asio
 		}
 
 		/**
-		 * @brief Abort the object, disconnect the connection, this function does not block.
+		 * @brief Abort the object, disconnect the session, this function does not block.
 		 */
 		template<typename StopToken = asio::default_token_type<asio::udp_socket>>
 		inline auto async_stop(
@@ -57,22 +56,6 @@ namespace asio
 			aborted.test_and_set();
 
 			return asio::async_disconnect(socket, std::forward<StopToken>(token));
-		}
-
-		/**
-		 * @brief Set the aborted flag to false.
-		 */
-		inline void restart() noexcept
-		{
-			aborted.clear();
-		}
-
-		/**
-		 * @brief Check whether the client is aborted or not.
-		 */
-		inline bool is_aborted() noexcept
-		{
-			return aborted.test();
 		}
 
 		/**
@@ -91,6 +74,22 @@ namespace asio
 			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data),
 				std::forward<WriteToken>(token));
+		}
+
+		/**
+		 * @brief Set the aborted flag to false.
+		 */
+		inline void restart() noexcept
+		{
+			aborted.clear();
+		}
+
+		/**
+		 * @brief Check whether the client is aborted or not.
+		 */
+		inline bool is_aborted() noexcept
+		{
+			return aborted.test();
 		}
 
 		/**

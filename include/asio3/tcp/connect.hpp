@@ -112,7 +112,7 @@ namespace asio
 	template<
 		typename AsyncStream,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
-	requires is_basic_stream_socket<AsyncStream>
+	requires is_tcp_socket<AsyncStream>
 	inline auto async_connect(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
@@ -144,7 +144,7 @@ namespace asio
 		typename AsyncStream,
 		typename SetOptionFn,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
-	requires (is_basic_stream_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
+	requires (is_tcp_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
 	inline auto async_connect(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,

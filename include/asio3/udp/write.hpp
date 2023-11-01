@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/asio.hpp>
+#include <asio3/core/netutil.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/core/data_persist.hpp>
 #include <asio3/udp/core.hpp>
@@ -19,11 +20,12 @@ namespace asio::detail
 {
 	struct async_send_buffer_to_host_port_op
 	{
-		auto operator()(auto state, auto sock_ref, auto buffers, auto&& host, auto&& port) -> void
+		auto operator()(auto state, auto sock_ref, auto&& data, auto&& host, auto&& port) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			auto& sock = sock_ref.get();
+			auto msg = std::forward_like<decltype(data)>(data);
 
 			std::string h = asio::to_string(std::forward_like<decltype(host)>(host));
 			std::string p = asio::to_string(std::forward_like<decltype(port)>(port));
@@ -37,7 +39,8 @@ namespace asio::detail
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, 0 };
 
-			auto [e2, n2] = co_await sock.async_send_to(buffers, (*eps).endpoint(), use_nothrow_deferred);
+			auto [e2, n2] = co_await sock.async_send_to(
+				asio::to_buffer(msg), (*eps).endpoint(), use_nothrow_deferred);
 			co_return{ e2, n2 };
 		}
 	};
@@ -51,8 +54,32 @@ namespace asio::detail
 			auto& sock = sock_ref.get();
 			auto msg = std::forward_like<decltype(data)>(data);
 
-			auto [e2, n2] = co_await sock.async_send_to(asio::buffer(msg), endpoint, use_nothrow_deferred);
+			auto [e2, n2] = co_await sock.async_send_to(
+				asio::to_buffer(msg), endpoint, use_nothrow_deferred);
 			co_return{ e2, n2 };
+		}
+	};
+
+	struct udp_async_send_op
+	{
+		auto operator()(auto state, auto sock_ref, auto&& data) -> void
+		{
+			auto& sock = sock_ref.get();
+
+			auto msg = std::forward_like<decltype(data)>(data);
+
+			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
+
+			auto [e1, n1] = co_await sock.async_send(
+				asio::to_buffer(msg), asio::use_nothrow_deferred);
+
+			co_return{ e1, n1 };
 		}
 	};
 }
@@ -144,10 +171,7 @@ inline auto async_send_to(AsyncWriteStream& s, DataT&& data,
  * remote endpoint. It is an initiating function for an @ref
  * asynchronous_operation, and always returns immediately.
  *
- * @param buffers One or more data buffers to be sent to the remote endpoint.
- * Although the buffers object may be copied as necessary, ownership of the
- * underlying memory blocks is retained by the caller, which must guarantee
- * that they remain valid until the completion handler is called.
+ * @param data Any data.
  *
  * @param destination The remote endpoint to which the data will be sent.
  * Copies will be made of the endpoint as required.
@@ -164,20 +188,42 @@ inline auto async_send_to(AsyncWriteStream& s, DataT&& data,
  */
 template <
 	typename AsyncWriteStream,
-	typename ConstBufferSequence,
 	typename WriteToken = default_token_type<AsyncWriteStream>>
-requires (
-	asio::is_const_buffer_sequence<ConstBufferSequence>::value ||
-	asio::is_mutable_buffer_sequence<ConstBufferSequence>::value)
-inline auto async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
+inline auto async_send_to(AsyncWriteStream& s, auto&& data,
 	is_string auto&& host, is_string_or_integral auto&& port,
 	WriteToken&& token = default_token_type<AsyncWriteStream>())
 {
 	return asio::async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
 			detail::async_send_buffer_to_host_port_op{}, s),
-		token, std::ref(s), buffers,
+		token, std::ref(s),
+		detail::data_persist(std::forward<decltype(data)>(data)),
 		std::forward_like<decltype(host)>(host),
 		std::forward_like<decltype(port)>(port));
+}
+
+/**
+ * @brief Start an asynchronous operation to write all of the supplied data to a stream.
+ * @param s - The stream to which the data is to be written.
+ * @param data - The written data.
+ * @param token - The completion handler to invoke when the operation completes. 
+ *	  The equivalent function signature of the handler must be:
+ *    @code
+ *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
+ */
+template<
+	typename AsyncWriteStream,
+	typename WriteToken = asio::default_token_type<AsyncWriteStream>>
+requires is_udp_socket<AsyncWriteStream>
+inline auto async_send(
+	AsyncWriteStream& s,
+	auto&& data,
+	WriteToken&& token = asio::default_token_type<AsyncWriteStream>())
+{
+	return async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
+		experimental::co_composed<void(asio::error_code, std::size_t)>(
+			detail::udp_async_send_op{}, s),
+		token, std::ref(s),
+		detail::data_persist(std::forward_like<decltype(data)>(data)));
 }
 }

@@ -147,6 +147,18 @@ namespace asio
 	}
 #endif
 
+	auto to_buffer(auto&& data)
+	{
+		if constexpr (convertible_to_buffer_sequence_adapter<std::remove_cvref_t<decltype(data)>>)
+		{
+			return std::forward_like<decltype(data)>(data);
+		}
+		else
+		{
+			return asio::buffer(data);
+		}
+	}
+
 	/**
 	 * @brief Get the local address.
 	 */
