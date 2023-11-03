@@ -47,11 +47,7 @@ namespace asio
 
 						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
 
-						co_await asio::async_lock(self.socket, use_nothrow_deferred);
-
-						co_await self.ssl_stream.async_shutdown(use_nothrow_deferred);
-
-						detail::unlock_channel(self.socket);
+						co_await asio::async_shutdown(self.ssl_stream, use_nothrow_deferred);
 
 						co_await self.base().async_stop(use_nothrow_deferred);
 

@@ -22,7 +22,7 @@ namespace asio::detail
 	{
 		auto operator()(
 			auto state, auto sock_ref, auto&& server_address, auto&& server_port,
-			timeout_duration connect_timeout, auto&& cb_set_option) -> void
+			std::chrono::steady_clock::duration connect_timeout, auto&& cb_set_option) -> void
 		{
 			auto& sock = sock_ref.get();
 
@@ -148,7 +148,7 @@ namespace asio
 	inline auto async_connect(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
-		timeout_duration connect_timeout,
+		std::chrono::steady_clock::duration connect_timeout,
 		SetOptionFn&& cb_set_option,
 		ConnectToken&& token = asio::default_token_type<AsyncStream>())
 	{

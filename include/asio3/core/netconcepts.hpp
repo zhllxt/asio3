@@ -36,16 +36,16 @@ namespace asio
 	concept convertible_to_const_buffer_sequence_adapter = requires(U & a)
 	{
 		{ asio::detail::buffer_sequence_adapter<asio::const_buffer, U>{a}.count() } -> std::integral;
-		asio::const_buffer(*asio::buffer_sequence_begin(a));
-		asio::const_buffer(*asio::buffer_sequence_end(a));
+		{ asio::const_buffer(*asio::buffer_sequence_begin(a)).size() } -> std::integral;
+		{ asio::const_buffer(*asio::buffer_sequence_end(a)).size() } -> std::integral;
 	};
 
 	template<typename T, typename U = std::remove_cvref_t<T>>
 	concept convertible_to_mutable_buffer_sequence_adapter = requires(U & a)
 	{
 		{ asio::detail::buffer_sequence_adapter<asio::mutable_buffer, U>{a}.count() } -> std::integral;
-		asio::mutable_buffer(*asio::buffer_sequence_begin(a));
-		asio::mutable_buffer(*asio::buffer_sequence_end(a));
+		{ asio::mutable_buffer(*asio::buffer_sequence_begin(a)).size() } -> std::integral;
+		{ asio::mutable_buffer(*asio::buffer_sequence_end(a)).size() } -> std::integral;
 	};
 
 	template<typename T, typename U = std::remove_cvref_t<T>>

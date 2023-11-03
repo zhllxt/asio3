@@ -37,7 +37,7 @@ namespace asio
 	// https://stackoverflow.com/questions/53945490/how-to-assert-that-a-constexpr-if-else-clause-never-happen
 	// https://en.cppreference.com/w/cpp/utility/variant/visit
 	// https://en.cppreference.com/w/cpp/language/if#Constexpr_If
-	template<typename...> inline constexpr bool always_false_v = false;
+	template<typename...> concept always_false_v = false;
 
 	// example : static_assert(is_template_instantiable<std::vector, double>);
 	//           static_assert(is_template_instantiable<std::optional, int, int>);
@@ -110,4 +110,29 @@ namespace asio
 	{
 		a.insert(a.cbegin(), b.begin(), b.end());
 	};
+
+	// https://github.com/MiSo1289/more_concepts
+	template <typename Ret, typename Fn, typename... Args>
+    struct is_callable_r : std::false_type
+    {
+    };
+
+    template <typename Ret, typename Fn, typename... Args>
+    requires
+    requires(Fn& fn, Args&& ... args)
+    {{ static_cast<Fn&>(fn)(std::forward<Args>(args)...) } -> std::same_as<Ret>; }
+    struct is_callable_r<Ret, Fn, Args...> : std::true_type
+    {
+    };
+
+    template <typename Ret, typename Fn, typename... Args>
+    concept is_callable_r_v = is_callable_r<Ret, Fn, Args...>::value;
+
+	/////////////////////////////////////////////////////////////////////////////
+	// cinatra-master/include/cinatra/utils.hpp
+	template <typename T, typename Tuple>
+	struct has_type;
+
+	template <typename T, typename... Us>
+	struct has_type<T, std::tuple<Us...>> : std::disjunction<std::is_same<T, Us>...> {};
 }

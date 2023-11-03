@@ -16,8 +16,6 @@
 namespace asio
 {
 	using timer = asio::as_tuple_t<::asio::deferred_t>::as_default_on_t<::asio::steady_timer>;
-	using timer_duration = std::chrono::steady_clock::duration;
-	using timeout_duration = std::chrono::steady_clock::duration;
 
 	inline void cancel_timer(asio::steady_timer& t) noexcept
 	{
@@ -66,7 +64,7 @@ namespace asio::detail
 
 	struct async_sleep_op
 	{
-		auto operator()(auto state, auto&& executor, timer_duration duration) -> void
+		auto operator()(auto state, auto&& executor, std::chrono::steady_clock::duration duration) -> void
 		{
 			co_await asio::dispatch(executor, use_nothrow_deferred);
 
@@ -96,7 +94,7 @@ namespace asio::detail
 
 		std::shared_ptr<storage> ptr;
 
-		call_func_when_timeout(auto& executor, timeout_duration timeout_value, auto&& func)
+		call_func_when_timeout(auto&& executor, std::chrono::steady_clock::duration timeout_value, auto&& func)
 		{
 			ptr = std::make_shared<storage>(executor);
 
@@ -144,7 +142,7 @@ namespace asio
 		typename SleepToken = default_token_type<asio::timer>>
 	inline auto async_sleep(
 		Executor&& executor,
-		timer_duration duration,
+		std::chrono::steady_clock::duration duration,
 		SleepToken&& token = default_token_type<asio::timer>())
 	{
 		return asio::async_initiate<SleepToken, void(asio::error_code)>(
@@ -157,7 +155,7 @@ namespace asio
 	 * @brief Asynchronously sleep for a duration.
 	 * @param duration - The duration. 
 	 */
-	asio::awaitable<asio::error_code> async_sleep(timer_duration duration)
+	asio::awaitable<asio::error_code> async_sleep(std::chrono::steady_clock::duration duration)
 	{
 		auto [ec] = co_await async_sleep(co_await asio::this_coro::executor, duration, use_nothrow_awaitable);
 		co_return ec;
@@ -167,7 +165,7 @@ namespace asio
 	 * @brief Asynchronously sleep for a duration.
 	 * @param duration - The duration. 
 	 */
-	asio::awaitable<asio::error_code> delay(timer_duration duration)
+	asio::awaitable<asio::error_code> delay(std::chrono::steady_clock::duration duration)
 	{
 		co_return co_await async_sleep(duration);
 	}
@@ -176,7 +174,8 @@ namespace asio
 	 * @brief Asynchronously wait a timeout for the duration.
 	 * @param duration - The duration. 
 	 */
-	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(timer_duration duration)
+	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(
+		std::chrono::steady_clock::duration duration)
 	{
 		co_return std::tuple{ co_await async_sleep(duration), detail::timer_tag };
 	}

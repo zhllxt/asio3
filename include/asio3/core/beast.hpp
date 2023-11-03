@@ -22,6 +22,12 @@
 
 #ifdef ASIO3_HEADER_ONLY
 	#include <asio3/bho/beast.hpp>
+	#ifndef BEAST_VERSION
+	#define BEAST_VERSION BHO_BEAST_VERSION
+	#endif
+	#ifndef BEAST_VERSION_STRING
+	#define BEAST_VERSION_STRING BHO_BEAST_VERSION_STRING
+	#endif
 	#if defined(ASIO3_ENABLE_SSL) || defined(ASIO3_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277
 		#if defined(BEAST_VERSION) && (BEAST_VERSION >= 277)
@@ -56,27 +62,9 @@
 #endif
 
 #ifdef ASIO3_HEADER_ONLY
-	namespace bho::beast::http
-	{
-		template<class Body, class Fields = fields>
-		using request_t = request<Body, Fields>;
-
-		template<class Body, class Fields = fields>
-		using response_t = response<Body, Fields>;
-	}
 	namespace beast = ::bho::beast;
 #else
-	namespace boost::beast::http
-	{
-		template<class Body, class Fields = fields>
-		using request_t = request<Body, Fields>;
-
-		template<class Body, class Fields = fields>
-		using response_t = response<Body, Fields>;
-	}
 	namespace beast = ::boost::beast;
-	namespace asio  = ::boost::asio;
-	namespace bho   = ::boost; // bho means boost header only
 #endif
 
 namespace http      = ::beast::http;

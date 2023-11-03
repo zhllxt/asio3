@@ -17,7 +17,7 @@ namespace asio::detail
 {
 	struct tcp_async_disconnect_op
 	{
-		auto operator()(auto state, auto sock_ref, timeout_duration disconnect_timeout) -> void
+		auto operator()(auto state, auto sock_ref, std::chrono::steady_clock::duration disconnect_timeout) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -38,7 +38,7 @@ namespace asio::detail
 
 			sock.get_option(linger, ec);
 
-			if (disconnect_timeout > timeout_duration::zero() &&
+			if (disconnect_timeout > std::chrono::steady_clock::duration::zero() &&
 				!ec &&
 				!(linger.enabled() == true && linger.timeout() == 0))
 			{
@@ -122,7 +122,7 @@ namespace asio
 	requires is_tcp_socket<AsyncStream>
 	inline auto async_disconnect(
 		AsyncStream& sock,
-		timeout_duration disconnect_timeout,
+		std::chrono::steady_clock::duration disconnect_timeout,
 		DisconnectToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<DisconnectToken, void(asio::error_code)>(

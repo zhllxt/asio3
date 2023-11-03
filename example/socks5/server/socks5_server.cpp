@@ -41,7 +41,7 @@ net::awaitable<void> udp_transfer(
 		{
 			conn->last_read_channel = net::protocol::udp;
 
-			auto [e2, n2] = co_await net::async_forward_data_to_backend(bound, asio::buffer(data, n1));
+			auto [e2, n2] = co_await socks5::async_forward_data_to_backend(bound, asio::buffer(data, n1));
 			if (e2)
 				break;
 		}
@@ -49,14 +49,14 @@ net::awaitable<void> udp_transfer(
 		{
 			if (conn->last_read_channel == net::protocol::udp)
 			{
-				auto [e2, n2] = co_await net::async_forward_data_to_frontend(
+				auto [e2, n2] = co_await socks5::async_forward_data_to_frontend(
 					bound, asio::buffer(data, n1), sender_endpoint, conn->get_frontend_udp_endpoint());
 				if (e2)
 					break;
 			}
 			else
 			{
-				auto [e2, n2] = co_await net::async_forward_data_to_frontend(
+				auto [e2, n2] = co_await socks5::async_forward_data_to_frontend(
 					front, asio::buffer(data, n1), sender_endpoint);
 				if (e2)
 					break;

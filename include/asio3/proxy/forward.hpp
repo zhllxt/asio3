@@ -104,7 +104,7 @@ namespace asio::socks5::detail
 	};
 }
 
-namespace asio
+namespace asio::socks5
 {
 	/**
 	 * @brief Start an asynchronous operation to transfer data between front and back.
