@@ -15,29 +15,31 @@
 
 namespace asio
 {
-	class tcps_session : public tcp_session
+	template<typename SocketT>
+	class basic_tcps_session : public basic_tcp_session<SocketT>
 	{
 	public:
-		using super = tcp_session;
+		using super = basic_tcp_session<SocketT>;
+		using socket_type = SocketT;
 
-		explicit tcps_session(tcp_socket sock, ssl::context& sslctx)
-			: tcp_session(std::move(sock))
+		explicit basic_tcps_session(socket_type sock, ssl::context& sslctx)
+			: super(std::move(sock))
 			, ssl_context(sslctx)
-			, ssl_stream(socket, ssl_context)
+			, ssl_stream(super::socket, ssl_context)
 		{
 		}
 
-		~tcps_session()
+		~basic_tcps_session()
 		{
-			close();
+			this->close();
 		}
 
 		/**
 		 * @brief Asynchronously graceful disconnect the connection, this function does not block.
 		 */
-		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename DisconnectToken = asio::default_token_type<socket_type>>
 		inline auto async_disconnect(
-			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
+			DisconnectToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_initiate<DisconnectToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
@@ -65,10 +67,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_send(ssl_stream,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
@@ -90,8 +92,10 @@ namespace asio
 		}
 
 	public:
-		asio::ssl::context&                  ssl_context;
+		asio::ssl::context&             ssl_context;
 
-		asio::ssl::stream<asio::tcp_socket&> ssl_stream;
+		asio::ssl::stream<socket_type&> ssl_stream;
 	};
+
+	using tcps_session = basic_tcps_session<asio::tcp_socket>;
 }

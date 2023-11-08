@@ -16,6 +16,9 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "asio/detail/config.hpp"
+
+#if defined(ASIO_HAS_CHRONO) || defined(GENERATING_DOCUMENTATION)
+
 #include "asio/basic_waitable_timer.hpp"
 #include "asio/detail/chrono.hpp"
 
@@ -33,5 +36,7 @@ namespace asio {
 typedef basic_waitable_timer<chrono::steady_clock> steady_timer;
 
 } // namespace asio
+
+#endif // defined(ASIO_HAS_CHRONO) || defined(GENERATING_DOCUMENTATION)
 
 #endif // ASIO_STEADY_TIMER_HPP

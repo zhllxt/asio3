@@ -101,7 +101,7 @@ public:
 
                     net::post(sp->stream().get_executor(), std::move(*this));
                 }
-                BHO_ASSERT(impl.wr_block.is_locked(this));
+                assert(impl.wr_block.is_locked(this));
             }
             if(impl.check_stop_now(ec))
                 goto upcall;
@@ -210,7 +210,7 @@ public:
 
                     net::post(sp->stream().get_executor(), std::move(*this));
                 }
-                BHO_ASSERT(impl.wr_block.is_locked(this));
+                assert(impl.wr_block.is_locked(this));
             }
             if(impl.check_stop_now(ec))
                 goto upcall;
@@ -229,7 +229,7 @@ public:
                 goto upcall;
 
         upcall:
-            BHO_ASSERT(sp->idle_pinging);
+            assert(sp->idle_pinging);
             sp->idle_pinging = false;
             impl.wr_block.unlock(this);
             impl.op_close.maybe_invoke()

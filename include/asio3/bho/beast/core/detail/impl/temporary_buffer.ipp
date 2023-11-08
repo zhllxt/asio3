@@ -55,7 +55,7 @@ grow(std::size_t n)
         return;
 
     auto const capacity = (n + size_) * 2u;
-    BHO_ASSERT(! detail::sum_exceeds(
+    assert(! detail::sum_exceeds(
         n, size_, capacity));
     char* const p = new char[capacity];
     std::memcpy(p, data_, size_);

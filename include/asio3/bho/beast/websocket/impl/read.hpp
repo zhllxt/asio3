@@ -124,24 +124,24 @@ public:
 
                     net::post(sp->stream().get_executor(), std::move(*this));
                 }
-                BHO_ASSERT(impl.rd_block.is_locked(this));
+                assert(impl.rd_block.is_locked(this));
 
-                BHO_ASSERT(!ec);
+                assert(!ec);
                 if(impl.check_stop_now(ec))
                 {
                     // Issue 2264 - There is no guarantee that the next
                     // error will be operation_aborted.
                     // The error could be a result of the peer resetting the 
                     // connection
-                    // BHO_ASSERT(ec == net::error::operation_aborted);
+                    // assert(ec == net::error::operation_aborted);
                     goto upcall;
                 }
                 // VFALCO Should never get here
 
                 // The only way to get read blocked is if
                 // a `close_op` wrote a close frame
-                BHO_ASSERT(impl.wr_close);
-                BHO_ASSERT(impl.status_ != status::open);
+                assert(impl.wr_close);
+                assert(impl.status_ != status::open);
                 BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
                 goto upcall;
             }
@@ -161,7 +161,7 @@ public:
             // then finish the read with operation_aborted.
 
         loop:
-            BHO_ASSERT(impl.rd_block.is_locked(this));
+            assert(impl.rd_block.is_locked(this));
             // See if we need to read a frame header. This
             // condition is structured to give the decompressor
             // a chance to emit the final empty deflate block
@@ -182,7 +182,7 @@ public:
                             code_ = close_code::protocol_error;
                         goto close;
                     }
-                    BHO_ASSERT(impl.rd_block.is_locked(this));
+                    assert(impl.rd_block.is_locked(this));
                     ASIO_CORO_YIELD
                     {
                         ASIO_HANDLER_LOCATION((
@@ -194,7 +194,7 @@ public:
                                 impl.rd_buf, impl.rd_buf.max_size())),
                                     std::move(*this));
                     }
-                    BHO_ASSERT(impl.rd_block.is_locked(this));
+                    assert(impl.rd_block.is_locked(this));
                     impl.rd_buf.commit(bytes_transferred);
                     if(impl.check_stop_now(ec))
                         goto upcall;
@@ -206,7 +206,7 @@ public:
                     if( impl.op_r_close.maybe_invoke())
                     {
                         // Suspend
-                        BHO_ASSERT(impl.rd_block.is_locked());
+                        assert(impl.rd_block.is_locked());
                         goto do_suspend;
                     }
                     // Acquire read block
@@ -240,7 +240,7 @@ public:
 
                                     net::post(sp->stream().get_executor(), std::move(*this));
                                 }
-                                BHO_ASSERT(cont);
+                                assert(cont);
                                 // VFALCO call check_stop_now() here?
                             }
                         }
@@ -249,7 +249,7 @@ public:
                                 clamp(impl.rd_fh.len),
                                     impl.rd_buf.data());
                             auto const len = buffer_bytes(b);
-                            BHO_ASSERT(len == impl.rd_fh.len);
+                            assert(len == impl.rd_fh.len);
                             ping_data payload;
                             detail::read_ping(payload, b);
                             impl.rd_buf.consume(len);
@@ -293,13 +293,13 @@ public:
 
                                 net::post(sp->stream().get_executor(), std::move(*this));
                             }
-                            BHO_ASSERT(impl.wr_block.is_locked(this));
+                            assert(impl.wr_block.is_locked(this));
                             if(impl.check_stop_now(ec))
                                 goto upcall;
                         }
 
                         // Send pong
-                        BHO_ASSERT(impl.wr_block.is_locked(this));
+                        assert(impl.wr_block.is_locked(this));
                         ASIO_CORO_YIELD
                         {
                             ASIO_HANDLER_LOCATION((
@@ -310,7 +310,7 @@ public:
                                 impl.stream(), net::const_buffer(impl.rd_fb.data()),
                                 beast::detail::bind_continuation(std::move(*this)));
                         }
-                        BHO_ASSERT(impl.wr_block.is_locked(this));
+                        assert(impl.wr_block.is_locked(this));
                         if(impl.check_stop_now(ec))
                             goto upcall;
                         impl.wr_block.unlock(this);
@@ -337,13 +337,13 @@ public:
 
                                     net::post(sp->stream().get_executor(), std::move(*this));
                                 }
-                                BHO_ASSERT(cont);
+                                assert(cont);
                             }
                         }
                         auto const cb = buffers_prefix(clamp(
                             impl.rd_fh.len), impl.rd_buf.data());
                         auto const len = buffer_bytes(cb);
-                        BHO_ASSERT(len == impl.rd_fh.len);
+                        assert(len == impl.rd_fh.len);
                         ping_data payload;
                         detail::read_ping(payload, cb);
                         impl.rd_buf.consume(len);
@@ -354,7 +354,7 @@ public:
                     }
 
                     // Handle close frame
-                    BHO_ASSERT(impl.rd_fh.op == detail::opcode::close);
+                    assert(impl.rd_fh.op == detail::opcode::close);
                     {
                         if(impl.ctrl_cb)
                         {
@@ -368,14 +368,14 @@ public:
 
                                     net::post(sp->stream().get_executor(), std::move(*this));
                                 }
-                                BHO_ASSERT(cont);
+                                assert(cont);
                             }
                         }
                         auto const cb = buffers_prefix(clamp(
                             impl.rd_fh.len), impl.rd_buf.data());
                         auto const len = buffer_bytes(cb);
-                        BHO_ASSERT(len == impl.rd_fh.len);
-                        BHO_ASSERT(! impl.rd_close);
+                        assert(len == impl.rd_fh.len);
+                        assert(! impl.rd_close);
                         impl.rd_close = true;
                         close_reason cr;
                         detail::read_close(cr, cb, result_);
@@ -394,7 +394,7 @@ public:
                         if(impl.status_ == status::closing)
                         {
                             // _Close the WebSocket Connection_
-                            BHO_ASSERT(impl.wr_close);
+                            assert(impl.wr_close);
                             code_ = close_code::none;
                             result_ = error::closed;
                             goto close;
@@ -472,9 +472,9 @@ public:
                     else
                     {
                         // Read into caller's buffer
-                        BHO_ASSERT(impl.rd_remain > 0);
-                        BHO_ASSERT(buffer_bytes(cb_) > 0);
-                        BHO_ASSERT(buffer_bytes(buffers_prefix(
+                        assert(impl.rd_remain > 0);
+                        assert(buffer_bytes(cb_) > 0);
+                        assert(buffer_bytes(buffers_prefix(
                             clamp(impl.rd_remain), cb_)) > 0);
                         ASIO_CORO_YIELD
                         {
@@ -488,7 +488,7 @@ public:
                         if(impl.check_stop_now(ec))
                             goto upcall;
                         impl.reset_idle();
-                        BHO_ASSERT(bytes_transferred > 0);
+                        assert(bytes_transferred > 0);
                         auto const mb = buffers_prefix(
                             bytes_transferred, cb_);
                         impl.rd_remain -= bytes_transferred;
@@ -510,7 +510,7 @@ public:
                         impl.rd_size += bytes_transferred;
                     }
                 }
-                BHO_ASSERT( ! impl.rd_done );
+                assert( ! impl.rd_done );
                 if( impl.rd_remain == 0 && impl.rd_fh.fin )
                     impl.rd_done = true;
             }
@@ -540,7 +540,7 @@ public:
                         if(impl.check_stop_now(ec))
                             goto upcall;
                         impl.reset_idle();
-                        BHO_ASSERT(bytes_transferred > 0);
+                        assert(bytes_transferred > 0);
                         impl.rd_buf.commit(bytes_transferred);
                         if(impl.rd_fh.mask)
                             detail::mask_inplace(
@@ -553,7 +553,7 @@ public:
                         auto const out = buffers_front(cb_);
                         zs.next_out = out.data();
                         zs.avail_out = out.size();
-                        BHO_ASSERT(zs.avail_out > 0);
+                        assert(zs.avail_out > 0);
                     }
                     // boolean to track the end of the message.
                     bool fin = false;
@@ -650,7 +650,7 @@ public:
 
                     net::post(sp->stream().get_executor(), std::move(*this));
                 }
-                BHO_ASSERT(impl.wr_block.is_locked(this));
+                assert(impl.wr_block.is_locked(this));
                 if(impl.check_stop_now(ec))
                     goto upcall;
             }
@@ -668,7 +668,7 @@ public:
                         impl.rd_fb, code_);
 
                 // Send close frame
-                BHO_ASSERT(impl.wr_block.is_locked(this));
+                assert(impl.wr_block.is_locked(this));
                 ASIO_CORO_YIELD
                 {
                     ASIO_HANDLER_LOCATION((
@@ -678,14 +678,14 @@ public:
                     net::async_write(impl.stream(), net::const_buffer(impl.rd_fb.data()),
                         beast::detail::bind_continuation(std::move(*this)));
                 }
-                BHO_ASSERT(impl.wr_block.is_locked(this));
+                assert(impl.wr_block.is_locked(this));
                 if(impl.check_stop_now(ec))
                     goto upcall;
             }
 
             // Teardown
             using beast::websocket::async_teardown;
-            BHO_ASSERT(impl.wr_block.is_locked(this));
+            assert(impl.wr_block.is_locked(this));
             ASIO_CORO_YIELD
             {
                 ASIO_HANDLER_LOCATION((
@@ -695,7 +695,7 @@ public:
                 async_teardown(impl.role, impl.stream(),
                     beast::detail::bind_continuation(std::move(*this)));
             }
-            BHO_ASSERT(impl.wr_block.is_locked(this));
+            assert(impl.wr_block.is_locked(this));
             if(ec == net::error::eof)
             {
                 // Rationale:
@@ -983,7 +983,7 @@ read_some(
         limit = (std::numeric_limits<std::size_t>::max)();
     auto const size =
         clamp(read_size_hint(buffer), limit);
-    BHO_ASSERT(size > 0);
+    assert(size > 0);
     auto mb = beast::detail::dynamic_buffer_prepare(
         buffer, size, ec, error::buffer_overflow);
     if(impl_->check_stop_now(ec))
@@ -1103,7 +1103,7 @@ loop:
             auto const b = buffers_prefix(
                 clamp(impl.rd_fh.len), impl.rd_buf.data());
             auto const len = buffer_bytes(b);
-            BHO_ASSERT(len == impl.rd_fh.len);
+            assert(len == impl.rd_fh.len);
 
             // Clear this otherwise the next
             // frame will be considered final.
@@ -1141,9 +1141,9 @@ loop:
                 goto loop;
             }
             // Handle close frame
-            BHO_ASSERT(impl.rd_fh.op == detail::opcode::close);
+            assert(impl.rd_fh.op == detail::opcode::close);
             {
-                BHO_ASSERT(! impl.rd_close);
+                assert(! impl.rd_close);
                 impl.rd_close = true;
                 close_reason cr;
                 detail::read_close(cr, b, result);
@@ -1158,7 +1158,7 @@ loop:
                 impl.rd_buf.consume(len);
                 if(impl.ctrl_cb)
                     impl.ctrl_cb(frame_type::close, to_string_view(impl.cr.reason));
-                BHO_ASSERT(! impl.wr_close);
+                assert(! impl.wr_close);
                 // _Start the WebSocket Closing Handshake_
                 do_fail(
                     cr.code == close_code::none ?
@@ -1228,9 +1228,9 @@ loop:
             else
             {
                 // Read into caller's buffer
-                BHO_ASSERT(impl.rd_remain > 0);
-                BHO_ASSERT(buffer_bytes(buffers) > 0);
-                BHO_ASSERT(buffer_bytes(buffers_prefix(
+                assert(impl.rd_remain > 0);
+                assert(buffer_bytes(buffers) > 0);
+                assert(buffer_bytes(buffers_prefix(
                     clamp(impl.rd_remain), buffers)) > 0);
                 auto const bytes_transferred =
                     impl.stream().read_some(buffers_prefix(
@@ -1238,7 +1238,7 @@ loop:
                 // VFALCO What if some bytes were written?
                 if(impl.check_stop_now(ec))
                     return bytes_written;
-                BHO_ASSERT(bytes_transferred > 0);
+                assert(bytes_transferred > 0);
                 auto const mb = buffers_prefix(
                     bytes_transferred, buffers);
                 impl.rd_remain -= bytes_transferred;
@@ -1260,7 +1260,7 @@ loop:
                 impl.rd_size += bytes_transferred;
             }
         }
-        BHO_ASSERT( ! impl.rd_done );
+        assert( ! impl.rd_done );
         if( impl.rd_remain == 0 && impl.rd_fh.fin )
             impl.rd_done = true;
     }
@@ -1279,7 +1279,7 @@ loop:
                 auto const out = beast::buffers_front(cb);
                 zs.next_out = out.data();
                 zs.avail_out = out.size();
-                BHO_ASSERT(zs.avail_out > 0);
+                assert(zs.avail_out > 0);
             }
             // boolean to track the end of the message.
             bool fin = false;
@@ -1304,7 +1304,7 @@ loop:
                             ec);
                     if(impl.check_stop_now(ec))
                         return bytes_written;
-                    BHO_ASSERT(bytes_transferred > 0);
+                    assert(bytes_transferred > 0);
                     impl.rd_buf.commit(bytes_transferred);
                     if(impl.rd_fh.mask)
                         detail::mask_inplace(

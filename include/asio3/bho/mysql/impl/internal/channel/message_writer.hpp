@@ -31,19 +31,19 @@ public:
     void reset() noexcept { reset(0, 0); }
     void reset(std::size_t first, std::size_t last) noexcept
     {
-        BHO_ASSERT(last >= first);
+        assert(last >= first);
         first_ = first;
         last_ = last;
     }
     void on_bytes_written(std::size_t n) noexcept
     {
-        BHO_ASSERT(remaining() >= n);
+        assert(remaining() >= n);
         first_ += n;
     }
     bool done() const noexcept { return first_ == last_; }
     span<const std::uint8_t> get_chunk(const std::vector<std::uint8_t>& buff) const noexcept
     {
-        BHO_ASSERT(buff.size() >= last_);
+        assert(buff.size() >= last_);
         return {buff.data() + first_, remaining()};
     }
 };
@@ -116,13 +116,13 @@ public:
     // This function returns an empty buffer to signal that we're done
     span<const std::uint8_t> next_chunk() const
     {
-        BHO_ASSERT(!done());
+        assert(!done());
         return chunk_.get_chunk(buffer_);
     }
 
     void on_bytes_written(std::size_t n)
     {
-        BHO_ASSERT(!done());
+        assert(!done());
 
         // Acknowledge the written bytes
         chunk_.on_bytes_written(n);

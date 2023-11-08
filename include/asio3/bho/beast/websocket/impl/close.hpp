@@ -108,14 +108,14 @@ public:
 
                     net::post(sp->stream().get_executor(), std::move(*this));
                 }
-                BHO_ASSERT(impl.wr_block.is_locked(this));
+                assert(impl.wr_block.is_locked(this));
             }
             if(impl.check_stop_now(ec))
                 goto upcall;
 
             // Can't call close twice
             // TODO return a custom error code
-            BHO_ASSERT(! impl.wr_close);
+            assert(! impl.wr_close);
 
             // Send close frame
             impl.wr_close = true;
@@ -169,10 +169,10 @@ public:
 
                     net::post(sp->stream().get_executor(), std::move(*this));
                 }
-                BHO_ASSERT(impl.rd_block.is_locked(this));
+                assert(impl.rd_block.is_locked(this));
                 if(impl.check_stop_now(ec))
                     goto upcall;
-                BHO_ASSERT(! impl.rd_close);
+                assert(! impl.rd_close);
             }
 
             // Read until a receiving a close frame
@@ -213,7 +213,7 @@ public:
 
                     // Process close frame
                     // TODO Should we invoke the control callback?
-                    BHO_ASSERT(! impl.rd_close);
+                    assert(! impl.rd_close);
                     impl.rd_close = true;
                     auto const mb = buffers_prefix(
                         clamp(impl.rd_fh.len),
@@ -248,14 +248,14 @@ public:
                     if(impl.check_stop_now(ec))
                         goto upcall;
                 }
-                BHO_ASSERT(impl.rd_buf.size() >= impl.rd_remain);
+                assert(impl.rd_buf.size() >= impl.rd_remain);
                 impl.rd_buf.consume(clamp(impl.rd_remain));
                 impl.rd_remain = 0;
             }
 
         teardown:
             // Teardown
-            BHO_ASSERT(impl.wr_block.is_locked(this));
+            assert(impl.wr_block.is_locked(this));
             using beast::websocket::async_teardown;
             ASIO_CORO_YIELD
             {
@@ -266,7 +266,7 @@ public:
                 async_teardown(impl.role, impl.stream(),
                     beast::detail::bind_continuation(std::move(*this)));
             }
-            BHO_ASSERT(impl.wr_block.is_locked(this));
+            assert(impl.wr_block.is_locked(this));
             if(ec == net::error::eof)
             {
                 // Rationale:
@@ -351,11 +351,11 @@ close(close_reason const& cr, error_code& ec)
     ec = {};
     if(impl.check_stop_now(ec))
         return;
-    BHO_ASSERT(! impl.rd_close);
+    assert(! impl.rd_close);
 
     // Can't call close twice
     // TODO return a custom error code
-    BHO_ASSERT(! impl.wr_close);
+    assert(! impl.wr_close);
 
     // Send close frame
     {
@@ -401,7 +401,7 @@ close(close_reason const& cr, error_code& ec)
 
             // Handle close frame
             // TODO Should we invoke the control callback?
-            BHO_ASSERT(! impl.rd_close);
+            assert(! impl.rd_close);
             impl.rd_close = true;
             auto const mb = buffers_prefix(
                 clamp(impl.rd_fh.len),
@@ -434,7 +434,7 @@ close(close_reason const& cr, error_code& ec)
             if(impl.check_stop_now(ec))
                 return;
         }
-        BHO_ASSERT(
+        assert(
             impl.rd_buf.size() >= impl.rd_remain);
         impl.rd_buf.consume(clamp(impl.rd_remain));
         impl.rd_remain = 0;

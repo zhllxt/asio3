@@ -699,7 +699,7 @@ deflate_stream::
 bi_reverse(Unsigned code, unsigned len)
 {
     BHO_STATIC_ASSERT(std::is_unsigned<Unsigned>::value);
-    BHO_ASSERT(len <= 8 * sizeof(unsigned));
+    assert(len <= 8 * sizeof(unsigned));
     Unsigned res = 0;
     do
     {

@@ -8,7 +8,7 @@ net::awaitable<void> client_join(net::udp_server& server, std::shared_ptr<net::u
 	co_await net::watchdog(session->watchdog_timer, session->alive_time, net::udp_idle_timeout);
 	co_await session->async_disconnect();
 
-	co_await server.session_map.async_erase(session);
+	co_await server.session_map.async_remove(session);
 }
 
 net::awaitable<void> start_server(net::udp_server& server, std::string listen_address, std::uint16_t listen_port)
@@ -36,7 +36,7 @@ net::awaitable<void> start_server(net::udp_server& server, std::string listen_ad
 		if (!session)
 		{
 			session = net::udp_session::create(server.socket, remote_endpoint);
-			co_await server.session_map.async_emplace(session);
+			co_await server.session_map.async_add(session);
 			net::co_spawn(server.get_executor(), client_join(server, session), net::detached);
 		}
 

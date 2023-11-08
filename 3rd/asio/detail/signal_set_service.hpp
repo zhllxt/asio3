@@ -173,7 +173,7 @@ public:
   void async_wait(implementation_type& impl,
       Handler& handler, const IoExecutor& io_ex)
   {
-    associated_cancellation_slot_t<Handler> slot
+    typename associated_cancellation_slot<Handler>::type slot
       = asio::get_associated_cancellation_slot(handler);
 
     // Allocate and construct an operation to wrap the handler.

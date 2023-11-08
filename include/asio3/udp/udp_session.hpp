@@ -17,28 +17,30 @@
 
 namespace asio
 {
-	class udp_session : public std::enable_shared_from_this<udp_session>
+	template<typename SocketT>
+	class basic_udp_session : public std::enable_shared_from_this<basic_udp_session<SocketT>>
 	{
 	public:
+		using socket_type = SocketT;
 		using key_type = ip::udp::endpoint;
 
 	public:
-		explicit udp_session(udp_socket& sock, ip::udp::endpoint remote_ep)
+		explicit basic_udp_session(socket_type& sock, ip::udp::endpoint remote_ep)
 			: socket(sock)
 			, remote_endpoint(std::move(remote_ep))
 		{
 		}
 
-		~udp_session()
+		~basic_udp_session()
 		{
 		}
 
 		/**
 		 * @brief Asynchronously graceful disconnect the session, this function does not block.
 		 */
-		template<typename DisconnectToken = asio::default_token_type<asio::udp_socket>>
+		template<typename DisconnectToken = asio::default_token_type<socket_type>>
 		inline auto async_disconnect(
-			DisconnectToken&& token = asio::default_token_type<asio::udp_socket>())
+			DisconnectToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_initiate<DisconnectToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
@@ -62,10 +64,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::udp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_send_to(socket,
 				std::forward_like<decltype(data)>(data),
@@ -136,13 +138,13 @@ namespace asio
 			alive_time = std::chrono::system_clock::now();
 		}
 
-		static auto create(asio::udp_socket& sock, ip::udp::endpoint& remote_endpoint)
+		static auto create(socket_type& sock, ip::udp::endpoint& remote_endpoint)
 		{
-			return std::make_shared<udp_session>(sock, remote_endpoint);
+			return std::make_shared<basic_udp_session>(sock, remote_endpoint);
 		};
 
 	public:
-		asio::udp_socket&     socket;
+		socket_type&          socket;
 
 		ip::udp::endpoint     remote_endpoint{};
 
@@ -150,4 +152,6 @@ namespace asio
 
 		asio::steady_timer    watchdog_timer{ socket.get_executor() };
 	};
+
+	using udp_session = basic_udp_session<asio::udp_socket>;
 }

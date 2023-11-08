@@ -32,7 +32,7 @@ public:
     void append(const void* data, std::size_t data_size) noexcept
     {
         std::size_t new_size = size_ + data_size;
-        BHO_ASSERT(new_size <= max_size);
+        assert(new_size <= max_size);
         std::memcpy(buffer_.data() + size_, data, data_size);
         size_ = new_size;
     }

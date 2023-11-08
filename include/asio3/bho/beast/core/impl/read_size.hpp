@@ -48,7 +48,7 @@ read_size(DynamicBuffer& buffer,
         "DynamicBuffer type requirements not met");
     auto const size = buffer.size();
     auto const limit = buffer.max_size() - size;
-    BHO_ASSERT(size <= buffer.max_size());
+    assert(size <= buffer.max_size());
     return std::min<std::size_t>(
         std::max<std::size_t>(512, buffer.capacity() - size),
         std::min<std::size_t>(max_size, limit));

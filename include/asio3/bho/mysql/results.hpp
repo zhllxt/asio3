@@ -156,7 +156,7 @@ public:
      */
     rows_view rows() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_rows(0);
     }
 
@@ -185,7 +185,7 @@ public:
      */
     metadata_collection_view meta() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_meta(0);
     }
 
@@ -206,7 +206,7 @@ public:
      */
     std::uint64_t affected_rows() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_affected_rows(0);
     }
 
@@ -227,7 +227,7 @@ public:
      */
     std::uint64_t last_insert_id() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_last_insert_id(0);
     }
 
@@ -248,7 +248,7 @@ public:
      */
     unsigned warning_count() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_warning_count(0);
     }
 
@@ -279,7 +279,7 @@ public:
      */
     string_view info() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_info(0);
     }
 
@@ -300,7 +300,7 @@ public:
      */
     iterator begin() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return iterator(&impl_, 0);
     }
 
@@ -321,7 +321,7 @@ public:
      */
     iterator end() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return iterator(&impl_, size());
     }
 
@@ -343,7 +343,7 @@ public:
      */
     inline resultset_view at(std::size_t i) const
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         if (i >= size())
             BHO_THROW_EXCEPTION(std::out_of_range("results::at: out of range"));
         return detail::access::construct<resultset_view>(impl_, i);
@@ -366,8 +366,8 @@ public:
      */
     resultset_view operator[](std::size_t i) const noexcept
     {
-        BHO_ASSERT(has_value());
-        BHO_ASSERT(i < size());
+        assert(has_value());
+        assert(i < size());
         return detail::access::construct<resultset_view>(impl_, i);
     }
 
@@ -422,7 +422,7 @@ public:
      */
     bool empty() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return false;
     }
 
@@ -439,7 +439,7 @@ public:
      */
     std::size_t size() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.num_resultsets();
     }
 
@@ -467,7 +467,7 @@ public:
      */
     row_view out_params() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_out_params();
     }
 

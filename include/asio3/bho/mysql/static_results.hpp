@@ -137,7 +137,7 @@ public:
 #endif
     rows() const noexcept {
         static_assert(I < sizeof...(StaticRow), "Index I out of range");
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.template get_rows<I>();
     }
 
@@ -171,7 +171,7 @@ public:
     metadata_collection_view meta() const noexcept
     {
         static_assert(I < sizeof...(StaticRow), "Index I out of range");
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_interface().get_meta(I);
     }
 
@@ -195,7 +195,7 @@ public:
     std::uint64_t affected_rows() const noexcept
     {
         static_assert(I < sizeof...(StaticRow), "Index I out of range");
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_interface().get_affected_rows(I);
     }
 
@@ -219,7 +219,7 @@ public:
     std::uint64_t last_insert_id() const noexcept
     {
         static_assert(I < sizeof...(StaticRow), "I index out of range");
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_interface().get_last_insert_id(I);
     }
 
@@ -243,7 +243,7 @@ public:
     unsigned warning_count() const noexcept
     {
         static_assert(I < sizeof...(StaticRow), "I index out of range");
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_interface().get_warning_count(I);
     }
 
@@ -277,7 +277,7 @@ public:
     string_view info() const noexcept
     {
         static_assert(I < sizeof...(StaticRow), "I index out of range");
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_.get_interface().get_info(I);
     }
 

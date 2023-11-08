@@ -80,7 +80,7 @@ CharT*
 raw_to_string(CharT* last, std::size_t size, Integer i)
 {
     bho::ignore_unused(size);
-    BHO_ASSERT(size >= max_digits(sizeof(Integer)));
+    assert(size >= max_digits(sizeof(Integer)));
     return raw_to_string<CharT, Integer, Traits>(
         last, i, std::is_signed<Integer>{});
 }

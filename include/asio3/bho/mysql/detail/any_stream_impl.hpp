@@ -34,7 +34,7 @@ const typename Stream::lowest_layer_type::endpoint_type cast_endpoint(const void
 template <class Stream>
 void do_connect_impl(Stream&, const void*, error_code&, std::false_type)
 {
-    BHO_ASSERT(false);
+    assert(false);
 }
 
 template <class Stream>
@@ -57,7 +57,7 @@ void do_async_connect_impl(
     std::false_type
 )
 {
-    BHO_ASSERT(false);
+    assert(false);
 }
 
 template <class Stream>
@@ -84,7 +84,7 @@ void do_async_connect(
 template <class Stream>
 void do_close_impl(Stream&, error_code&, std::false_type)
 {
-    BHO_ASSERT(false);
+    assert(false);
 }
 
 template <class Stream>
@@ -135,15 +135,15 @@ public:
     executor_type get_executor() override final { return stream_.get_executor(); }
 
     // SSL
-    void handshake(error_code&) final override { BHO_ASSERT(false); }
+    void handshake(error_code&) final override { assert(false); }
     void async_handshake(asio::any_completion_handler<void(error_code)>) final override
     {
-        BHO_ASSERT(false);
+        assert(false);
     }
-    void shutdown(error_code&) final override { BHO_ASSERT(false); }
+    void shutdown(error_code&) final override { assert(false); }
     void async_shutdown(asio::any_completion_handler<void(error_code)>) final override
     {
-        BHO_ASSERT(false);
+        assert(false);
     }
 
     // Reading

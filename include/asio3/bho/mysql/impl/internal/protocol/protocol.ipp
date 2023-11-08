@@ -54,7 +54,7 @@ BHO_MYSQL_STATIC_IF_COMPILED constexpr string_view fast_auth_complete_challenge 
 BHO_MYSQL_STATIC_OR_INLINE
 void serialize_command_id(span<std::uint8_t> buff, std::uint8_t command_id) noexcept
 {
-    BHO_ASSERT(buff.size() >= 1u);
+    assert(buff.size() >= 1u);
     buff[0] = command_id;
 }
 
@@ -79,7 +79,7 @@ static protocol_field_type get_protocol_field_type(field_view input) noexcept
     case field_kind::date: return protocol_field_type::date;
     case field_kind::datetime: return protocol_field_type::datetime;
     case field_kind::time: return protocol_field_type::time;
-    default: BHO_ASSERT(false); return protocol_field_type::null;
+    default: assert(false); return protocol_field_type::null;
     }
 }
 
@@ -93,7 +93,7 @@ void bho::mysql::detail::serialize_frame_header(
     span<std::uint8_t, frame_header_size> buffer
 ) noexcept
 {
-    BHO_ASSERT(msg.size <= 0xffffff);  // range check
+    assert(msg.size <= 0xffffff);  // range check
     serialization_context ctx(buffer.data());
     frame_header_packet pack{int3{msg.size}, msg.sequence_number};
     serialize(ctx, pack.packet_size, pack.sequence_number);
@@ -106,7 +106,7 @@ bho::mysql::detail::frame_header bho::mysql::detail::deserialize_frame_header(
     frame_header_packet pack{};
     deserialization_context ctx(buffer.data(), buffer.size());
     auto err = deserialize(ctx, pack.packet_size, pack.sequence_number);
-    BHO_ASSERT(err == deserialize_errc::ok);
+    assert(err == deserialize_errc::ok);
     bho::ignore_unused(err);
     return frame_header{pack.packet_size.value, pack.sequence_number};
 }
@@ -345,7 +345,7 @@ void bho::mysql::detail::query_command::serialize(span<std::uint8_t> buff) const
 {
     constexpr std::uint8_t command_id = 0x03;
 
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
     serialization_context ctx(buff.data());
     ::bho::mysql::detail::serialize(ctx, command_id, string_eof{query});
 }
@@ -359,7 +359,7 @@ void bho::mysql::detail::prepare_stmt_command::serialize(span<std::uint8_t> buff
 {
     constexpr std::uint8_t command_id = 0x16;
 
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
     serialization_context ctx(buff.data());
     ::bho::mysql::detail::serialize(ctx, command_id, string_eof{stmt});
 }
@@ -470,7 +470,7 @@ void bho::mysql::detail::execute_stmt_command::serialize(span<std::uint8_t> buff
     constexpr std::uint8_t command_id = 0x17;
 
     serialization_context ctx(buff.data());
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
 
     std::uint32_t statement_id = this->statement_id;
     std::uint8_t flags = 0;
@@ -523,7 +523,7 @@ void bho::mysql::detail::close_stmt_command::serialize(span<std::uint8_t> buff) 
     constexpr std::uint8_t command_id = 0x19;
 
     serialization_context ctx(buff.data());
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
 
     ::bho::mysql::detail::serialize(ctx, command_id, statement_id);
 }
@@ -672,7 +672,7 @@ error_code deserialize_binary_row(
     // Skip packet header (it is not part of the message in the binary
     // protocol but it is in the text protocol, so we include it for homogeneity)
     // The caller will have checked we have this byte already for us
-    BHO_ASSERT(ctx.enough_size(1));
+    assert(ctx.enough_size(1));
     ctx.advance(1);
 
     // Number of fields
@@ -718,7 +718,7 @@ bho::mysql::error_code bho::mysql::detail::deserialize_row(
     span<field_view> output
 )
 {
-    BHO_ASSERT(meta.size() == output.size());
+    assert(meta.size() == output.size());
     deserialization_context ctx(buff);
     return encoding == detail::resultset_encoding::text ? deserialize_text_row(ctx, meta, output.data())
                                                         : deserialize_binary_row(ctx, meta, output.data());
@@ -924,7 +924,7 @@ std::size_t bho::mysql::detail::login_request::get_size() const noexcept
 
 void bho::mysql::detail::login_request::serialize(span<std::uint8_t> buff) const noexcept
 {
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
     serialization_context ctx(buff.data());
 
     auto pack = to_packet(*this);
@@ -949,7 +949,7 @@ std::size_t bho::mysql::detail::ssl_request::get_size() const noexcept { return 
 
 void bho::mysql::detail::ssl_request::serialize(span<std::uint8_t> buff) const noexcept
 {
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
     serialization_context ctx(buff.data());
 
     struct ssl_request_packet
@@ -1047,7 +1047,7 @@ bho::mysql::detail::handhake_server_response bho::mysql::detail::deserialize_han
         // Note that string_eof never fails deserialization (by definition)
         string_eof auth_more_data;
         auto err = deserialize(ctx, auth_more_data);
-        BHO_ASSERT(err == deserialize_errc::ok);
+        assert(err == deserialize_errc::ok);
         bho::ignore_unused(err);
 
         // If the special value fast_auth_complete_challenge
@@ -1077,7 +1077,7 @@ std::size_t bho::mysql::detail::auth_switch_response::get_size() const noexcept
 
 void bho::mysql::detail::auth_switch_response::serialize(span<std::uint8_t> buff) const noexcept
 {
-    BHO_ASSERT(buff.size() >= get_size());
+    assert(buff.size() >= get_size());
     serialization_context ctx(buff.data());
     ::bho::mysql::detail::serialize(ctx, string_eof{to_string(auth_plugin_data)});
 }

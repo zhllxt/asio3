@@ -86,7 +86,7 @@ public:
      */
     std::uint32_t id() const noexcept
     {
-        BHO_ASSERT(valid());
+        assert(valid());
         return id_;
     }
 
@@ -100,7 +100,7 @@ public:
      */
     unsigned num_params() const noexcept
     {
-        BHO_ASSERT(valid());
+        assert(valid());
         return num_params_;
     }
 

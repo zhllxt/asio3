@@ -70,14 +70,14 @@ public:
     // Moves n bytes from the free to the processing area (e.g. they've been read)
     void move_to_pending(std::size_t length) noexcept
     {
-        BHO_ASSERT(length <= free_size());
+        assert(length <= free_size());
         free_offset_ += length;
     }
 
     // Moves n bytes from the processing to the current message area
     void move_to_current_message(std::size_t length) noexcept
     {
-        BHO_ASSERT(length <= pending_size());
+        assert(length <= pending_size());
         pending_offset_ += length;
     }
 
@@ -86,8 +86,8 @@ public:
     // Used to remove intermediate headers. length must be > 0
     void remove_current_message_last(std::size_t length) noexcept
     {
-        BHO_ASSERT(length <= current_message_size());
-        BHO_ASSERT(length > 0);
+        assert(length <= current_message_size());
+        assert(length > 0);
         std::memmove(pending_first() - length, pending_first(), pending_size());
         pending_offset_ -= length;
         free_offset_ -= length;
@@ -97,7 +97,7 @@ public:
     // Used to move entire parsed messages or message headers
     void move_to_reserved(std::size_t length) noexcept
     {
-        BHO_ASSERT(length <= current_message_size());
+        assert(length <= current_message_size());
         current_message_offset_ += length;
     }
 

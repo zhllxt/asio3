@@ -117,7 +117,7 @@ public:
     */
     void version(unsigned value) noexcept
     {
-        BHO_ASSERT(value > 0 && value < 100);
+        assert(value > 0 && value < 100);
         version_ = value;
     }
 
@@ -339,7 +339,7 @@ public:
     */
     void version(unsigned value) noexcept
     {
-        BHO_ASSERT(value > 0 && value < 100);
+        assert(value > 0 && value < 100);
         version_ = value;
     }
 #endif

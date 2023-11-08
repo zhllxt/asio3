@@ -17,25 +17,28 @@
 
 namespace asio
 {
-	class socks5_session : public tcp_session
+	template<typename SocketT, typename BoundSocketT = udp_socket>
+	class basic_socks5_session : public basic_tcp_session<SocketT>
 	{
 	public:
-		using super = tcp_session;
+		using super = basic_tcp_session<SocketT>;
+		using socket_type = SocketT;
+		using bound_socket_type = BoundSocketT;
 
-		explicit socks5_session(tcp_socket sock) : tcp_session(std::move(sock))
+		explicit basic_socks5_session(socket_type sock) : super(std::move(sock))
 		{
 		}
 
-		~socks5_session()
+		~basic_socks5_session()
 		{
 		}
 
 		/**
 		 * @brief Asynchronously graceful disconnect the session, this function does not block.
 		 */
-		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename DisconnectToken = asio::default_token_type<socket_type>>
 		inline auto async_disconnect(
-			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
+			DisconnectToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_initiate<DisconnectToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
@@ -53,7 +56,7 @@ namespace asio
 							co_await asio::async_disconnect(*p2, use_nothrow_deferred);
 
 						co_return error_code{};
-					}, socket), token, std::ref(*this));
+					}, this->socket), token, std::ref(*this));
 		}
 
 		inline super& base() noexcept
@@ -61,20 +64,20 @@ namespace asio
 			return static_cast<super&>(*this);
 		}
 
-		inline asio::tcp_socket* get_backend_tcp_socket() noexcept
+		inline socket_type* get_backend_tcp_socket() noexcept
 		{
-			return std::any_cast<asio::tcp_socket>(std::addressof(handshake_info.bound_socket));
+			return std::any_cast<socket_type>(std::addressof(handshake_info.bound_socket));
 		}
 
-		inline asio::udp_socket* get_backend_udp_socket() noexcept
+		inline bound_socket_type* get_backend_udp_socket() noexcept
 		{
-			return std::any_cast<asio::udp_socket>(std::addressof(handshake_info.bound_socket));
+			return std::any_cast<bound_socket_type>(std::addressof(handshake_info.bound_socket));
 		}
 
 		inline asio::ip::udp::endpoint get_frontend_udp_endpoint() noexcept
 		{
 			error_code ec{};
-			return { socket.remote_endpoint(ec).address(), handshake_info.dest_port };
+			return { this->socket.remote_endpoint(ec).address(), handshake_info.dest_port };
 		}
 
 	public:
@@ -84,4 +87,6 @@ namespace asio
 
 		socks5::handshake_info handshake_info{};
 	};
+
+	using socks5_session = basic_socks5_session<asio::tcp_socket>;
 }

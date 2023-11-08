@@ -43,13 +43,13 @@ public:
   ASIO_DECL ~system_context();
 
   /// Obtain an executor for the context.
-  executor_type get_executor() noexcept;
+  executor_type get_executor() ASIO_NOEXCEPT;
 
   /// Signal all threads in the system thread pool to stop.
   ASIO_DECL void stop();
 
   /// Determine whether the system thread pool has been stopped.
-  ASIO_DECL bool stopped() const noexcept;
+  ASIO_DECL bool stopped() const ASIO_NOEXCEPT;
 
   /// Join all threads in the system thread pool.
   ASIO_DECL void join();

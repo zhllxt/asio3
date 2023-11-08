@@ -104,7 +104,7 @@ void copy_strings(std::vector<field_view>& fields, std::vector<unsigned char>& s
         default: break;
         }
     }
-    BHO_ASSERT(buffer_it == string_buffer.data() + size);
+    assert(buffer_it == string_buffer.data() + size);
 }
 
 BHO_MYSQL_STATIC_OR_INLINE
@@ -155,7 +155,7 @@ void bho::mysql::detail::row_impl::assign(const field_view* fields, std::size_t 
     // don't implement sub-range operators (e.g. row_view[2:4])
     if (fields_.data() == fields)
     {
-        BHO_ASSERT(fields_.size() == size);
+        assert(fields_.size() == size);
     }
     else
     {
@@ -168,8 +168,8 @@ void bho::mysql::detail::row_impl::assign(const field_view* fields, std::size_t 
 void bho::mysql::detail::row_impl::copy_strings_as_offsets(std::size_t first, std::size_t num_fields)
 {
     // Preconditions
-    BHO_ASSERT(first <= fields_.size());
-    BHO_ASSERT(first + num_fields <= fields_.size());
+    assert(first <= fields_.size());
+    assert(first + num_fields <= fields_.size());
 
     // Calculate the required size for the new strings
     std::size_t size = 0;
@@ -194,7 +194,7 @@ void bho::mysql::detail::row_impl::copy_strings_as_offsets(std::size_t first, st
         default: break;
         }
     }
-    BHO_ASSERT(offset == string_buffer_.size());
+    assert(offset == string_buffer_.size());
 }
 
 void bho::mysql::detail::row_impl::offsets_to_string_views()

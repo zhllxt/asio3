@@ -53,7 +53,7 @@ stream(Args&&... args)
     : impl_(std::make_shared<impl_type>(
         std::forward<Args>(args)...))
 {
-    BHO_ASSERT(impl_->rd_buf.max_size() >=
+    assert(impl_->rd_buf.max_size() >=
         max_control_frame_size);
 }
 
@@ -339,7 +339,7 @@ do_fail(
     error_code ev,              // error code to use upon success
     error_code& ec)             // set to the error, else set to ev
 {
-    BHO_ASSERT(ev);
+    assert(ev);
     impl_->change_status(status::closing);
     if(code != close_code::none && ! impl_->wr_close)
     {

@@ -161,7 +161,7 @@ public:
      */
     BHO_CXX14_CONSTEXPR time_point get_time_point() const noexcept
     {
-        BHO_ASSERT(valid());
+        assert(valid());
         return unch_get_time_point();
     }
 
@@ -272,10 +272,10 @@ BHO_CXX14_CONSTEXPR bho::mysql::datetime::datetime(time_point tp)
     rem = rem - num_seconds;
     auto num_microseconds = duration_cast<microseconds>(rem);
 
-    BHO_ASSERT(num_hours.count() >= 0 && num_hours.count() <= detail::max_hour);
-    BHO_ASSERT(num_minutes.count() >= 0 && num_minutes.count() <= detail::max_min);
-    BHO_ASSERT(num_seconds.count() >= 0 && num_seconds.count() <= detail::max_sec);
-    BHO_ASSERT(num_microseconds.count() >= 0 && num_microseconds.count() <= detail::max_micro);
+    assert(num_hours.count() >= 0 && num_hours.count() <= detail::max_hour);
+    assert(num_minutes.count() >= 0 && num_minutes.count() <= detail::max_min);
+    assert(num_seconds.count() >= 0 && num_seconds.count() <= detail::max_sec);
+    assert(num_microseconds.count() >= 0 && num_microseconds.count() <= detail::max_micro);
 
     bool ok = detail::days_to_ymd(num_days.count(), year_, month_, day_);
     if (!ok)

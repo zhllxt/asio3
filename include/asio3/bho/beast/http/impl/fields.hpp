@@ -296,7 +296,7 @@ value_type(field name,
     , len_(static_cast<off_t>(value.size()))
     , f_(name)
 {
-    //BHO_ASSERT(name == field::unknown ||
+    //assert(name == field::unknown ||
     //    iequals(sname, to_string(name)));
     char* p = data();
     p[off_-2] = ':';
@@ -480,7 +480,7 @@ string_view const
 basic_fields<Allocator>::
 at(field name) const
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     auto const it = find(name);
     if(it == end())
         BHO_THROW_EXCEPTION(std::out_of_range{
@@ -505,7 +505,7 @@ string_view const
 basic_fields<Allocator>::
 operator[](field name) const
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     auto const it = find(name);
     if(it == end())
         return {};
@@ -545,7 +545,7 @@ void
 basic_fields<Allocator>::
 insert(field name, string_view const& value)
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     insert(name, to_string(name), value);
 }
 
@@ -571,7 +571,7 @@ insert(field name,
         set_.upper_bound(sname, key_compare{});
     if(before == set_.begin())
     {
-        BHO_ASSERT(count(sname) == 0);
+        assert(count(sname) == 0);
         set_.insert_before(before, e);
         list_.push_back(e);
         return;
@@ -580,7 +580,7 @@ insert(field name,
     // VFALCO is it worth comparing `field name` first?
     if(! beast::iequals(sname, last->name_string()))
     {
-        BHO_ASSERT(count(sname) == 0);
+        assert(count(sname) == 0);
         set_.insert_before(before, e);
         list_.push_back(e);
         return;
@@ -595,7 +595,7 @@ void
 basic_fields<Allocator>::
 set(field name, string_view const& value)
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     set_element(new_element(name, to_string(name),
         static_cast<string_view>(value)));
 }
@@ -628,7 +628,7 @@ std::size_t
 basic_fields<Allocator>::
 erase(field name)
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     return erase(to_string(name));
 }
 
@@ -678,7 +678,7 @@ std::size_t
 basic_fields<Allocator>::
 count(field name) const
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     return count(to_string(name));
 }
 
@@ -697,7 +697,7 @@ basic_fields<Allocator>::
 find(field name) const ->
     const_iterator
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     return find(to_string(name));
 }
 
@@ -721,7 +721,7 @@ basic_fields<Allocator>::
 equal_range(field name) const ->
     std::pair<const_iterator, const_iterator>
 {
-    BHO_ASSERT(name != field::unknown);
+    assert(name != field::unknown);
     return equal_range(to_string(name));
 }
 
@@ -1196,7 +1196,7 @@ void
 basic_fields<Allocator>::
 swap(basic_fields& other, std::false_type)
 {
-    BHO_ASSERT(this->get() == other.get());
+    assert(this->get() == other.get());
     using std::swap;
     swap(set_, other.set_);
     swap(list_, other.list_);

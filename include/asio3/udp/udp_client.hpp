@@ -23,23 +23,26 @@
 
 namespace asio
 {
-	class udp_client
+	template<typename SocketT>
+	class basic_udp_client
 	{
 	public:
-		explicit udp_client(const auto& ex) : socket(ex)
+		using socket_type = SocketT;
+
+		explicit basic_udp_client(const auto& ex) : socket(ex)
 		{
 			aborted.clear();
 		}
 
-		~udp_client()
+		~basic_udp_client()
 		{
 			close();
 		}
 
-		template<typename ConnectToken = asio::default_token_type<asio::udp_socket>>
+		template<typename ConnectToken = asio::default_token_type<socket_type>>
 		inline auto async_connect(
 			is_string auto&& server_address, is_string_or_integral auto&& server_port,
-			ConnectToken&& token = asio::default_token_type<asio::udp_socket>())
+			ConnectToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_connect(socket,
 				std::forward_like<decltype(server_address)>(server_address),
@@ -50,9 +53,9 @@ namespace asio
 		/**
 		 * @brief Abort the object, disconnect the session, this function does not block.
 		 */
-		template<typename StopToken = asio::default_token_type<asio::udp_socket>>
+		template<typename StopToken = asio::default_token_type<socket_type>>
 		inline auto async_stop(
-			StopToken&& token = asio::default_token_type<asio::udp_socket>())
+			StopToken&& token = asio::default_token_type<socket_type>())
 		{
 			aborted.test_and_set();
 
@@ -67,10 +70,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::udp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data),
@@ -153,9 +156,11 @@ namespace asio
 		}
 
 	public:
-		asio::udp_socket  socket;
+		socket_type       socket;
 
 		std::atomic_flag  aborted{};
 	};
+
+	using udp_client = basic_udp_client<asio::udp_socket>;
 }
 

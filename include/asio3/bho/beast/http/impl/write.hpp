@@ -96,7 +96,7 @@ public:
             sr_.next(ec, f);
             if(ec)
             {
-                BHO_ASSERT(! f.invoked);
+                assert(! f.invoked);
 
                 ASIO_HANDLER_LOCATION((
                     __FILE__, __LINE__,
@@ -113,7 +113,7 @@ public:
                 return;
             }
             // What else could it be?
-            BHO_ASSERT(sr_.is_done());
+            assert(sr_.is_done());
         }
 
         ASIO_HANDLER_LOCATION((
@@ -636,7 +636,7 @@ write_header(
             bytes_transferred += f.bytes_transferred;
             if(ec)
                 return bytes_transferred;
-            BHO_ASSERT(f.invoked);
+            assert(f.invoked);
             sr.consume(f.bytes_transferred);
         }
         while(! sr.is_header_done());

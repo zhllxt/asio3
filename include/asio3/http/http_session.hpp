@@ -11,30 +11,40 @@
 #pragma once
 
 #include <asio3/tcp/tcp_session.hpp>
+#include <asio3/http/core.hpp>
 
 namespace asio
 {
-	class http_session : public tcp_session
+	template<typename SocketT>
+	class basic_http_session : public basic_tcp_session<SocketT>
 	{
 	public:
-		using super = tcp_session;
+		using super = basic_tcp_session<SocketT>;
+		using socket_type = SocketT;
+		using request_type = http::web_request;
+		using response_type = http::web_response;
 
 		/**
 		 * @brief constructor
 		 */
-		explicit http_session(tcp_socket sock) : super(std::move(sock))
+		explicit basic_http_session(socket_type sock) : super(std::move(sock))
 		{
+			this->disconnect_timeout = asio::http_disconnect_timeout;
 		}
 
 		/**
 		 * @brief destructor
 		 */
-		~http_session()
+		~basic_http_session()
 		{
-			close();
+			this->close();
 		}
 
-	public:
-		bool is_websocket{ false };
+		inline super& base() noexcept
+		{
+			return static_cast<super&>(*this);
+		}
 	};
+
+	using http_session = basic_http_session<asio::tcp_socket>;
 }

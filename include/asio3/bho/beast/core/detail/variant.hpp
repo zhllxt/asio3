@@ -207,7 +207,7 @@ public:
     mp11::mp_at_c<variant, I - 1>&
     get()
     {
-        BHO_ASSERT(i_ == I);
+        assert(i_ == I);
         return *detail::launder_cast<
             mp11::mp_at_c<variant, I - 1>*>(&buf_);
     }
@@ -216,7 +216,7 @@ public:
     mp11::mp_at_c<variant, I - 1> const&
     get() const
     {
-        BHO_ASSERT(i_ == I);
+        assert(i_ == I);
         return *detail::launder_cast<
             mp11::mp_at_c<variant, I - 1> const*>(&buf_);
     }

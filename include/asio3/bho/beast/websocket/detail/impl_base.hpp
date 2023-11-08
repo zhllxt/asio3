@@ -87,7 +87,7 @@ struct impl_base<true>
         std::size_t& total_in,
         error_code& ec)
     {
-        BHO_ASSERT(out.size() >= 6);
+        assert(out.size() >= 6);
         auto& zo = this->pmd_->zo;
         zlib::z_params zs;
         zs.avail_in = 0;
@@ -105,17 +105,17 @@ struct impl_base<true>
             {
                 if(ec != zlib::error::need_buffers)
                     return false;
-                BHO_ASSERT(zs.avail_out == 0);
-                BHO_ASSERT(zs.total_out == out.size());
+                assert(zs.avail_out == 0);
+                assert(zs.total_out == out.size());
                 ec = {};
                 break;
             }
             if(zs.avail_out == 0)
             {
-                BHO_ASSERT(zs.total_out == out.size());
+                assert(zs.total_out == out.size());
                 break;
             }
-            BHO_ASSERT(zs.avail_in == 0);
+            assert(zs.avail_in == 0);
         }
         total_in = zs.total_in;
         cb.consume(zs.total_in);
@@ -130,7 +130,7 @@ struct impl_base<true>
                 // VFALCO We could do this flush twice depending
                 //        on how much space is in the output.
                 zo.write(zs, zlib::Flush::block, ec);
-                BHO_ASSERT(! ec || ec == zlib::error::need_buffers);
+                assert(! ec || ec == zlib::error::need_buffers);
                 if(ec == zlib::error::need_buffers)
                     ec = {};
                 if(ec)
@@ -138,7 +138,7 @@ struct impl_base<true>
                 if(zs.avail_out >= 6)
                 {
                     zo.write(zs, zlib::Flush::sync, ec);
-                    BHO_ASSERT(! ec);
+                    assert(! ec);
                     // remove flush marker
                     zs.total_out -= 4;
                     out = net::buffer(out.data(), zs.total_out);
@@ -316,7 +316,7 @@ struct impl_base<true>
     {
         using beast::detail::clamp;
         std::size_t result;
-        BHO_ASSERT(initial_size > 0);
+        assert(initial_size > 0);
         if(! pmd_ || (! rd_done && ! pmd_->rd_set))
         {
             // current message is uncompressed
@@ -330,7 +330,7 @@ struct impl_base<true>
             else if(rd_fh.fin)
             {
                 // last message frame
-                BHO_ASSERT(rd_remain > 0);
+                assert(rd_remain > 0);
                 result = clamp(rd_remain);
                 goto done;
             }
@@ -338,7 +338,7 @@ struct impl_base<true>
         result = (std::max)(
             initial_size, clamp(rd_remain));
     done:
-        BHO_ASSERT(result != 0);
+        assert(result != 0);
         return result;
     }
 };
@@ -466,7 +466,7 @@ struct impl_base<false>
     {
         using beast::detail::clamp;
         std::size_t result;
-        BHO_ASSERT(initial_size > 0);
+        assert(initial_size > 0);
         // compression is not supported
         if(rd_done)
         {
@@ -476,7 +476,7 @@ struct impl_base<false>
         else if(rd_fh.fin)
         {
             // last message frame
-            BHO_ASSERT(rd_remain > 0);
+            assert(rd_remain > 0);
             result = clamp(rd_remain);
         }
         else
@@ -484,7 +484,7 @@ struct impl_base<false>
             result = (std::max)(
                 initial_size, clamp(rd_remain));
         }
-        BHO_ASSERT(result != 0);
+        assert(result != 0);
         return result;
     }
 };

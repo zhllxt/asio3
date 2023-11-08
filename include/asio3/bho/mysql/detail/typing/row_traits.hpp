@@ -239,15 +239,15 @@ template <BHO_MYSQL_STATIC_ROW StaticRow>
 error_code meta_check(span<const std::size_t> pos_map, metadata_collection_view meta, diagnostics& diag)
 {
     using fields = typename row_traits<StaticRow>::types;
-    BHO_ASSERT(pos_map.size() == get_row_size<StaticRow>());
+    assert(pos_map.size() == get_row_size<StaticRow>());
     return meta_check_field_type_list<fields>(pos_map, get_row_name_table<StaticRow>(), meta, diag);
 }
 
 template <BHO_MYSQL_STATIC_ROW StaticRow>
 error_code parse(span<const std::size_t> pos_map, span<const field_view> from, StaticRow& to)
 {
-    BHO_ASSERT(pos_map.size() == get_row_size<StaticRow>());
-    BHO_ASSERT(from.size() >= get_row_size<StaticRow>());
+    assert(pos_map.size() == get_row_size<StaticRow>());
+    assert(from.size() >= get_row_size<StaticRow>());
     parse_functor ctx(pos_map, from);
     row_traits<StaticRow>::parse(ctx, to);
     return ctx.error();

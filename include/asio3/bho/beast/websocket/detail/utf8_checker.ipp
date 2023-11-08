@@ -184,13 +184,13 @@ write(std::uint8_t const* in, std::size_t size)
         // Add characters to the code point
         while(n--)
             *p_++ = *in++;
-        BHO_ASSERT(p_ <= cp_ + 4);
+        assert(p_ <= cp_ + 4);
 
         // Still incomplete?
         if(need_ > 0)
         {
             // Incomplete code point
-            BHO_ASSERT(in == end);
+            assert(in == end);
 
             // Do partial validation on the incomplete
             // code point, this is called "Fail fast"
@@ -302,8 +302,8 @@ tail:
             // Save the partial code point
             while(n--)
                 *p_++ = *in++;
-            BHO_ASSERT(in == end);
-            BHO_ASSERT(p_ <= cp_ + 4);
+            assert(in == end);
+            assert(p_ <= cp_ + 4);
 
             // Do partial validation on the incomplete
             // code point, this is called "Fail fast"

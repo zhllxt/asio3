@@ -18,26 +18,26 @@
 namespace asio
 {
 	template<typename SessionT>
-	class udp_server_t
+	class basic_udp_server
 	{
 	public:
 		using session_type = SessionT;
+		using socket_type = typename SessionT::socket_type;
 
-	public:
-		explicit udp_server_t(const auto& ex)
+		explicit basic_udp_server(const auto& ex)
 			: socket(ex)
 			, session_map(ex)
 		{
 		}
 
-		~udp_server_t()
+		~basic_udp_server()
 		{
 		}
 
-		template<typename OpenToken = asio::default_token_type<asio::udp_socket>>
+		template<typename OpenToken = asio::default_token_type<socket_type>>
 		inline auto async_open(
 			is_string auto&& listen_address, is_string_or_integral auto&& listen_port,
-			OpenToken&& token = asio::default_token_type<asio::udp_socket>())
+			OpenToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_open(socket,
 				std::forward_like<decltype(listen_address)>(listen_address),
@@ -48,9 +48,9 @@ namespace asio
 		/**
 		 * @brief Stop the server, this function does not block.
 		 */
-		template<typename StopToken = asio::default_token_type<asio::udp_socket>>
+		template<typename StopToken = asio::default_token_type<socket_type>>
 		inline auto async_stop(
-			StopToken&& token = asio::default_token_type<asio::udp_socket>())
+			StopToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_initiate<StopToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
@@ -81,10 +81,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::udp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::udp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return session_map.async_send_all(
 				std::forward_like<decltype(data)>(data),
@@ -141,10 +141,10 @@ namespace asio
 		}
 
 	public:
-		asio::udp_socket    socket;
+		socket_type    socket;
 
-		session_map_t<session_type> session_map;
+		session_map<session_type> session_map;
 	};
 
-	using udp_server = udp_server_t<udp_session>;
+	using udp_server = basic_udp_server<udp_session>;
 }

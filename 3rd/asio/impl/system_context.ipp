@@ -67,7 +67,7 @@ void system_context::stop()
   scheduler_.stop();
 }
 
-bool system_context::stopped() const noexcept
+bool system_context::stopped() const ASIO_NOEXCEPT
 {
   return scheduler_.stopped();
 }

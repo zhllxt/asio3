@@ -18,17 +18,17 @@
 namespace asio
 {
 	template<typename SessionT>
-	class tcp_server_t
+	class basic_tcp_server
 	{
 	public:
 		using session_type = SessionT;
+		using socket_type = typename SessionT::socket_type;
 
-	public:
-		explicit tcp_server_t(const auto& ex) : acceptor(ex), session_map(ex)
+		explicit basic_tcp_server(const auto& ex) : acceptor(ex), session_map(ex)
 		{
 		}
 
-		~tcp_server_t()
+		~basic_tcp_server()
 		{
 		}
 
@@ -80,10 +80,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return session_map.async_send_all(
 				std::forward_like<decltype(data)>(data),
@@ -142,8 +142,8 @@ namespace asio
 	public:
 		asio::tcp_acceptor  acceptor;
 
-		session_map_t<session_type> session_map;
+		session_map<session_type> session_map;
 	};
 
-	using tcp_server = tcp_server_t<tcp_session>;
+	using tcp_server = basic_tcp_server<tcp_session>;
 }

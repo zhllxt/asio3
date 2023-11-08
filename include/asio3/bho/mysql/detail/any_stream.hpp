@@ -35,7 +35,7 @@ public:
     }
     void set_ssl_active() noexcept
     {
-        BHO_ASSERT(ssl_state_ != ssl_state::unsupported);
+        assert(ssl_state_ != ssl_state::unsupported);
         ssl_state_ = ssl_state::active;
     }
     bool supports_ssl() const noexcept { return ssl_state_ != ssl_state::unsupported; }

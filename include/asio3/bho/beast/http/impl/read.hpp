@@ -217,7 +217,7 @@ public:
                 b_.commit(bytes_transferred);
                 if(ec == net::error::eof)
                 {
-                    BHO_ASSERT(bytes_transferred == 0);
+                    assert(bytes_transferred == 0);
                     if(p_.got_some())
                     {
                         // caller sees EOF on next read
@@ -225,7 +225,7 @@ public:
                         p_.put_eof(ec);
                         if(ec)
                             goto upcall;
-                        BHO_ASSERT(p_.is_done());
+                        assert(p_.is_done());
                         goto upcall;
                     }
                     BHO_BEAST_ASSIGN_EC(ec, error::end_of_stream);
@@ -352,7 +352,7 @@ read_some(SyncReadStream& s, DynamicBuffer& b, basic_parser<isRequest>& p, error
         b.commit(bytes_transferred);
         if(ec == net::error::eof)
         {
-            BHO_ASSERT(bytes_transferred == 0);
+            assert(bytes_transferred == 0);
             if(p.got_some())
             {
                 // caller sees EOF on next read
@@ -360,7 +360,7 @@ read_some(SyncReadStream& s, DynamicBuffer& b, basic_parser<isRequest>& p, error
                 p.put_eof(ec);
                 if(ec)
                     return total;
-                BHO_ASSERT(p.is_done());
+                assert(p.is_done());
                 return total;
             }
             BHO_BEAST_ASSIGN_EC(ec, error::end_of_stream);

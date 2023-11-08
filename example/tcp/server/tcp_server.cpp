@@ -31,14 +31,14 @@ net::awaitable<void> do_recv(std::shared_ptr<net::tcp_session> session)
 
 net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::tcp_session> session)
 {
-	co_await server.session_map.async_emplace(session);
+	co_await server.session_map.async_add(session);
 
 	session->socket.set_option(net::ip::tcp::no_delay(true));
 	session->socket.set_option(net::socket_base::keep_alive(true));
 
 	co_await(do_recv(session) || net::watchdog(session->alive_time, net::tcp_idle_timeout));
 
-	co_await server.session_map.async_erase(session);
+	co_await server.session_map.async_remove(session);
 }
 
 net::awaitable<void> start_server(net::tcp_server& server, std::string listen_address, std::uint16_t listen_port)

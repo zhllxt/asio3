@@ -116,7 +116,7 @@ public:
      */
     BHO_CXX14_CONSTEXPR time_point get_time_point() const noexcept
     {
-        BHO_ASSERT(valid());
+        assert(valid());
         return unch_get_time_point();
     }
 

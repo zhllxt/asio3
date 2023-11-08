@@ -63,7 +63,7 @@ public:
     }
     const per_resultset_data& operator[](std::size_t i) const noexcept
     {
-        BHO_ASSERT(i < size());
+        assert(i < size());
         return i == 0 ? first_ : rest_[i - 1];
     }
     per_resultset_data& back() noexcept
@@ -72,7 +72,7 @@ public:
     }
     const per_resultset_data& back() const noexcept
     {
-        BHO_ASSERT(first_has_data_);
+        assert(first_has_data_);
         return rest_.empty() ? first_ : rest_.back();
     }
     BHO_MYSQL_DECL per_resultset_data& emplace_back();
@@ -180,13 +180,13 @@ private:
 
     per_resultset_data& current_resultset() noexcept
     {
-        BHO_ASSERT(!per_result_.empty());
+        assert(!per_result_.empty());
         return per_result_.back();
     }
 
     const per_resultset_data& current_resultset() const noexcept
     {
-        BHO_ASSERT(!per_result_.empty());
+        assert(!per_result_.empty());
         return per_result_.back();
     }
 
@@ -198,7 +198,7 @@ private:
 
     const per_resultset_data& get_resultset(std::size_t index) const noexcept
     {
-        BHO_ASSERT(index < per_result_.size());
+        assert(index < per_result_.size());
         return per_result_[index];
     }
 

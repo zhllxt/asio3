@@ -63,7 +63,7 @@ basic_stream<Protocol, Executor, RatePolicy>::
 impl_type::
 on_timer(Executor2 const& ex2)
 {
-    BHO_ASSERT(waiting > 0);
+    assert(waiting > 0);
 
     // the last waiter starts the new slice
     if(--waiting > 0)
@@ -107,7 +107,7 @@ on_timer(Executor2 const& ex2)
 
             if (!sp->socket.is_open())
                 return;
-            BHO_ASSERT(! ec);
+            assert(! ec);
             if(ec)
                 return;
             sp->on_timer(this->get());
@@ -130,7 +130,7 @@ reset()
     // outstanding, so there is nothing to apply
     // the expiration time to!
     //
-    BHO_ASSERT(! read.pending || ! write.pending);
+    assert(! read.pending || ! write.pending);
 
     if(! read.pending)
         BHO_VERIFY(
@@ -189,7 +189,7 @@ struct basic_stream<Protocol, Executor, RatePolicy>::
         // timer canceled
         if(ec == net::error::operation_aborted)
             return;
-        BHO_ASSERT(! ec);
+        assert(! ec);
 
         auto sp = wp.lock();
 
@@ -200,10 +200,10 @@ struct basic_stream<Protocol, Executor, RatePolicy>::
         // stale timer
         if(tick < state.tick)
             return;
-        BHO_ASSERT(tick == state.tick);
+        assert(tick == state.tick);
 
         // timeout
-        BHO_ASSERT(! state.timeout);
+        assert(! state.timeout);
         sp->close();
         state.timeout = true;
     }
@@ -372,7 +372,7 @@ public:
                 if(ec)
                 {
                     // socket was closed, or a timeout
-                    BHO_ASSERT(ec ==
+                    assert(ec ==
                         net::error::operation_aborted);
                     // timeout handler invoked?
                     if(state().timeout)
@@ -420,8 +420,8 @@ public:
                 }
                 else
                 {
-                    BHO_ASSERT(n == 1);
-                    BHO_ASSERT(! state().timeout);
+                    assert(n == 1);
+                    assert(! state().timeout);
                 }
             }
 
@@ -582,8 +582,8 @@ public:
             }
             else
             {
-                BHO_ASSERT(n == 1);
-                BHO_ASSERT(! state().timeout);
+                assert(n == 1);
+                assert(! state().timeout);
             }
         }
 
@@ -804,7 +804,7 @@ expires_after(net::steady_timer::duration expiry_time)
     // outstanding, so there is nothing to apply
     // the expiration time to!
     //
-    BHO_ASSERT(
+    assert(
         ! impl_->read.pending ||
         ! impl_->write.pending);
 
@@ -830,7 +830,7 @@ expires_at(
     // outstanding, so there is nothing to apply
     // the expiration time to!
     //
-    BHO_ASSERT(
+    assert(
         ! impl_->read.pending ||
         ! impl_->write.pending);
 

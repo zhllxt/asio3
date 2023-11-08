@@ -274,7 +274,7 @@ next(error_code& ec, Visit&& visit)
 
     default:
     case do_complete:
-        BHO_ASSERT(false);
+        assert(false);
         break;
 
     go_complete:
@@ -292,7 +292,7 @@ consume(std::size_t n)
     switch(s_)
     {
     case do_header:
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<2>()));
         v_.template get<2>().consume(n);
         if(buffer_bytes(v_.template get<2>()) > 0)
@@ -305,7 +305,7 @@ consume(std::size_t n)
         break;
 
     case do_header_only:
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<1>()));
         v_.template get<1>().consume(n);
         if(buffer_bytes(v_.template get<1>()) > 0)
@@ -319,7 +319,7 @@ consume(std::size_t n)
 
     case do_body + 2:
     {
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<3>()));
         v_.template get<3>().consume(n);
         if(buffer_bytes(v_.template get<3>()) > 0)
@@ -334,7 +334,7 @@ consume(std::size_t n)
     //----------------------------------------------------------------------
 
     case do_header_c:
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<4>()));
         v_.template get<4>().consume(n);
         if(buffer_bytes(v_.template get<4>()) > 0)
@@ -349,7 +349,7 @@ consume(std::size_t n)
 
     case do_header_only_c:
     {
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<1>()));
         v_.template get<1>().consume(n);
         if(buffer_bytes(v_.template get<1>()) > 0)
@@ -366,7 +366,7 @@ consume(std::size_t n)
     }
 
     case do_body_c + 2:
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<5>()));
         v_.template get<5>().consume(n);
         if(buffer_bytes(v_.template get<5>()) > 0)
@@ -380,7 +380,7 @@ consume(std::size_t n)
 
     case do_body_final_c:
     {
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<6>()));
         v_.template get<6>().consume(n);
         if(buffer_bytes(v_.template get<6>()) > 0)
@@ -392,7 +392,7 @@ consume(std::size_t n)
 
     case do_all_c:
     {
-        BHO_ASSERT(
+        assert(
             n <= buffer_bytes(v_.template get<7>()));
         v_.template get<7>().consume(n);
         if(buffer_bytes(v_.template get<7>()) > 0)
@@ -404,7 +404,7 @@ consume(std::size_t n)
     }
 
     case do_final_c + 1:
-        BHO_ASSERT(buffer_bytes(v_.template get<8>()));
+        assert(buffer_bytes(v_.template get<8>()));
         v_.template get<8>().consume(n);
         if(buffer_bytes(v_.template get<8>()) > 0)
             break;
@@ -414,7 +414,7 @@ consume(std::size_t n)
     //----------------------------------------------------------------------
 
     default:
-        BHO_ASSERT(false);
+        assert(false);
     case do_complete:
         break;
 

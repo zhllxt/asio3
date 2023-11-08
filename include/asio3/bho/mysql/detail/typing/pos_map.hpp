@@ -44,7 +44,7 @@ inline void pos_map_add_field(
 {
     if (has_field_names(name_table))
     {
-        BHO_ASSERT(self.size() == name_table.size());
+        assert(self.size() == name_table.size());
 
         // We're mapping fields by name. Try to find where in our target struct
         // is the current field located
@@ -71,7 +71,7 @@ inline field_view map_field_view(
     span<const field_view> array
 ) noexcept
 {
-    BHO_ASSERT(cpp_index < self.size());
+    assert(cpp_index < self.size());
     return array[self[cpp_index]];
 }
 
@@ -81,7 +81,7 @@ inline const metadata& map_metadata(
     metadata_collection_view meta
 ) noexcept
 {
-    BHO_ASSERT(cpp_index < self.size());
+    assert(cpp_index < self.size());
     return meta[self[cpp_index]];
 }
 

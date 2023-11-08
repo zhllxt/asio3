@@ -31,7 +31,8 @@ class wait_for_all
 {
 public:
   template <typename... Args>
-  constexpr cancellation_type_t operator()(Args&&...) const noexcept
+  ASIO_CONSTEXPR cancellation_type_t operator()(
+      Args&&...) const ASIO_NOEXCEPT
   {
     return cancellation_type::none;
   }
@@ -41,14 +42,15 @@ public:
 class wait_for_one
 {
 public:
-  constexpr explicit wait_for_one(
+  ASIO_CONSTEXPR explicit wait_for_one(
       cancellation_type_t cancel_type = cancellation_type::all)
     : cancel_type_(cancel_type)
   {
   }
 
   template <typename... Args>
-  constexpr cancellation_type_t operator()(Args&&...) const noexcept
+  ASIO_CONSTEXPR cancellation_type_t operator()(
+      Args&&...) const ASIO_NOEXCEPT
   {
     return cancel_type_;
   }
@@ -65,34 +67,34 @@ private:
 class wait_for_one_success
 {
 public:
-  constexpr explicit wait_for_one_success(
+  ASIO_CONSTEXPR explicit wait_for_one_success(
       cancellation_type_t cancel_type = cancellation_type::all)
     : cancel_type_(cancel_type)
   {
   }
 
-  constexpr cancellation_type_t
-  operator()() const noexcept
+  ASIO_CONSTEXPR cancellation_type_t
+  operator()() const ASIO_NOEXCEPT
   {
     return cancel_type_;
   }
 
   template <typename E, typename... Args>
-  constexpr constraint_t<
-    !is_same<decay_t<E>, asio::error_code>::value
-      && !is_same<decay_t<E>, std::exception_ptr>::value,
+  ASIO_CONSTEXPR typename constraint<
+    !is_same<typename decay<E>::type, asio::error_code>::value
+      && !is_same<typename decay<E>::type, std::exception_ptr>::value,
     cancellation_type_t
-  > operator()(const E&, Args&&...) const noexcept
+  >::type operator()(const E&, Args&&...) const ASIO_NOEXCEPT
   {
     return cancel_type_;
   }
 
   template <typename E, typename... Args>
-  constexpr constraint_t<
-      is_same<decay_t<E>, asio::error_code>::value
-        || is_same<decay_t<E>, std::exception_ptr>::value,
+  ASIO_CONSTEXPR typename constraint<
+      is_same<typename decay<E>::type, asio::error_code>::value
+        || is_same<typename decay<E>::type, std::exception_ptr>::value,
       cancellation_type_t
-  > operator()(const E& e, Args&&...) const noexcept
+  >::type operator()(const E& e, Args&&...) const ASIO_NOEXCEPT
   {
     return !!e ? cancellation_type::none : cancel_type_;
   }
@@ -109,33 +111,34 @@ private:
 class wait_for_one_error
 {
 public:
-  constexpr explicit wait_for_one_error(
+  ASIO_CONSTEXPR explicit wait_for_one_error(
       cancellation_type_t cancel_type = cancellation_type::all)
     : cancel_type_(cancel_type)
   {
   }
 
-  constexpr cancellation_type_t operator()() const noexcept
+  ASIO_CONSTEXPR cancellation_type_t
+  operator()() const ASIO_NOEXCEPT
   {
     return cancellation_type::none;
   }
 
   template <typename E, typename... Args>
-  constexpr constraint_t<
-    !is_same<decay_t<E>, asio::error_code>::value
-      && !is_same<decay_t<E>, std::exception_ptr>::value,
+  ASIO_CONSTEXPR typename constraint<
+    !is_same<typename decay<E>::type, asio::error_code>::value
+      && !is_same<typename decay<E>::type, std::exception_ptr>::value,
     cancellation_type_t
-  > operator()(const E&, Args&&...) const noexcept
+  >::type operator()(const E&, Args&&...) const ASIO_NOEXCEPT
   {
     return cancellation_type::none;
   }
 
   template <typename E, typename... Args>
-  constexpr constraint_t<
-      is_same<decay_t<E>, asio::error_code>::value
-        || is_same<decay_t<E>, std::exception_ptr>::value,
+  ASIO_CONSTEXPR typename constraint<
+      is_same<typename decay<E>::type, asio::error_code>::value
+        || is_same<typename decay<E>::type, std::exception_ptr>::value,
       cancellation_type_t
-  > operator()(const E& e, Args&&...) const noexcept
+  >::type operator()(const E& e, Args&&...) const ASIO_NOEXCEPT
   {
     return !!e ? cancel_type_ : cancellation_type::none;
   }

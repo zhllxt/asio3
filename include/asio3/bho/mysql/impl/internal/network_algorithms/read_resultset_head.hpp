@@ -49,7 +49,7 @@ inline error_code process_execution_response(
 inline error_code process_field_definition(channel& chan, execution_processor& proc, diagnostics& diag)
 {
     // Read the field definition packet (it's cached at this point)
-    BHO_ASSERT(chan.has_read_messages());
+    assert(chan.has_read_messages());
     error_code err;
     auto msg = chan.next_read_message(proc.sequence_number(), err);
     if (err)

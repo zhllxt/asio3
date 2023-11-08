@@ -129,7 +129,7 @@ gen_codes(ct_data *tree, int max_code, std::uint16_t *bl_count)
     }
     // Check that the bit counts in bl_count are consistent.
     // The last code must be all ones.
-    BHO_ASSERT(code + bl_count[maxBits]-1 == (1<<maxBits)-1);
+    assert(code + bl_count[maxBits]-1 == (1<<maxBits)-1);
     for(n = 0; n <= max_code; n++)
     {
         int len = tree[n].dl;
@@ -161,7 +161,7 @@ deflate_stream::get_lut() ->
                 for(unsigned n = 0; n < run; ++n)
                     tables.length_code[length++] = code;
             }
-            BHO_ASSERT(length == 0);
+            assert(length == 0);
             // Note that the length 255 (match length 258) can be represented
             // in two different ways: code 284 + 5 bits or code 285, so we
             // overwrite length_code[255] to use the best encoding:
@@ -178,7 +178,7 @@ deflate_stream::get_lut() ->
                     for(unsigned n = 0; n < run; ++n)
                         tables.dist_code[dist++] = code;
                 }
-                BHO_ASSERT(dist == 256);
+                assert(dist == 256);
                 // from now on, all distances are divided by 128
                 dist >>= 7;
                 for(; code < dCodes; ++code)
@@ -188,7 +188,7 @@ deflate_stream::get_lut() ->
                     for(std::size_t n = 0; n < run; ++n)
                         tables.dist_code[256 + dist++] = code;
                 }
-                BHO_ASSERT(dist == 256);
+                assert(dist == 256);
             }
 
             // Construct the codes of the static literal tree
@@ -1085,7 +1085,7 @@ send_tree(
                 send_code(curlen, bl_tree_);
                 count--;
             }
-            BHO_ASSERT(count >= 3 && count <= 6);
+            assert(count >= 3 && count <= 6);
             send_code(REP_3_6, bl_tree_);
             send_bits(count-3, 2);
         }
@@ -1166,8 +1166,8 @@ send_all_trees(
 {
     int rank;       // index in bl_order
 
-    BHO_ASSERT(lcodes >= 257 && dcodes >= 1 && blcodes >= 4);
-    BHO_ASSERT(lcodes <= lCodes && dcodes <= dCodes && blcodes <= blCodes);
+    assert(lcodes >= 257 && dcodes >= 1 && blcodes >= 4);
+    assert(lcodes <= lCodes && dcodes <= dCodes && blcodes <= blCodes);
     send_bits(lcodes-257, 5); // not +255 as stated in appnote.txt
     send_bits(dcodes-1,   5);
     send_bits(blcodes-4,  4); // not -3 as stated in appnote.txt
@@ -1215,7 +1215,7 @@ compress_block(
                 }
                 dist--; /* dist is now the match distance - 1 */
                 code = d_code(dist);
-                BHO_ASSERT(code < dCodes);
+                assert(code < dCodes);
 
                 send_code(code, dtree);       /* send the distance code */
                 extra = lut_.extra_dbits[code];
@@ -1227,7 +1227,7 @@ compress_block(
             } /* literal or match pair ? */
 
             /* Check that the overlay between pending_buf and d_buf+l_buf is ok: */
-            BHO_ASSERT((uInt)(pending_) < lit_bufsize_ + sx);
+            assert((uInt)(pending_) < lit_bufsize_ + sx);
         }
         while(sx < sym_next_);
     }
@@ -1466,7 +1466,7 @@ tr_flush_block(
         //        https://github.com/madler/zlib/issues/172
 
     #if 0
-        BHO_ASSERT(buf);
+        assert(buf);
     #endif
         opt_lenb = static_lenb = stored_len + 5; // force a stored block
     }
@@ -1767,7 +1767,7 @@ longest_match(IPos cur_match)
     /* The code is optimized for HASH_BITS >= 8 and maxMatch-2 multiple of 16.
      * It is easy to get rid of this optimization if necessary.
      */
-    BHO_ASSERT(hash_bits_ >= 8 && maxMatch == 258);
+    assert(hash_bits_ >= 8 && maxMatch == 258);
 
     /* Do not waste too much time if we already have a good match: */
     if(prev_length_ >= good_match_) {
@@ -1779,10 +1779,10 @@ longest_match(IPos cur_match)
     if((uInt)nice_match > lookahead_)
         nice_match = lookahead_;
 
-    BHO_ASSERT((std::uint32_t)strstart_ <= window_size_-kMinLookahead);
+    assert((std::uint32_t)strstart_ <= window_size_-kMinLookahead);
 
     do {
-        BHO_ASSERT(cur_match < strstart_);
+        assert(cur_match < strstart_);
         match = window_ + cur_match;
 
         /* Skip to next match if the match length cannot increase
@@ -1806,7 +1806,7 @@ longest_match(IPos cur_match)
          * the hash keys are equal and that HASH_BITS >= 8.
          */
         scan += 2, match++;
-        BHO_ASSERT(*scan == *match);
+        assert(*scan == *match);
 
         /* We check for insufficient lookahead only every 8th comparison;
          * the 256th check will be made at strstart+258.
@@ -1820,7 +1820,7 @@ longest_match(IPos cur_match)
                 *++scan == *++match && *++scan == *++match &&
                 scan < strend);
 
-        BHO_ASSERT(scan <= window_+(unsigned)(window_size_-1));
+        assert(scan <= window_+(unsigned)(window_size_-1));
 
         len = maxMatch - (int)(strend - scan);
         scan = strend - maxMatch;
@@ -1871,7 +1871,7 @@ f_stored(z_params& zs, Flush flush) ->
         /* Fill the window as much as possible: */
         if(lookahead_ <= 1) {
 
-            BHO_ASSERT(strstart_ < w_size_+max_dist() ||
+            assert(strstart_ < w_size_+max_dist() ||
                    block_start_ >= (long)w_size_);
 
             fill_window(zs);
@@ -1880,7 +1880,7 @@ f_stored(z_params& zs, Flush flush) ->
 
             if(lookahead_ == 0) break; /* flush the current block */
         }
-        BHO_ASSERT(block_start_ >= 0L);
+        assert(block_start_ >= 0L);
 
         strstart_ += lookahead_;
         lookahead_ = 0;
@@ -2158,7 +2158,7 @@ f_slow(z_params& zs, Flush flush) ->
             lookahead_--;
         }
     }
-    BHO_ASSERT(flush != Flush::none);
+    assert(flush != Flush::none);
     if(match_available_)
     {
         tr_tally_lit(window_[strstart_-1], bflush);
@@ -2225,7 +2225,7 @@ f_rle(z_params& zs, Flush flush) ->
                 if(match_length_ > lookahead_)
                     match_length_ = lookahead_;
             }
-            BHO_ASSERT(scan <= window_+(uInt)(window_size_-1));
+            assert(scan <= window_+(uInt)(window_size_-1));
         }
 
         /* Emit match if have run of minMatch or longer, else emit literal */

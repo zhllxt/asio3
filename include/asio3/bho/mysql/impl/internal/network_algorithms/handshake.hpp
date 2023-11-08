@@ -202,7 +202,7 @@ public:
             channel_.serialize(auth_switch_response{auth_resp_.data}, channel_.shared_sequence_number());
             auth_state_ = auth_state::send_more_data;
             return error_code();
-        default: BHO_ASSERT(false); return error_code();
+        default: assert(false); return error_code();
         }
     }
 

@@ -371,7 +371,7 @@ template<std::size_t I, class... T> constexpr variant_alternative_t<I, variant<T
 // unsafe_get
 
 #if !defined(BHO_NO_CXX14_CONSTEXPR)
-# define BHO_VARIANT2_CX14_ASSERT(expr) BHO_ASSERT(expr);
+# define BHO_VARIANT2_CX14_ASSERT(expr) assert(expr);
 #else
 # define BHO_VARIANT2_CX14_ASSERT(expr)
 #endif
@@ -881,7 +881,7 @@ template<class... T> struct variant_base_impl<true, true, T...>
     {
         size_t const J = I+1;
 
-        BHO_ASSERT( ix_ == J );
+        assert( ix_ == J );
 
         return st_.get( mp11::mp_size_t<J>() );
     }
@@ -955,7 +955,7 @@ template<class... T> struct variant_base_impl<true, false, T...>
 
     template<std::size_t I> BHO_CXX14_CONSTEXPR mp11::mp_at_c<variant<T...>, I>& _get_impl( mp11::mp_size_t<I> ) noexcept
     {
-        BHO_ASSERT( index() == I );
+        assert( index() == I );
 
         size_t const J = I+1;
 
@@ -1049,7 +1049,7 @@ template<class... T> struct variant_base_impl<false, true, T...>
     {
         size_t const J = I+1;
 
-        BHO_ASSERT( ix_ == J );
+        assert( ix_ == J );
 
         return st_.get( mp11::mp_size_t<J>() );
     }
@@ -1179,7 +1179,7 @@ template<class... T> struct variant_base_impl<false, false, T...>
 
     template<std::size_t I> BHO_CXX14_CONSTEXPR mp11::mp_at_c<variant<T...>, I>& _get_impl( mp11::mp_size_t<I> ) noexcept
     {
-        BHO_ASSERT( index() == I );
+        assert( index() == I );
 
         size_t const J = I+1;
 

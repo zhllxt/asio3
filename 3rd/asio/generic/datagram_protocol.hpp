@@ -73,19 +73,19 @@ public:
   }
 
   /// Obtain an identifier for the type of the protocol.
-  int type() const noexcept
+  int type() const ASIO_NOEXCEPT
   {
     return ASIO_OS_DEF(SOCK_DGRAM);
   }
 
   /// Obtain an identifier for the protocol.
-  int protocol() const noexcept
+  int protocol() const ASIO_NOEXCEPT
   {
     return protocol_;
   }
 
   /// Obtain an identifier for the protocol family.
-  int family() const noexcept
+  int family() const ASIO_NOEXCEPT
   {
     return family_;
   }

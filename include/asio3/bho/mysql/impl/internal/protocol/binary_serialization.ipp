@@ -108,7 +108,7 @@ std::size_t bho::mysql::detail::get_size(field_view input) noexcept
     case field_kind::date: return binc::date_sz + binc::length_sz;
     case field_kind::datetime: return binc::datetime_dhmsu_sz + binc::length_sz;
     case field_kind::time: return binc::time_dhmsu_sz + binc::length_sz;
-    default: BHO_ASSERT(false); return 0;
+    default: assert(false); return 0;
     }
 }
 
@@ -126,7 +126,7 @@ void bho::mysql::detail::serialize(serialization_context& ctx, field_view input)
     case field_kind::date: serialize_binary_date(ctx, input.get_date()); break;
     case field_kind::datetime: serialize_binary_datetime(ctx, input.get_datetime()); break;
     case field_kind::time: serialize_binary_time(ctx, input.get_time()); break;
-    default: BHO_ASSERT(false); break;
+    default: assert(false); break;
     }
 }
 

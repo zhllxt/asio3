@@ -64,7 +64,7 @@ public:
     template <class T>
     T& span_element() const noexcept
     {
-        BHO_ASSERT(data_);
+        assert(data_);
         return static_cast<T*>(data_)[offset_];
     }
 };
@@ -87,7 +87,7 @@ public:
     BHO_ATTRIBUTE_NODISCARD
     error_code on_head_ok_packet(const ok_view& pack, diagnostics& diag)
     {
-        BHO_ASSERT(is_reading_head());
+        assert(is_reading_head());
         auto err = on_head_ok_packet_impl(pack, diag);
         set_state_for_ok(pack);
         return err;
@@ -95,7 +95,7 @@ public:
 
     void on_num_meta(std::size_t num_columns)
     {
-        BHO_ASSERT(is_reading_head());
+        assert(is_reading_head());
         on_num_meta_impl(num_columns);
         remaining_meta_ = num_columns;
         set_state(state_t::reading_metadata);
@@ -104,7 +104,7 @@ public:
     BHO_ATTRIBUTE_NODISCARD
     error_code on_meta(const coldef_view& pack, diagnostics& diag)
     {
-        BHO_ASSERT(is_reading_meta());
+        assert(is_reading_meta());
         bool is_last = --remaining_meta_ == 0;
         auto err = on_meta_impl(pack, is_last, diag);
         if (is_last)
@@ -114,7 +114,7 @@ public:
 
     void on_row_batch_start()
     {
-        BHO_ASSERT(is_reading_rows());
+        assert(is_reading_rows());
         on_row_batch_start_impl();
     }
 
@@ -123,14 +123,14 @@ public:
     BHO_ATTRIBUTE_NODISCARD
     error_code on_row(span<const std::uint8_t> msg, const output_ref& ref, std::vector<field_view>& storage)
     {
-        BHO_ASSERT(is_reading_rows());
+        assert(is_reading_rows());
         return on_row_impl(msg, ref, storage);
     }
 
     BHO_ATTRIBUTE_NODISCARD
     error_code on_row_ok_packet(const ok_view& pack)
     {
-        BHO_ASSERT(is_reading_rows());
+        assert(is_reading_rows());
         auto err = on_row_ok_packet_impl(pack);
         set_state_for_ok(pack);
         return err;

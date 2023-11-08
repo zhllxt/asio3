@@ -169,7 +169,7 @@ namespace asio::detail
 		{
 			// if has socks5 proxy
 			if constexpr (std::is_base_of_v<asio2::socks5::option_base,
-				typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
+				typename detail::element_type_adapter<std::remove_cvref_t<Proxy>>::type>)
 			{
 				derived_t::_download_with_socks5(ioc, resolver, socket, stream, buffer
 					, std::forward<String>(host), std::forward<StrOrInt>(port)
@@ -201,7 +201,7 @@ namespace asio::detail
 		 */
 		template<typename String, typename StrOrInt, class HeaderCallback, class BodyCallback, class Proxy,
 			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			&& detail::http_proxy_checker_v<Proxy>, bool>
 		static inline download(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, HeaderCallback&& cbh, BodyCallback&& cbb, Proxy&& proxy)
@@ -253,7 +253,7 @@ namespace asio::detail
 		 * @param filepath - The file path to saved the received file content.
 		 */
 		template<class String2>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
+		typename std::enable_if_t<detail::can_convert_to_string_v<std::remove_cvref_t<String2>>, bool>
 		static inline download(const asio::ssl::context& ctx, http::web_request& req, String2&& filepath)
 		{
 			std::filesystem::path path(std::forward<String2>(filepath));
@@ -282,7 +282,7 @@ namespace asio::detail
 		 * @param filepath - The file path to saved the received file content.
 		 */
 		template<class String2>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
+		typename std::enable_if_t<detail::can_convert_to_string_v<std::remove_cvref_t<String2>>, bool>
 		static inline download(http::web_request& req, String2&& filepath)
 		{
 			return derived_t::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
@@ -296,8 +296,8 @@ namespace asio::detail
 		 */
 		template<class String1, class String2>
 		typename std::enable_if_t<
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
+			detail::can_convert_to_string_v<std::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<std::remove_cvref_t<String2>>, bool>
 		static inline download(const asio::ssl::context& ctx, String1&& url, String2&& filepath)
 		{
 			http::web_request req = http::make_request(std::forward<String1>(url));
@@ -316,8 +316,8 @@ namespace asio::detail
 		 */
 		template<class String1, class String2>
 		typename std::enable_if_t<
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
+			detail::can_convert_to_string_v<std::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<std::remove_cvref_t<String2>>, bool>
 		static inline download(String1&& url, String2&& filepath)
 		{
 			return derived_t::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
@@ -333,7 +333,7 @@ namespace asio::detail
 		 */
 		template<class String1, class BodyCallback>
 		typename std::enable_if_t<
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<std::remove_cvref_t<String1>> &&
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(const asio::ssl::context& ctx, String1&& url, BodyCallback&& cbb)
 		{
@@ -407,7 +407,7 @@ namespace asio::detail
 		 */
 		template<class String1, class BodyCallback>
 		typename std::enable_if_t<
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<std::remove_cvref_t<String1>> &&
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(String1&& url, BodyCallback&& cbb)
 		{
@@ -425,7 +425,7 @@ namespace asio::detail
 		 */
 		template<class String1, class HeaderCallback, class BodyCallback>
 		typename std::enable_if_t<
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<std::remove_cvref_t<String1>> &&
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(const asio::ssl::context& ctx, String1&& url, HeaderCallback&& cbh, BodyCallback&& cbb)
 		{
@@ -446,7 +446,7 @@ namespace asio::detail
 		 */
 		template<class String1, class HeaderCallback, class BodyCallback>
 		typename std::enable_if_t<
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<std::remove_cvref_t<String1>> &&
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(String1&& url, HeaderCallback&& cbh, BodyCallback&& cbb)
 		{

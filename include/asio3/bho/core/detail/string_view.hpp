@@ -383,7 +383,7 @@ public:
     template<class End> BHO_CXX14_CONSTEXPR basic_string_view( Ch const* first, End last,
         typename bho::enable_if<bho::core::detail::is_same<End, Ch const*> >::type* = 0 ) BHO_NOEXCEPT: p_( first ), n_( last - first )
     {
-        BHO_ASSERT( last - first >= 0 );
+        assert( last - first >= 0 );
     }
 
     template<class A> basic_string_view( std::basic_string<Ch, std::char_traits<Ch>, A> const& str ) BHO_NOEXCEPT: p_( str.data() ), n_( str.size() )
@@ -512,7 +512,7 @@ public:
 
     BHO_CXX14_CONSTEXPR const_reference operator[]( size_type pos ) const BHO_NOEXCEPT
     {
-        BHO_ASSERT( pos < size() );
+        assert( pos < size() );
         return p_[ pos ];
     }
 
@@ -528,13 +528,13 @@ public:
 
     BHO_CXX14_CONSTEXPR const_reference front() const BHO_NOEXCEPT
     {
-        BHO_ASSERT( !empty() );
+        assert( !empty() );
         return p_[ 0 ];
     }
 
     BHO_CXX14_CONSTEXPR const_reference back() const BHO_NOEXCEPT
     {
-        BHO_ASSERT( !empty() );
+        assert( !empty() );
         return p_[ n_ - 1 ];
     }
 
@@ -547,7 +547,7 @@ public:
 
     BHO_CXX14_CONSTEXPR void remove_prefix( size_type n ) BHO_NOEXCEPT
     {
-        BHO_ASSERT( n <= size() );
+        assert( n <= size() );
 
         p_ += n;
         n_ -= n;
@@ -555,7 +555,7 @@ public:
 
     BHO_CXX14_CONSTEXPR void remove_suffix( size_type n ) BHO_NOEXCEPT
     {
-        BHO_ASSERT( n <= size() );
+        assert( n <= size() );
 
         n_ -= n;
     }

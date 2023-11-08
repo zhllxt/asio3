@@ -133,7 +133,7 @@ basic_flat_buffer(
     last_ = other.out_; // invalidate
     end_ = other.end_;
     max_ = other.max_;
-    BHO_ASSERT(
+    assert(
         alloc_traits::max_size(this->get()) ==
         alloc_traits::max_size(other.get()));
     other.begin_ = nullptr;
@@ -270,8 +270,8 @@ shrink_to_fit() noexcept
     char* p;
     if(len > 0)
     {
-        BHO_ASSERT(begin_);
-        BHO_ASSERT(in_);
+        assert(begin_);
+        assert(in_);
 #ifndef BHO_NO_EXCEPTIONS
         try
         {
@@ -335,8 +335,8 @@ prepare(std::size_t n) ->
         // existing capacity is sufficient
         if(len > 0)
         {
-            BHO_ASSERT(begin_);
-            BHO_ASSERT(in_);
+            assert(begin_);
+            assert(in_);
             std::memmove(begin_, in_, len);
         }
         in_ = begin_;
@@ -351,8 +351,8 @@ prepare(std::size_t n) ->
     auto const p = alloc(new_size);
     if(begin_)
     {
-        BHO_ASSERT(p);
-        BHO_ASSERT(in_);
+        assert(p);
+        assert(in_);
         std::memcpy(p, in_, len);
         alloc_traits::deallocate(
             this->get(), begin_, capacity());
@@ -415,7 +415,7 @@ copy_from(
     last_ = begin_ + n;
     if(begin_)
     {
-        BHO_ASSERT(other.begin_);
+        assert(other.begin_);
         std::memcpy(begin_, other.in_, n);
     }
 }
@@ -507,7 +507,7 @@ void
 basic_flat_buffer<Allocator>::
 swap(basic_flat_buffer& other, std::false_type)
 {
-    BHO_ASSERT(this->get() == other.get());
+    assert(this->get() == other.get());
     using std::swap;
     swap(max_, other.max_);
     swap(begin_, other.begin_);

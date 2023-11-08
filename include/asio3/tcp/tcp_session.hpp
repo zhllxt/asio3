@@ -17,17 +17,19 @@
 
 namespace asio
 {
-	class tcp_session : public std::enable_shared_from_this<tcp_session>
+	template<typename SocketT>
+	class basic_tcp_session : public std::enable_shared_from_this<basic_tcp_session<SocketT>>
 	{
 	public:
+		using socket_type = SocketT;
 		using key_type = std::size_t;
 
 	public:
-		explicit tcp_session(tcp_socket sock) : socket(std::move(sock))
+		explicit basic_tcp_session(socket_type sock) : socket(std::move(sock))
 		{
 		}
 
-		~tcp_session()
+		~basic_tcp_session()
 		{
 			close();
 		}
@@ -35,13 +37,12 @@ namespace asio
 		/**
 		 * @brief Asynchronously graceful disconnect the connection, this function does not block.
 		 */
-		template<typename DisconnectToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename DisconnectToken = asio::default_token_type<socket_type>>
 		inline auto async_disconnect(
-			DisconnectToken&& token = asio::default_token_type<asio::tcp_socket>())
+			DisconnectToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_disconnect(socket,
-				asio::tcp_disconnect_timeout,
-				std::forward<DisconnectToken>(token));
+				disconnect_timeout, std::forward<DisconnectToken>(token));
 		}
 
 		/**
@@ -52,10 +53,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_send(socket,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
@@ -134,8 +135,12 @@ namespace asio
 		}
 
 	public:
-		asio::tcp_socket      socket;
+		socket_type socket;
 
 		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
+
+		std::chrono::steady_clock::duration   disconnect_timeout{ asio::tcp_disconnect_timeout };
 	};
+
+	using tcp_session = basic_tcp_session<asio::tcp_socket>;
 }

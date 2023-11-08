@@ -27,6 +27,8 @@ class array;
 // Standard library components can't be forward declared, so we'll have to
 // include the array header. Fortunately, it's fairly lightweight and doesn't
 // add significantly to the compile time.
-#include <array>
+#if defined(ASIO_HAS_STD_ARRAY)
+# include <array>
+#endif // defined(ASIO_HAS_STD_ARRAY)
 
 #endif // ASIO_DETAIL_ARRAY_FWD_HPP

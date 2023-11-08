@@ -16,6 +16,9 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "asio/detail/config.hpp"
+
+#if defined(ASIO_HAS_STD_ATOMIC)
+
 #include <atomic>
 #include "asio/detail/noncopyable.hpp"
 
@@ -53,5 +56,7 @@ public:
 } // namespace asio
 
 #include "asio/detail/pop_options.hpp"
+
+#endif // defined(ASIO_HAS_STD_ATOMIC)
 
 #endif // ASIO_DETAIL_STD_FENCED_BLOCK_HPP

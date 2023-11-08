@@ -16,6 +16,9 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "asio/detail/config.hpp"
+
+#if defined(ASIO_HAS_STD_THREAD)
+
 #include <thread>
 #include "asio/detail/noncopyable.hpp"
 
@@ -62,5 +65,7 @@ private:
 } // namespace asio
 
 #include "asio/detail/pop_options.hpp"
+
+#endif // defined(ASIO_HAS_STD_THREAD)
 
 #endif // ASIO_DETAIL_STD_THREAD_HPP

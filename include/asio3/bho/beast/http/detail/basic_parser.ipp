@@ -618,7 +618,7 @@ parse_field(
         return;
     }
 
-    BHO_ASSERT(! buf.empty());
+    assert(! buf.empty());
     for(;;)
     {
         // eat leading ' ' and '\t'

@@ -25,7 +25,7 @@
 #include <asio3/bho/mysql/impl/internal/protocol/serialization.hpp>
 
 #include <asio3/bho/assert.hpp>
-#include <cstdlib>
+#include <charconv>
 
 #include <cmath>
 #include <cstddef>
@@ -39,22 +39,8 @@ namespace detail {
 template <typename Target, typename CharacterT>
 inline bool try_lexical_convert(const CharacterT* chars, std::size_t count, Target& result)
 {
-	using T = typename std::remove_const_t<std::remove_reference_t<Target>>;
-	std::string str(chars, chars + count);
-	CharacterT* end = nullptr;
-	if constexpr (std::is_integral_v<T>)
-	{
-		result = T(std::strtoull(str.data(), &end, 10));
-	}
-	else if constexpr (std::is_floating_point_v<T>)
-	{
-		result = T(std::strtold(str.data(), &end));
-	}
-	else
-	{
-		static_assert(!std::is_same_v<T, T>);
-	}
-	return end == (CharacterT*)(str.data() + count);
+	std::from_chars_result ret = std::from_chars(chars, chars + count, result);
+	return (ret.ptr == chars + count && ret.ec == std::errc{});
 }
 
 
@@ -264,7 +250,7 @@ deserialize_text_value_time(string_view from, field_view& to, const metadata& me
     // size check
     std::size_t actual_min_size = time_min_sz + (decimals ? decimals + 1 : 0);
     std::size_t actual_max_size = actual_min_size + 1 + 1;  // hour extra character and sign
-    BHO_ASSERT(actual_max_size <= time_max_sz);
+    assert(actual_max_size <= time_max_sz);
     if (from.size() < actual_min_size || from.size() > actual_max_size)
         return deserialize_errc::protocol_value_error;
 

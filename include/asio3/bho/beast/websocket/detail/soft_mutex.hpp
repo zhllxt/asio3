@@ -64,7 +64,7 @@ public:
     void
     lock(T const*)
     {
-        BHO_ASSERT(id_ == 0);
+        assert(id_ == 0);
         id_ = T::id;
     }
 
@@ -72,7 +72,7 @@ public:
     void
     unlock(T const*)
     {
-        BHO_ASSERT(id_ == T::id);
+        assert(id_ == T::id);
         id_ = 0;
     }
 
@@ -86,7 +86,7 @@ public:
         // for an async_read to complete before performing another
         // async_read.
         //
-        BHO_ASSERT(id_ != T::id);
+        assert(id_ != T::id);
         if(id_ != 0)
             return false;
         id_ = T::id;

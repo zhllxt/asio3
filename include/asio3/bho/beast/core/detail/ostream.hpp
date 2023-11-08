@@ -72,7 +72,7 @@ public:
     int_type
     overflow(int_type ch) override
     {
-        BHO_ASSERT(! Traits::eq_int_type(
+        assert(! Traits::eq_int_type(
             ch, Traits::eof()));
         sync();
 
@@ -89,7 +89,7 @@ public:
         auto const p = static_cast<CharT*>(b.data());
         this->setp(p, p + b.size() / sizeof(CharT));
 
-        BHO_ASSERT(b_.capacity() > b_.size());
+        assert(b_.capacity() > b_.size());
         return this->sputc(
             Traits::to_char_type(ch));
     }
@@ -142,7 +142,7 @@ public:
     int_type
     overflow(int_type ch) override
     {
-        BHO_ASSERT(! Traits::eq_int_type(
+        assert(! Traits::eq_int_type(
             ch, Traits::eof()));
         sync();
 
@@ -159,7 +159,7 @@ public:
         auto const p = static_cast<CharT*>(b.data());
         this->setp(p, p + b.size() / sizeof(CharT));
 
-        BHO_ASSERT(b_.capacity() > b_.size());
+        assert(b_.capacity() > b_.size());
         return this->sputc(
             Traits::to_char_type(ch));
     }

@@ -45,7 +45,7 @@ public:
     span<const std::uint8_t> get_next_message(std::uint8_t& seqnum, error_code& ec) noexcept
     {
         {
-            BHO_ASSERT(has_message());
+            assert(has_message());
             if (result_.message.has_seqnum_mismatch || seqnum != result_.message.seqnum_first)
             {
                 ec = make_error_code(client_errc::sequence_number_mismatch);

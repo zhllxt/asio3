@@ -16,6 +16,9 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "asio/detail/config.hpp"
+
+#if defined(ASIO_HAS_STD_MUTEX_AND_CONDVAR)
+
 #include <mutex>
 #include "asio/detail/noncopyable.hpp"
 #include "asio/detail/scoped_lock.hpp"
@@ -72,5 +75,7 @@ private:
 } // namespace asio
 
 #include "asio/detail/pop_options.hpp"
+
+#endif // defined(ASIO_HAS_STD_MUTEX_AND_CONDVAR)
 
 #endif // ASIO_DETAIL_STD_STATIC_MUTEX_HPP

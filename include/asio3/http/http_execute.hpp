@@ -144,7 +144,7 @@ namespace asio::detail
 		{
 			// if has socks5 proxy
 			if constexpr (std::is_base_of_v<asio2::socks5::option_base,
-				typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
+				typename detail::element_type_adapter<std::remove_cvref_t<Proxy>>::type>)
 			{
 				derived_t::_execute_with_socks5(ioc, resolver, socket, parser, buffer
 					, std::forward<String>(host), std::forward<StrOrInt>(port)
@@ -166,7 +166,7 @@ namespace asio::detail
 	public:
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			&& detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
@@ -213,7 +213,7 @@ namespace asio::detail
 
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
@@ -223,7 +223,7 @@ namespace asio::detail
 		}
 
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, http::request<Body, Fields>& req)
 		{
@@ -281,7 +281,7 @@ namespace asio::detail
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port,
 			std::string_view target, std::chrono::duration<Rep, Period> timeout)
@@ -300,7 +300,7 @@ namespace asio::detail
 		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target)
 		{
@@ -313,7 +313,7 @@ namespace asio::detail
 
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			&& detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, http::request<Body, Fields>& req, Proxy&& proxy)
 		{
@@ -373,7 +373,7 @@ namespace asio::detail
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			&& detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port,
 			std::string_view target, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
@@ -393,7 +393,7 @@ namespace asio::detail
 		 */
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+		typename std::enable_if_t<detail::is_character_string_v<std::remove_cvref_t<String>>
 			&& detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target, Proxy&& proxy)
 		{

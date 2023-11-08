@@ -44,12 +44,12 @@ public:
 
     channel& get() noexcept
     {
-        BHO_ASSERT(chan_);
+        assert(chan_);
         return *chan_;
     }
     const channel& get() const noexcept
     {
-        BHO_ASSERT(chan_);
+        assert(chan_);
         return *chan_;
     }
 

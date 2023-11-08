@@ -66,7 +66,7 @@ public:
      */
     rows_view rows() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_rows(index_);
     }
 
@@ -87,7 +87,7 @@ public:
      */
     metadata_collection_view meta() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_meta(index_);
     }
 
@@ -104,7 +104,7 @@ public:
      */
     std::uint64_t affected_rows() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_affected_rows(index_);
     }
 
@@ -121,7 +121,7 @@ public:
      */
     std::uint64_t last_insert_id() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_last_insert_id(index_);
     }
 
@@ -138,7 +138,7 @@ public:
      */
     unsigned warning_count() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_warning_count(index_);
     }
 
@@ -165,7 +165,7 @@ public:
      */
     string_view info() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_info(index_);
     }
 
@@ -182,7 +182,7 @@ public:
      */
     bool is_out_params() const noexcept
     {
-        BHO_ASSERT(has_value());
+        assert(has_value());
         return impl_->get_is_out_params(index_);
     }
 

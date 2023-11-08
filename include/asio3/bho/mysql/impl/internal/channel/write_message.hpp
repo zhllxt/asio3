@@ -64,7 +64,7 @@ struct write_message_op : asio::coroutine
         ASIO_CORO_REENTER(*this)
         {
             // done() never returns false after a call to prepare_buffer(), so no post() needed
-            BHO_ASSERT(!processor_.done());
+            assert(!processor_.done());
             while (!processor_.done())
             {
                 ASIO_CORO_YIELD stream_.async_write_some(

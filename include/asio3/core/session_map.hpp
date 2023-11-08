@@ -18,7 +18,7 @@
 namespace asio
 {
 	template<typename SessionT>
-	class session_map_t
+	class session_map
 	{
 	public:
 		using session_type = SessionT;
@@ -28,9 +28,9 @@ namespace asio
 		using lock_type  = as_tuple_t<deferred_t>::as_default_on_t<experimental::channel<void()>>;
 		using executor_type = typename lock_type::executor_type;
 
-		struct async_emplace_op;
-		struct async_find_or_emplace_op;
-		struct async_erase_op;
+		struct async_add_op;
+		struct async_find_or_add_op;
+		struct async_remove_op;
 		struct async_find_op;
 		struct async_disconnect_all_op;
 		struct async_send_all_op;
@@ -38,70 +38,70 @@ namespace asio
 
 	public:
 		template<class Executor>
-		explicit session_map_t(const Executor& ex) : lock(ex, 1)
+		explicit session_map(const Executor& ex) : lock(ex, 1)
 		{
 			map.reserve(64);
 		}
 
-		~session_map_t()
+		~session_map()
 		{
 		}
 
 		/**
-		 * @brief emplace session
+		 * @brief add session
 		 */
 		template<typename EmplaceToken = asio::default_token_type<lock_type>>
-		inline auto async_emplace(
+		inline auto async_add(
 			value_type conn,
 			EmplaceToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EmplaceToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
-					async_emplace_op{}, lock),
+					async_add_op{}, lock),
 				token, std::ref(*this), std::move(conn));
 		}
 
 		/**
-		 * @brief emplace session
+		 * @brief find the session, if it's not exists, add a new session
 		 */
 		template<typename EmplaceToken = asio::default_token_type<lock_type>>
-		inline auto async_find_or_emplace(
+		inline auto async_find_or_add(
 			key_type key,
 			auto&& create_func,
 			EmplaceToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EmplaceToken, void(value_type, bool)>(
 				asio::experimental::co_composed<void(value_type, bool)>(
-					async_find_or_emplace_op{}, lock),
+					async_find_or_add_op{}, lock),
 				token, std::ref(*this), std::move(key),
 				std::forward_like<decltype(create_func)>(create_func));
 		}
 
 		/**
-		 * @brief erase session by the key
+		 * @brief remove session by the key
 		 */
 		template<typename EraseToken = asio::default_token_type<lock_type>>
-		inline auto async_erase(
+		inline auto async_remove(
 			key_type key,
 			EraseToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EraseToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
-					async_erase_op{}, lock),
+					async_remove_op{}, lock),
 				token, std::ref(*this), std::move(key));
 		}
 
 		/**
-		 * @brief erase the specified session
+		 * @brief remove the specified session
 		 */
 		template<typename EraseToken = asio::default_token_type<lock_type>>
-		inline auto async_erase(
+		inline auto async_remove(
 			std::shared_ptr<session_type>& conn,
 			EraseToken&& token = asio::default_token_type<lock_type>())
 		{
 			return asio::async_initiate<EraseToken, void(bool)>(
 				asio::experimental::co_composed<void(bool)>(
-					async_erase_op{}, lock),
+					async_remove_op{}, lock),
 				token, std::ref(*this), conn->hash_key());
 		}
 
@@ -203,6 +203,14 @@ namespace asio
 		 * @brief get session count
 		 */
 		inline std::size_t size() noexcept
+		{
+			return map.size();
+		}
+
+		/**
+		 * @brief get session count
+		 */
+		inline std::size_t count() noexcept
 		{
 			return map.size();
 		}

@@ -92,7 +92,7 @@ class basic_file_body<File>::value_type
 #endif
 
     // This represents the open file
-    std::shared_ptr<File> file_ = std::make_shared<File>();
+    File file_;
 
     // The cached file size
     std::uint64_t file_size_ = 0;
@@ -108,37 +108,13 @@ public:
     value_type() = default;
 
     /// Constructor
-    value_type(value_type const&) = default;
-
-    /// Assignment
-    value_type& operator=(value_type const&) = default;
-
-    /// Constructor
-	value_type(value_type&& other)
-		: file_(std::move(other.file_)), file_size_(std::move(other.file_size_))
-	{
-		other.file_ = std::make_shared<File>();
-		other.file_size_ = 0;
-	}
+    value_type(value_type&& other) = default;
 
     /// Move assignment
-	value_type& operator=(value_type&& other)
-	{
-		file_ = std::move(other.file_);
-		file_size_ = std::move(other.file_size_);
-		other.file_ = std::make_shared<File>();
-		other.file_size_ = 0;
-		return *this;
-	}
+    value_type& operator=(value_type&& other) = default;
 
     /// Return the file
     File& file()
-    {
-        return *file_;
-    }
-
-    /// Return the file shared_ptr
-    std::shared_ptr<File> file_ptr()
     {
         return file_;
     }
@@ -147,7 +123,7 @@ public:
     bool
     is_open() const
     {
-        return file_->is_open();
+        return file_.is_open();
     }
 
     /// Returns the size of the file if open
@@ -185,9 +161,6 @@ public:
     void
     reset(File&& file, error_code& ec);
 
-    void
-    reset(std::shared_ptr<File> file, error_code& ec);
-
     /** Set the cursor position of the file.
 
         This function can be used to move the cursor of the file ahead
@@ -209,7 +182,7 @@ value_type::
 close()
 {
     error_code ignored;
-    file_->close(ignored);
+    file_.close(ignored);
 }
 
 template<class File>
@@ -219,12 +192,12 @@ value_type::
 open(char const* path, file_mode mode, error_code& ec)
 {
     // Open the file
-    file_->open(path, mode, ec);
+    file_.open(path, mode, ec);
     if(ec)
         return;
 
     // Cache the size
-    file_size_ = file_->size(ec);
+    file_size_ = file_.size(ec);
     if(ec)
     {
         close();
@@ -239,41 +212,21 @@ value_type::
 reset(File&& file, error_code& ec)
 {
     // First close the file if open
-    if(file_->is_open())
+    if(file_.is_open())
     {
         error_code ignored;
-        file_->close(ignored);
-    }
-
-    // Take ownership of the new file
-    *file_ = std::move(file);
-
-    // Cache the size
-    file_size_ = file_->size(ec);
-}
-
-template<class File>
-void
-basic_file_body<File>::
-value_type::
-reset(std::shared_ptr<File> file, error_code& ec)
-{
-    // First close the file if open
-    if(file_->is_open())
-    {
-        error_code ignored;
-        file_->close(ignored);
+        file_.close(ignored);
     }
 
     // Take ownership of the new file
     file_ = std::move(file);
 
     // Cache the size
-    file_size_ = file_->size(ec);
+    file_size_ = file_.size(ec);
 
     // Consider the offset
     if (!ec)
-        file_size_ -= file_->pos(ec);
+        file_size_ -= file_.pos(ec);
 }
 
 template<class File>
@@ -282,14 +235,14 @@ basic_file_body<File>::
 value_type::
 seek(std::uint64_t offset, error_code& ec)
 {
-    file_->seek(offset, ec);
+    file_.seek(offset, ec);
     // Cache the size
     if (!ec)
-        file_size_ = file_->size(ec);
+        file_size_ = file_.size(ec);
 
     // Consider the offset
     if (!ec)
-        file_size_ -= file_->pos(ec);
+        file_size_ -= file_.pos(ec);
 }
 
 
@@ -389,7 +342,7 @@ writer(header<isRequest, Fields>& h, value_type& b)
     bho::ignore_unused(h);
 
     // The file must already be open
-    //BHO_ASSERT(body_.file_->is_open());
+    assert(body_.file_.is_open());
 
     // Get the size of the file
     remain_ = body_.file_size_;
@@ -407,16 +360,7 @@ init(error_code& ec)
     // to indicate no error.
     //
     // We don't do anything fancy so set "no error"
-
-    // The file must already be open
-    BHO_ASSERT(body_.file_->is_open());
-
-	body_.file_->seek(0, ec);
-
-    // Get the size of the file
-    remain_ = ec ? 0 : body_.file_size_;
-
-    //ec = {};
+    ec = {};
 }
 
 // This function is called repeatedly by the serializer to
@@ -451,7 +395,7 @@ get(error_code& ec) ->
     }
 
     // Now read the next buffer
-    auto const nread = body_.file_->read(buf_, amount, ec);
+    auto const nread = body_.file_.read(buf_, amount, ec);
     if(ec)
         return std::nullopt;
 
@@ -462,8 +406,8 @@ get(error_code& ec) ->
     }
 
     // Make sure there is forward progress
-    BHO_ASSERT(nread != 0);
-    BHO_ASSERT(nread <= remain_);
+    assert(nread != 0);
+    assert(nread <= remain_);
 
     // Update the amount remaining based on what we got
     remain_ -= nread;
@@ -565,7 +509,7 @@ init(
     error_code& ec)
 {
     // The file must already be open for writing
-    BHO_ASSERT(body_.file_->is_open());
+    assert(body_.file_.is_open());
 
     // We don't do anything with this but a sophisticated
     // application might check available space on the device
@@ -600,7 +544,7 @@ put(ConstBufferSequence const& buffers, error_code& ec)
     {
         // Write this buffer to the file
         net::const_buffer buffer = *it;
-        nwritten += body_.file_->write(
+        nwritten += body_.file_.write(
             buffer.data(), buffer.size(), ec);
         if(ec)
             return nwritten;

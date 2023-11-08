@@ -193,7 +193,7 @@ public:
     /// \copydoc rows_view::operator[]
     row_view operator[](std::size_t i) const noexcept
     {
-        BHO_ASSERT(i < size());
+        assert(i < size());
         return detail::row_slice(impl_.fields().data(), num_columns_, i);
     }
 

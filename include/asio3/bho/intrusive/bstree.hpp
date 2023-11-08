@@ -1325,8 +1325,8 @@ class bstree_impl
       }
       //Check if the insertion point is correct to detect wrong
       //uses insert_unique_check
-      BHO_ASSERT(( p == this->end()   || !this->get_comp()(*p, value)   ));
-      BHO_ASSERT(( p == this->begin() || !this->get_comp()(value, *--p) ));
+      assert(( p == this->end()   || !this->get_comp()(*p, value)   ));
+      assert(( p == this->begin() || !this->get_comp()(value, *--p) ));
       #endif
 
       node_algorithms::insert_unique_commit

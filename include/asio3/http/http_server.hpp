@@ -12,33 +12,43 @@
 
 #include <asio3/tcp/tcp_server.hpp>
 #include <asio3/http/http_session.hpp>
+#include <asio3/http/router.hpp>
 
 namespace asio
 {
-	template<typename SessionT>
-	class http_server_t : public tcp_server_t<SessionT>
+	template<typename SessionT = http_session>
+	class basic_http_server : public basic_tcp_server<SessionT>
 	{
 	public:
-		using super = tcp_server_t<SessionT>;
+		using super = basic_tcp_server<SessionT>;
+		using request_type = typename SessionT::request_type;
+		using response_type = typename SessionT::response_type;
 
 	public:
 		/**
 		 * @brief constructor
 		 */
-		explicit http_server_t(const auto& ex) : super(ex)
+		explicit basic_http_server(const auto& ex) : super(ex)
 		{
 		}
 
 		/**
 		 * @brief destructor
 		 */
-		~http_server_t()
+		~basic_http_server()
 		{
 		}
 
+		inline super& base() noexcept
+		{
+			return static_cast<super&>(*this);
+		}
+
 	public:
-		std::filesystem::path     root_directory{ std::filesystem::current_path() };
+		std::filesystem::path root_directory{ std::filesystem::current_path() };
+
+		http::basic_router<request_type, response_type> router{};
 	};
 
-	using http_server = http_server_t<http_session>;
+	using http_server = basic_http_server<http_session>;
 }

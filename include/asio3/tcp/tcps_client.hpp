@@ -15,29 +15,31 @@
 
 namespace asio
 {
-	class tcps_client : public tcp_client
+	template<typename SocketT>
+	class basic_tcps_client : public basic_tcp_client<SocketT>
 	{
 	public:
-		using super = tcp_client;
+		using super = basic_tcp_client<SocketT>;
+		using socket_type = SocketT;
 
-		explicit tcps_client(const auto& ex, ssl::context&& sslctx)
-			: tcp_client(ex)
+		explicit basic_tcps_client(const auto& ex, ssl::context&& sslctx)
+			: super(ex)
 			, ssl_context(std::move(sslctx))
-			, ssl_stream(socket, ssl_context)
+			, ssl_stream(super::socket, ssl_context)
 		{
 		}
 
-		~tcps_client()
+		~basic_tcps_client()
 		{
-			close();
+			this->close();
 		}
 
 		/**
 		 * @brief Asynchronously disconnect the connection.
 		 */
-		template<typename StopToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename StopToken = asio::default_token_type<socket_type>>
 		inline auto async_stop(
-			StopToken&& token = asio::default_token_type<asio::tcp_socket>())
+			StopToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_initiate<StopToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
@@ -65,10 +67,10 @@ namespace asio
 		 *    @code
 		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
 		 */
-		template<typename WriteToken = asio::default_token_type<asio::tcp_socket>>
+		template<typename WriteToken = asio::default_token_type<socket_type>>
 		inline auto async_send(
 			auto&& data,
-			WriteToken&& token = asio::default_token_type<asio::tcp_socket>())
+			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
 			return asio::async_send(ssl_stream,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
@@ -90,8 +92,10 @@ namespace asio
 		}
 
 	public:
-		asio::ssl::context                   ssl_context;
+		asio::ssl::context              ssl_context;
 
-		asio::ssl::stream<asio::tcp_socket&> ssl_stream;
+		asio::ssl::stream<socket_type&> ssl_stream;
 	};
+
+	using tcps_client = basic_tcps_client<asio::tcp_socket>;
 }

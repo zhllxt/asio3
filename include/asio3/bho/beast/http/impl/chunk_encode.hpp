@@ -28,7 +28,7 @@ chunk_header(std::size_t size)
         net::const_buffer{nullptr, 0},
         chunk_crlf{})
 {
-    BHO_ASSERT(size > 0);
+    assert(size > 0);
 }
 
 inline
@@ -42,7 +42,7 @@ chunk_header(
             extensions.data(), extensions.size()},
         chunk_crlf{})
 {
-    BHO_ASSERT(size > 0);
+    assert(size > 0);
 }
 
 template<class ChunkExtensions, class>
@@ -61,7 +61,7 @@ chunk_header(
     static_assert(
         detail::is_chunk_extensions<ChunkExtensions>::value,
         "ChunkExtensions requirements not met");
-    BHO_ASSERT(size > 0);
+    assert(size > 0);
 }
 
 template<class ChunkExtensions, class Allocator, class>
@@ -81,7 +81,7 @@ chunk_header(
     static_assert(
         detail::is_chunk_extensions<ChunkExtensions>::value,
         "ChunkExtensions requirements not met");
-    BHO_ASSERT(size > 0);
+    assert(size > 0);
 }
 
 //------------------------------------------------------------------------------
@@ -542,13 +542,13 @@ semi:
         it = first;
         for(;;)
         {
-            BHO_ASSERT(it != last);
+            assert(it != last);
             if(*it == '"')
                 break;
             if(*it == '\\')
             {
                 ++it;
-                BHO_ASSERT(it != last);
+                assert(it != last);
             }
             Traits::assign(*dest++, *it++);
         }

@@ -10,110 +10,31 @@
 
 #pragma once
 
-#include <asio3/core/detail/push_options.hpp>
-
-#include <asio2/tcp/tcp_server.hpp>
+#include <asio3/tcp/tcp_server.hpp>
 #include <asio3/http/ws_session.hpp>
 
-namespace asio::detail
-{
-	ASIO2_CLASS_FORWARD_DECLARE_BASE;
-	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
-	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
-
-	template<class derived_t, class session_t>
-	class ws_server_impl_t : public tcp_server_impl_t<derived_t, session_t>
-	{
-		ASIO2_CLASS_FRIEND_DECLARE_BASE;
-		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
-		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
-
-	public:
-		using super = tcp_server_impl_t<derived_t, session_t>;
-		using self  = ws_server_impl_t <derived_t, session_t>;
-
-		using session_type = session_t;
-
-	public:
-		/**
-		 * @brief constructor
-		 */
-		template<class ...Args>
-		explicit ws_server_impl_t(Args&&... args)
-			: super(std::forward<Args>(args)...)
-		{
-		}
-
-		/**
-		 * @brief destructor
-		 */
-		~ws_server_impl_t()
-		{
-			this->stop();
-		}
-
-		/**
-		 * @brief start the server
-		 * @param host - A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param service - A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename... Args>
-		bool start(String&& host, StrOrInt&& service, Args&&... args)
-		{
-			return this->derived()._do_start(
-				std::forward<String>(host), std::forward<StrOrInt>(service),
-				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
-		}
-
-	public:
-		/**
-		 * @brief bind websocket upgrade listener
-		 * @param fun - a user defined callback function.
-		 * Function signature : void(std::shared_ptr<asio2::ws_session>& session_ptr)
-		 */
-		template<class F, class ...C>
-		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
-		{
-			this->listener_.bind(event_type::upgrade, observer_t<std::shared_ptr<session_t>&>
-				(std::forward<F>(fun), std::forward<C>(obj)...));
-			return (this->derived());
-		}
-
-	protected:
-
-	};
-}
-
 namespace asio
 {
-	template<class derived_t, class session_t>
-	using ws_server_impl_t = detail::ws_server_impl_t<derived_t, session_t>;
-
-	template<class session_t>
-	class ws_server_t : public detail::ws_server_impl_t<ws_server_t<session_t>, session_t>
+	template<typename SessionT>
+	class basic_ws_server : public basic_tcp_server<SessionT>
 	{
 	public:
-		using detail::ws_server_impl_t<ws_server_t<session_t>, session_t>::ws_server_impl_t;
+		using super = basic_tcp_server<SessionT>;
+		using socket_type = typename SessionT::socket_type;
+
+		explicit basic_ws_server(const auto& ex) : super(ex)
+		{
+		}
+
+		~basic_ws_server()
+		{
+		}
+
+		inline super& base() noexcept
+		{
+			return static_cast<super&>(*this);
+		}
 	};
 
-	using ws_server = ws_server_t<ws_session>;
+	using ws_server = basic_ws_server<ws_session>;
 }
-
-#if defined(ASIO2_INCLUDE_RATE_LIMIT)
-#include <asio2/tcp/tcp_stream.hpp>
-namespace asio
-{
-	template<class session_t>
-	class ws_rate_server_t : public asio2::ws_server_impl_t<ws_rate_server_t<session_t>, session_t>
-	{
-	public:
-		using asio2::ws_server_impl_t<ws_rate_server_t<session_t>, session_t>::ws_server_impl_t;
-	};
-
-	using ws_rate_server = ws_rate_server_t<ws_rate_session>;
-}
-#endif
-
-#include <asio3/core/detail/pop_options.hpp>

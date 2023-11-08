@@ -49,7 +49,7 @@ inline error_code to_error_code(deserialize_errc v) noexcept
     case deserialize_errc::incomplete_message: return error_code(client_errc::incomplete_message);
     case deserialize_errc::protocol_value_error: return error_code(client_errc::protocol_value_error);
     case deserialize_errc::server_unsupported: return error_code(client_errc::server_unsupported);
-    default: BHO_ASSERT(false); return error_code();  // avoid warnings
+    default: assert(false); return error_code();  // avoid warnings
     }
 }
 
@@ -65,7 +65,7 @@ public:
     {
         if (size)
         {
-            BHO_ASSERT(buffer != nullptr);
+            assert(buffer != nullptr);
             std::memcpy(first_, buffer, size);
             advance(size);
         }
@@ -94,7 +94,7 @@ public:
     void advance(std::size_t sz) noexcept
     {
         first_ += sz;
-        BHO_ASSERT(last_ >= first_);
+        assert(last_ >= first_);
     }
     void rewind(std::size_t sz) noexcept { first_ -= sz; }
     std::size_t size() const noexcept { return last_ - first_; }

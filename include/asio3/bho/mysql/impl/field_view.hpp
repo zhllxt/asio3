@@ -178,7 +178,7 @@ BHO_CXX14_CONSTEXPR bool bho::mysql::field_view::operator==(const field_view& rh
     case field_kind::date: return rhs_k == field_kind::date && get_date() == rhs.get_date();
     case field_kind::datetime: return rhs_k == field_kind::datetime && get_datetime() == rhs.get_datetime();
     case field_kind::time: return rhs_k == field_kind::time && get_time() == rhs.get_time();
-    default: BHO_ASSERT(false); return false;
+    default: assert(false); return false;
     }
 }
 

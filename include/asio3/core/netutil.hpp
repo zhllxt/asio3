@@ -48,7 +48,7 @@ namespace asio
 
 	constexpr std::chrono::milliseconds  tcp_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
 	constexpr std::chrono::milliseconds  udp_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
-	constexpr std::chrono::milliseconds http_disconnect_timeout = std::chrono::milliseconds(30 * 1000);
+	constexpr std::chrono::milliseconds http_disconnect_timeout = std::chrono::milliseconds(3  * 1000);
 
 	constexpr std::chrono::milliseconds  tcp_idle_timeout       = std::chrono::milliseconds(60 * 60 * 1000);
 	constexpr std::chrono::milliseconds  udp_idle_timeout       = std::chrono::milliseconds(60 * 1000);

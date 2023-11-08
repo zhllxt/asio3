@@ -453,29 +453,29 @@ class avltree_algorithms
       //If equal height, balance must be zero
       if(rightheight == leftheight){
          if(NodeTraits::get_balance(n) != NodeTraits::zero()){
-            BHO_ASSERT(0);
+            assert(0);
             return false;
          }
       }
       //If right is taller than left, then the difference must be at least 1 and the balance positive
       else if(rightheight > leftheight){
          if(rightheight - leftheight > 1 ){
-            BHO_ASSERT(0);
+            assert(0);
             return false;
          }
          else if(NodeTraits::get_balance(n) != NodeTraits::positive()){
-            BHO_ASSERT(0);
+            assert(0);
             return false;
          }
       }
       //If left is taller than right, then the difference must be at least 1 and the balance negative
       else{
          if(leftheight - rightheight > 1 ){
-            BHO_ASSERT(0);
+            assert(0);
             return false;
          }
          else if(NodeTraits::get_balance(n) != NodeTraits::negative()){
-            BHO_ASSERT(0);
+            assert(0);
             return false;
          }
       }

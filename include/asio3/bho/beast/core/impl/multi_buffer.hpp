@@ -380,7 +380,7 @@ public:
     operator*() const noexcept
     {
         value_type result;
-        BHO_ASSERT(sr_->last_pos_ != 0);
+        assert(sr_->last_pos_ != 0);
         if(it_ == std::prev(sr_->end_))
             result = {
                 it_->data(), sr_->last_pos_ };
@@ -703,7 +703,7 @@ reserve(std::size_t n)
                 return;
         }
     }
-    BHO_ASSERT(n > total);
+    assert(n > total);
     (void)prepare(n - size());
 }
 
@@ -751,11 +751,11 @@ shrink_to_fit()
         }
 
         // unused out_
-        BHO_ASSERT(out_ ==
+        assert(out_ ==
             list_.iterator_to(list_.back()));
         if(out_pos_ == 0)
         {
-            BHO_ASSERT(out_ != list_.begin());
+            assert(out_ != list_.begin());
             auto& e = *out_;
             list_.erase(out_);
             out_ = list_.end();
@@ -781,9 +781,9 @@ shrink_to_fit()
     // partial last buffer
     if(out_ != list_.begin() && out_ != list_.end())
     {
-        BHO_ASSERT(out_ ==
+        assert(out_ ==
             list_.iterator_to(list_.back()));
-        BHO_ASSERT(out_pos_ != 0);
+        assert(out_pos_ != 0);
         auto& e = alloc(out_pos_);
         std::memcpy(
             e.data(),
@@ -815,9 +815,9 @@ shrink_to_fit()
         }
         else
         {
-            BHO_ASSERT(out_ ==
+            assert(out_ ==
                 list_.iterator_to(list_.back()));
-            BHO_ASSERT(out_pos_ > in_pos_);
+            assert(out_pos_ > in_pos_);
             auto const n = out_pos_ - in_pos_;
             auto& e = alloc(n);
             std::memcpy(
@@ -907,7 +907,7 @@ prepare(size_type n) ->
         debug_check();
     #endif
     }
-    BHO_ASSERT(total <= max_);
+    assert(total <= max_);
     if(! reuse.empty() || n > 0)
     {
         destroy(reuse);
@@ -937,7 +937,7 @@ prepare(size_type n) ->
     auto const result =
         mutable_buffers_type(
             *this, in_size_, n0);
-    BHO_ASSERT(
+    assert(
         net::buffer_size(result) == n0);
     return result;
 }
@@ -1164,7 +1164,7 @@ void
 basic_multi_buffer<Allocator>::
 swap(basic_multi_buffer& other, std::false_type) noexcept
 {
-    BHO_ASSERT(this->get() == other.get());
+    assert(this->get() == other.get());
     using std::swap;
     auto const at_end0 =
         out_ == list_.end();
@@ -1238,36 +1238,36 @@ basic_multi_buffer<Allocator>::
 debug_check() const
 {
 #ifndef NDEBUG
-    BHO_ASSERT(buffer_bytes(data()) == in_size_);
+    assert(buffer_bytes(data()) == in_size_);
     if(list_.empty())
     {
-        BHO_ASSERT(in_pos_ == 0);
-        BHO_ASSERT(in_size_ == 0);
-        BHO_ASSERT(out_pos_ == 0);
-        BHO_ASSERT(out_end_ == 0);
-        BHO_ASSERT(out_ == list_.end());
+        assert(in_pos_ == 0);
+        assert(in_size_ == 0);
+        assert(out_pos_ == 0);
+        assert(out_end_ == 0);
+        assert(out_ == list_.end());
         return;
     }
 
     auto const& front = list_.front();
 
-    BHO_ASSERT(in_pos_ < front.size());
+    assert(in_pos_ < front.size());
 
     if(out_ == list_.end())
     {
-        BHO_ASSERT(out_pos_ == 0);
-        BHO_ASSERT(out_end_ == 0);
+        assert(out_pos_ == 0);
+        assert(out_end_ == 0);
     }
     else
     {
         auto const& out = *out_;
         auto const& back = list_.back();
 
-        BHO_ASSERT(out_end_ <= back.size());
-        BHO_ASSERT(out_pos_ <  out.size());
-        BHO_ASSERT(&out != &front || out_pos_ >= in_pos_);
-        BHO_ASSERT(&out != &front || out_pos_ - in_pos_ == in_size_);
-        BHO_ASSERT(&out != &back  || out_pos_ <= out_end_);
+        assert(out_end_ <= back.size());
+        assert(out_pos_ <  out.size());
+        assert(&out != &front || out_pos_ >= in_pos_);
+        assert(&out != &front || out_pos_ - in_pos_ == in_size_);
+        assert(&out != &back  || out_pos_ <= out_end_);
     }
 #endif
 }

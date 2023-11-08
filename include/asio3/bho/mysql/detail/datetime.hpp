@@ -52,7 +52,7 @@ BHO_CXX14_CONSTEXPR inline int ymd_to_days(
     std::uint8_t day
 ) noexcept
 {
-    BHO_ASSERT(is_valid(years, month, day));
+    assert(is_valid(years, month, day));
     int y = years;
     const int m = month;
     const int d = day;

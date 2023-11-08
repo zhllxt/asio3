@@ -88,7 +88,7 @@ struct stream_base
             // calls to async_read_some. Only one pending call of
             // each I/O type (read and write) is permitted.
             //
-            BHO_ASSERT(! *b_);
+            assert(! *b_);
             *b_ = true;
         }
 
@@ -102,8 +102,8 @@ struct stream_base
 
         void assign(bool& b)
         {
-            BHO_ASSERT(!b_);
-            BHO_ASSERT(clear_);
+            assert(!b_);
+            assert(clear_);
             b_ = &b;
 
             // If this assert goes off, it means you are attempting
@@ -113,14 +113,14 @@ struct stream_base
             // calls to async_read_some. Only one pending call of
             // each I/O type (read and write) is permitted.
             //
-            BHO_ASSERT(! *b_);
+            assert(! *b_);
             *b_ = true;
         }
 
         void
         reset()
         {
-            BHO_ASSERT(clear_);
+            assert(clear_);
             if (b_)
                 *b_ = false;
             clear_ = false;

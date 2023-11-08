@@ -182,7 +182,7 @@ template<class Buffers>
 void
 read_ping(ping_data& data, Buffers const& bs)
 {
-    BHO_ASSERT(buffer_bytes(bs) <= data.max_size());
+    assert(buffer_bytes(bs) <= data.max_size());
     data.resize(buffer_bytes(bs));
     net::buffer_copy(net::mutable_buffer{
         data.data(), data.size()}, bs);
@@ -199,7 +199,7 @@ read_close(
     error_code& ec)
 {
     auto const n = buffer_bytes(bs);
-    BHO_ASSERT(n <= 125);
+    assert(n <= 125);
     if(n == 0)
     {
         cr = close_reason{};

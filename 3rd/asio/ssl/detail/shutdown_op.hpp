@@ -28,7 +28,7 @@ namespace detail {
 class shutdown_op
 {
 public:
-  static constexpr const char* tracking_name()
+  static ASIO_CONSTEXPR const char* tracking_name()
   {
     return "ssl::stream<>::async_shutdown";
   }
@@ -51,11 +51,11 @@ public:
       // The engine only generates an eof when the shutdown notification has
       // been received from the peer. This indicates that the shutdown has
       // completed successfully, and thus need not be passed on to the handler.
-      static_cast<Handler&&>(handler)(asio::error_code());
+      ASIO_MOVE_OR_LVALUE(Handler)(handler)(asio::error_code());
     }
     else
     {
-      static_cast<Handler&&>(handler)(ec);
+      ASIO_MOVE_OR_LVALUE(Handler)(handler)(ec);
     }
   }
 };

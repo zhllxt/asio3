@@ -477,7 +477,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   the node, since no rebalancing or comparison is needed. Experimental function
    static void replace_node(node_ptr node_to_be_replaced, node_ptr header, node_ptr new_node) BHO_NOEXCEPT
    {
-      BHO_ASSERT(node_to_be_replaced != new_node);
+      assert(node_to_be_replaced != new_node);
 
       //Update header if necessary
       if(node_to_be_replaced == NodeTraits::get_left(header)){
@@ -1515,7 +1515,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
       }
       else if(!z_right){ // z has exactly one non-null child. y == z.
          x = z_left;       // x is not null.
-         BHO_ASSERT(x);
+         assert(x);
       }
       else{ //make y != z
          // y = find z's successor
@@ -1539,7 +1539,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
             NodeTraits::set_parent(z_right, y);
             //Link x with y's old parent (y must be a left child)
             x_parent = NodeTraits::get_parent(y);
-            BHO_ASSERT(NodeTraits::get_left(x_parent) == y);
+            assert(NodeTraits::get_left(x_parent) == y);
             if(x)
                NodeTraits::set_parent(x, x_parent);
             //Since y was the successor and not the right child of z, it must be a left child
@@ -1561,14 +1561,14 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
          //Now update leftmost/rightmost in case z was one of them
          if(NodeTraits::get_left(header) == z){
             //z_left must be null because z is the leftmost
-            BHO_ASSERT(!z_left);
+            assert(!z_left);
             NodeTraits::set_left(header, !z_right ?
                z_parent :  // makes leftmost == header if z == root
                base_type::minimum(z_right));
          }
          if(NodeTraits::get_right(header) == z){
             //z_right must be null because z is the rightmost
-            BHO_ASSERT(!z_right);
+            assert(!z_right);
             NodeTraits::set_right(header, !z_left ?
                z_parent :  // makes rightmost == header if z == root
                base_type::maximum(z_left));
@@ -1581,7 +1581,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
       info.y = y;
       //If z had 0/1 child, x_parent is the new parent of the old right child of y (z's successor)
       //If z had 2 children, x_parent is the new parent of y (z_parent)
-      BHO_ASSERT(!x || NodeTraits::get_parent(x) == x_parent);
+      assert(!x || NodeTraits::get_parent(x) == x_parent);
       info.x_parent = x_parent;
    }
 

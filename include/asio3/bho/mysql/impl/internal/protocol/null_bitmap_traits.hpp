@@ -34,12 +34,12 @@ public:
     constexpr std::size_t byte_count() const noexcept { return (num_fields_ + 7 + offset_) / 8; }
     bool is_null(const std::uint8_t* null_bitmap_begin, std::size_t field_pos) const noexcept
     {
-        BHO_ASSERT(field_pos < num_fields_);
+        assert(field_pos < num_fields_);
         return null_bitmap_begin[byte_pos(field_pos)] & (1 << bit_pos(field_pos));
     }
     void set_null(std::uint8_t* null_bitmap_begin, std::size_t field_pos) const noexcept
     {
-        BHO_ASSERT(field_pos < num_fields_);
+        assert(field_pos < num_fields_);
         null_bitmap_begin[byte_pos(field_pos)] |= (1 << bit_pos(field_pos));
     }
 };

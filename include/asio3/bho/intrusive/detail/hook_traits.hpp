@@ -60,7 +60,7 @@ struct bhtraits_base
    {
       pointer p = pointer_traits<pointer>::pointer_to
          (static_cast<reference>(static_cast<node_holder_reference>(*n)));
-      BHO_ASSERT(!!p);
+      assert(!!p);
       return p;
    }
 
@@ -68,7 +68,7 @@ struct bhtraits_base
    {
       const_pointer p = pointer_traits<const_pointer>::pointer_to
          (static_cast<const_reference>(static_cast<const_node_holder_reference>(*n)));
-      BHO_ASSERT(!!p);
+      assert(!!p);
       return p;
    }
 
@@ -76,7 +76,7 @@ struct bhtraits_base
    {
       node_ptr p = pointer_traits<node_ptr>::pointer_to
          (static_cast<node_reference>(static_cast<node_holder_reference>(value)));
-      BHO_ASSERT(!!p);
+      assert(!!p);
       return p;
    }
 
@@ -84,7 +84,7 @@ struct bhtraits_base
    {
       const_node_ptr p = pointer_traits<const_node_ptr>::pointer_to
          (static_cast<const_node_reference>(static_cast<const_node_holder_reference>(value)));
-      BHO_ASSERT(!!p);
+      assert(!!p);
       return p;
    }
 };

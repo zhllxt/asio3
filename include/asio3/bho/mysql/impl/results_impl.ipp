@@ -31,7 +31,7 @@ bho::mysql::detail::per_resultset_data& bho::mysql::detail::resultset_container:
 
 bho::mysql::row_view bho::mysql::detail::results_impl::get_out_params() const noexcept
 {
-    BHO_ASSERT(is_complete());
+    assert(is_complete());
     for (std::size_t i = 0; i < per_result_.size(); ++i)
     {
         if (per_result_[i].is_out_params)
@@ -77,7 +77,7 @@ bho::mysql::error_code bho::mysql::detail::results_impl::
 bho::mysql::error_code bho::mysql::detail::results_impl::
     on_row_impl(span<const std::uint8_t> msg, const output_ref&, std::vector<field_view>&)
 {
-    BHO_ASSERT(has_active_batch());
+    assert(has_active_batch());
 
     // add row storage
     std::size_t num_fields = current_resultset().num_columns;
@@ -100,7 +100,7 @@ bho::mysql::error_code bho::mysql::detail::results_impl::on_row_ok_packet_impl(c
 
 void bho::mysql::detail::results_impl::on_row_batch_start_impl()
 {
-    BHO_ASSERT(!has_active_batch());
+    assert(!has_active_batch());
     num_fields_at_batch_start_ = rows_.fields().size();
 }
 

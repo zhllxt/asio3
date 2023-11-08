@@ -240,7 +240,7 @@ public:
         BHO_STATIC_ASSERT(! std::is_const<Callback>::value);
 
         // Can't set the callback after receiving any chunk data!
-        BHO_ASSERT(! rd_inited_);
+        assert(! rd_inited_);
 
         cb_h_ = std::ref(cb);
     }
@@ -288,7 +288,7 @@ public:
         BHO_STATIC_ASSERT(! std::is_const<Callback>::value);
 
         // Can't set the callback after receiving any chunk data!
-        BHO_ASSERT(! rd_inited_);
+        assert(! rd_inited_);
 
         cb_b_ = std::ref(cb);
     }
@@ -342,7 +342,7 @@ private:
         // The easiest way to do that is to store the parser in
         // an optional object.
 
-        BHO_ASSERT(! used_);
+        assert(! used_);
         if(used_)
         {
             BHO_BEAST_ASSIGN_EC(ec, error::stale_parser);
@@ -392,7 +392,7 @@ private:
         // The easiest way to do that is to store the parser in
         // an optional object.
 
-        BHO_ASSERT(! used_);
+        assert(! used_);
         if(used_)
         {
             BHO_BEAST_ASSIGN_EC(ec, error::stale_parser);

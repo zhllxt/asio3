@@ -49,6 +49,7 @@ namespace channel_errc {
 } // namespace experimental
 } // namespace asio
 
+#if defined(ASIO_HAS_STD_SYSTEM_ERROR)
 namespace std {
 
 template<> struct is_error_code_enum<
@@ -58,6 +59,7 @@ template<> struct is_error_code_enum<
 };
 
 } // namespace std
+#endif // defined(ASIO_HAS_STD_SYSTEM_ERROR)
 
 namespace asio {
 namespace experimental {

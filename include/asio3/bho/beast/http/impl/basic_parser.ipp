@@ -30,7 +30,7 @@ bool
 basic_parser<isRequest>::
 keep_alive() const
 {
-    BHO_ASSERT(is_header_done());
+    assert(is_header_done());
     if(f_ & flagHTTP11)
     {
         if(f_ & flagConnectionClose)
@@ -49,7 +49,7 @@ std::optional<std::uint64_t>
 basic_parser<isRequest>::
 content_length() const
 {
-    BHO_ASSERT(is_header_done());
+    assert(is_header_done());
     return content_length_unchecked();
 }
 
@@ -58,7 +58,7 @@ std::optional<std::uint64_t>
 basic_parser<isRequest>::
 content_length_remaining() const
 {
-    BHO_ASSERT(is_header_done());
+    assert(is_header_done());
     if(! (f_ & flagContentLength))
         return std::nullopt;
     return len_;
@@ -69,7 +69,7 @@ void
 basic_parser<isRequest>::
 skip(bool v)
 {
-    BHO_ASSERT(! got_some());
+    assert(! got_some());
     if(v)
         f_ |= flagSkipBody;
     else
@@ -87,7 +87,7 @@ put(net::const_buffer buffer,
     // not supported. If you need to re-use a parser, consider storing it
     // in an optional. Then reset() and emplace() prior to parsing each new
     // message.
-    BHO_ASSERT(!is_done());
+    assert(!is_done());
     if (is_done())
     {
         BHO_BEAST_ASSIGN_EC(ec, error::stale_parser);
@@ -132,7 +132,7 @@ loop:
             }
             goto done;
         }
-        BHO_ASSERT(! is_done());
+        assert(! is_done());
         n = static_cast<std::size_t>(p1 - p);
         if(p >= p1)
         {
@@ -169,7 +169,7 @@ loop:
         break;
 
     case state::body0:
-        BHO_ASSERT(! skip_);
+        assert(! skip_);
         this->on_body_init_impl(content_length(), ec);
         if(ec)
             goto done;
@@ -177,14 +177,14 @@ loop:
         BHO_FALLTHROUGH;
 
     case state::body:
-        BHO_ASSERT(! skip_);
+        assert(! skip_);
         parse_body(p, n, ec);
         if(ec)
             goto done;
         break;
 
     case state::body_to_eof0:
-        BHO_ASSERT(! skip_);
+        assert(! skip_);
         this->on_body_init_impl(content_length(), ec);
         if(ec)
             goto done;
@@ -192,7 +192,7 @@ loop:
         BHO_FALLTHROUGH;
 
     case state::body_to_eof:
-        BHO_ASSERT(! skip_);
+        assert(! skip_);
         parse_body_to_eof(p, n, ec);
         if(ec)
             goto done;
@@ -235,7 +235,7 @@ void
 basic_parser<isRequest>::
 put_eof(error_code& ec)
 {
-    BHO_ASSERT(got_some());
+    assert(got_some());
     if( state_ == state::start_line ||
         state_ == state::fields)
     {
@@ -701,19 +701,19 @@ parse_chunk_header(char const*& p0,
     }
     else
     {
-        BHO_ASSERT(n >= 5);
+        assert(n >= 5);
         if(f_ & flagExpectCRLF)
             BHO_VERIFY(parse_crlf(p));
         std::uint64_t size;
         BHO_VERIFY(parse_hex(p, size));
         eol = find_eol(p, pend, ec);
-        BHO_ASSERT(! ec);
+        assert(! ec);
     }
 
     auto eom = find_eom(p0 + skip_, pend);
     if(! eom)
     {
-        BHO_ASSERT(n >= 3);
+        assert(n >= 3);
         skip_ = n - 3;
         BHO_BEAST_ASSIGN_EC(ec, error::need_more);
         return;
@@ -736,7 +736,7 @@ parse_chunk_header(char const*& p0,
     parse_fields(p, eom, ec);
     if(ec)
         return;
-    BHO_ASSERT(p == eom);
+    assert(p == eom);
     p0 = eom;
 
     this->on_finish_impl(ec);
@@ -849,7 +849,7 @@ do_field(field f,
         if (tokens_unprocessed)
             return bad_content_length();
 
-        BHO_ASSERT(existing.has_value());
+        assert(existing.has_value());
         ec = {};
         len_ = *existing;
         len0_ = *existing;

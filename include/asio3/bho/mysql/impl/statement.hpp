@@ -62,7 +62,7 @@ bho::mysql::bound_statement_tuple<typename std::decay<WritableFieldTuple>::type>
     bind(WritableFieldTuple&& args) const
 
 {
-    BHO_ASSERT(valid());
+    assert(valid());
     return bound_statement_tuple<typename std::decay<WritableFieldTuple>::type>(
         *this,
         std::forward<WritableFieldTuple>(args)
@@ -75,7 +75,7 @@ bho::mysql::bound_statement_iterator_range<FieldViewFwdIterator> bho::mysql::sta
     FieldViewFwdIterator last
 ) const
 {
-    BHO_ASSERT(valid());
+    assert(valid());
     return bound_statement_iterator_range<FieldViewFwdIterator>(*this, first, last);
 }
 

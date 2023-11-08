@@ -45,18 +45,18 @@ struct coro_cancellation_source
   }
 
   template <typename Filter>
-  void reset_cancellation_state(Filter&& filter)
+  void reset_cancellation_state(ASIO_MOVE_ARG(Filter) filter)
   {
-    state = cancellation_state(slot, static_cast<Filter&&>(filter));
+    state = cancellation_state(slot, ASIO_MOVE_CAST(Filter)(filter));
   }
 
   template <typename InFilter, typename OutFilter>
-  void reset_cancellation_state(InFilter&& in_filter,
-      OutFilter&& out_filter)
+  void reset_cancellation_state(ASIO_MOVE_ARG(InFilter) in_filter,
+      ASIO_MOVE_ARG(OutFilter) out_filter)
   {
     state = cancellation_state(slot,
-        static_cast<InFilter&&>(in_filter),
-        static_cast<OutFilter&&>(out_filter));
+        ASIO_MOVE_CAST(InFilter)(in_filter),
+        ASIO_MOVE_CAST(OutFilter)(out_filter));
   }
 
   bool throw_if_cancelled() const
@@ -767,11 +767,11 @@ struct coro_promise final :
       auto await_resume()
       {
         return src_->reset_cancellation_state(
-            static_cast<Filter&&>(filter_));
+            ASIO_MOVE_CAST(Filter)(filter_));
       }
     };
 
-    return result{cancel, static_cast<Filter&&>(reset.filter)};
+    return result{cancel, ASIO_MOVE_CAST(Filter)(reset.filter)};
   }
 
   // This await transformation resets the associated cancellation state.
@@ -798,14 +798,14 @@ struct coro_promise final :
       auto await_resume()
       {
         return src_->reset_cancellation_state(
-            static_cast<InFilter&&>(in_filter_),
-            static_cast<OutFilter&&>(out_filter_));
+            ASIO_MOVE_CAST(InFilter)(in_filter_),
+            ASIO_MOVE_CAST(OutFilter)(out_filter_));
       }
     };
 
     return result{cancel,
-        static_cast<InFilter&&>(reset.in_filter),
-        static_cast<OutFilter&&>(reset.out_filter)};
+        ASIO_MOVE_CAST(InFilter)(reset.in_filter),
+        ASIO_MOVE_CAST(OutFilter)(reset.out_filter)};
   }
 
   // This await transformation determines whether cancellation is propagated as
@@ -894,7 +894,7 @@ struct coro_promise final :
 
   template <typename Op>
   auto await_transform(Op&& op,
-      constraint_t<is_async_operation<Op>::value> = 0)
+      typename constraint<is_async_operation<Op>::value>::type = 0)
   {
     if ((cancel->state.cancelled() != cancellation_type::none)
         && cancel->throw_if_cancelled_)
@@ -902,7 +902,7 @@ struct coro_promise final :
       asio::detail::throw_error(
           asio::error::operation_aborted, "coro-cancelled");
     }
-    using signature = completion_signature_of_t<Op>;
+    using signature = typename completion_signature_of<Op>::type;
     using result_type = detail::coro_completion_handler_type_t<signature>;
     using handler_type =
       typename detail::coro_completion_handler_type<signature>::template

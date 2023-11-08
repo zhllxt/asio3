@@ -188,7 +188,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
     void
     reset()
     {
-        BHO_ASSERT(status_ != status::open);
+        assert(status_ != status::open);
         timer.expires_at(never());
         cr.code = close_code::none;
         rd_remain = 0;
@@ -349,7 +349,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         if( status_ == status::closed ||
             status_ == status::failed)
         {
-            //BHO_ASSERT(ec_delivered);
+            //assert(ec_delivered);
             BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
             return true;
         }
@@ -386,7 +386,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
             break;
 
         case status::closing:
-            //BHO_ASSERT(status_ == status::open);
+            //assert(status_ == status::open);
             break;
 
         case status::failed:
@@ -415,7 +415,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         switch(status_)
         {
         case status::handshake:
-            BHO_ASSERT(idle_counter == 0);
+            assert(idle_counter == 0);
             if(! is_timer_set() &&
                 timeout_opt.handshake_timeout != none())
             {
@@ -482,7 +482,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
                 // a pending read with the timer set. The bigger
                 // fix is to give close its own timeout, instead
                 // of using the handshake timeout.
-                // BHO_ASSERT(! is_timer_set());
+                // assert(! is_timer_set());
             }
             break;
 
@@ -548,7 +548,7 @@ private:
             // timer canceled?
             if(ec == net::error::operation_aborted)
                 return;
-            BHO_ASSERT(! ec);
+            assert(! ec);
 
             // stream destroyed?
             auto sp = wp_.lock();
@@ -825,7 +825,7 @@ parse_fh(
     {
 
         std::uint16_t len_be;
-        BHO_ASSERT(buffer_bytes(cb) >= sizeof(len_be));
+        assert(buffer_bytes(cb) >= sizeof(len_be));
         cb.consume(net::buffer_copy(
             net::mutable_buffer(&len_be, sizeof(len_be)), cb));
         fh.len = endian::big_to_native(len_be);
@@ -840,7 +840,7 @@ parse_fh(
     case 127:
     {
         std::uint64_t len_be;
-        BHO_ASSERT(buffer_bytes(cb) >= sizeof(len_be));
+        assert(buffer_bytes(cb) >= sizeof(len_be));
         cb.consume(net::buffer_copy(
             net::mutable_buffer(&len_be, sizeof(len_be)), cb));
         fh.len = endian::big_to_native(len_be);
@@ -856,7 +856,7 @@ parse_fh(
     if(fh.mask)
     {
         std::uint32_t key_le;
-        BHO_ASSERT(buffer_bytes(cb) >= sizeof(key_le));
+        assert(buffer_bytes(cb) >= sizeof(key_le));
         cb.consume(net::buffer_copy(
             net::mutable_buffer(&key_le, sizeof(key_le)), cb));
         fh.key = endian::little_to_native(key_le);

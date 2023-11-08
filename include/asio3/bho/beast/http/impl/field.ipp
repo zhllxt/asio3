@@ -481,7 +481,7 @@ struct field_table
             auto sv = by_name_[ i ];
             auto h = digest(sv);
             auto j = h % N;
-            BHO_ASSERT(map_[j][0] == 0);
+            assert(map_[j][0] == 0);
             map_[j][0] = static_cast<unsigned char>(i);
         }
 
@@ -490,7 +490,7 @@ struct field_table
             auto sv = by_name_[i];
             auto h = digest(sv);
             auto j = h % N;
-            BHO_ASSERT(map_[j][1] == 0);
+            assert(map_[j][1] == 0);
             map_[j][1] = static_cast<unsigned char>(i - 255);
         }
     }
@@ -554,7 +554,7 @@ string_view
 to_string(field f)
 {
     auto const& v = get_field_table();
-    BHO_ASSERT(static_cast<unsigned>(f) < v.size());
+    assert(static_cast<unsigned>(f) < v.size());
     return v.begin()[static_cast<unsigned>(f)];
 }
 

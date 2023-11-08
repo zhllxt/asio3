@@ -136,7 +136,7 @@
 #define BHO_STATIC_STRING_STATIC_ASSERT(cond, msg) BHO_STATIC_ASSERT_MSG(cond, msg)
 #endif
 #ifndef BHO_STATIC_STRING_ASSERT
-#define BHO_STATIC_STRING_ASSERT(cond) BHO_ASSERT(cond)
+#define BHO_STATIC_STRING_ASSERT(cond) assert(cond)
 #endif
 #else
 #ifndef BHO_STATIC_STRING_THROW

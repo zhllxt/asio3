@@ -35,7 +35,7 @@ saved_handler::
 operator=(saved_handler&& other) noexcept
 {
     // Can't delete a handler before invoking
-    BHO_ASSERT(! has_value());
+    assert(! has_value());
     p_ = std::exchange(other.p_, nullptr);
     p_->set_owner(this);
     return *this;
@@ -56,7 +56,7 @@ saved_handler::
 invoke()
 {
     // Can't invoke without a value
-    BHO_ASSERT(has_value());
+    assert(has_value());
     std::exchange(
         p_, nullptr)->invoke();
 }

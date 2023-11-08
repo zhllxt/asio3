@@ -16,21 +16,22 @@
 namespace asio
 {
 	template<typename SessionT>
-	class socks5_server_t : public tcp_server_t<SessionT>
+	class basic_socks5_server : public basic_tcp_server<SessionT>
 	{
 	public:
-		using super = tcp_server_t<SessionT>;
+		using super = basic_tcp_server<SessionT>;
+		using socket_type = typename SessionT::socket_type;
 
-		explicit socks5_server_t(const auto& ex) : super(ex)
+		explicit basic_socks5_server(const auto& ex) : super(ex)
 		{
 		}
 
-		~socks5_server_t()
+		~basic_socks5_server()
 		{
 		}
 
 	public:
 	};
 
-	using socks5_server = socks5_server_t<socks5_session>;
+	using socks5_server = basic_socks5_server<socks5_session>;
 }

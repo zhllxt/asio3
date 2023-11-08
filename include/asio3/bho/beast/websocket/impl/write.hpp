@@ -113,7 +113,7 @@ public:
             }
             else
             {
-                BHO_ASSERT(impl.wr_buf_size != 0);
+                assert(impl.wr_buf_size != 0);
                 remain_ = beast::buffer_bytes(cb_);
                 if(remain_ > impl.wr_buf_size)
                     how_ = do_nomask_frag;
@@ -129,7 +129,7 @@ public:
             }
             else
             {
-                BHO_ASSERT(impl.wr_buf_size != 0);
+                assert(impl.wr_buf_size != 0);
                 remain_ = beast::buffer_bytes(cb_);
                 if(remain_ > impl.wr_buf_size)
                     how_ = do_mask_frag;
@@ -201,7 +201,7 @@ operator()(
 
                 net::post(sp->stream().get_executor(), std::move(*this));
             }
-            BHO_ASSERT(impl.wr_block.is_locked(this));
+            assert(impl.wr_block.is_locked(this));
         }
         if(impl.check_stop_now(ec))
             goto upcall;
@@ -295,7 +295,7 @@ operator()(
                     || impl.op_rd.maybe_invoke()
                     || impl.op_ping.maybe_invoke())
                 {
-                    BHO_ASSERT(impl.wr_block.is_locked());
+                    assert(impl.wr_block.is_locked());
                     goto do_suspend;
                 }
                 impl.wr_block.lock(this);
@@ -447,7 +447,7 @@ operator()(
                     || impl.op_rd.maybe_invoke()
                     || impl.op_ping.maybe_invoke())
                 {
-                    BHO_ASSERT(impl.wr_block.is_locked());
+                    assert(impl.wr_block.is_locked());
                     goto do_suspend;
                 }
                 impl.wr_block.lock(this);
@@ -472,8 +472,8 @@ operator()(
                 {
                     // The input was consumed, but there is
                     // no output due to compression latency.
-                    BHO_ASSERT(! fin_);
-                    BHO_ASSERT(beast::buffer_bytes(cb_) == 0);
+                    assert(! fin_);
+                    assert(beast::buffer_bytes(cb_) == 0);
                     goto upcall;
                 }
                 if(fh_.mask)
@@ -526,7 +526,7 @@ operator()(
                         || impl.op_rd.maybe_invoke()
                         || impl.op_ping.maybe_invoke())
                     {
-                        BHO_ASSERT(impl.wr_block.is_locked());
+                        assert(impl.wr_block.is_locked());
                         goto do_suspend;
                     }
                     impl.wr_block.lock(this);
@@ -659,8 +659,8 @@ write_some(bool fin,
                 // The input was consumed, but there
                 // is no output due to compression
                 // latency.
-                BHO_ASSERT(! fin);
-                BHO_ASSERT(beast::buffer_bytes(cb) == 0);
+                assert(! fin);
+                assert(beast::buffer_bytes(cb) == 0);
                 fh.fin = false;
                 break;
             }
@@ -709,7 +709,7 @@ write_some(bool fin,
         else
         {
             // no mask, autofrag
-            BHO_ASSERT(impl.wr_buf_size != 0);
+            assert(impl.wr_buf_size != 0);
             buffers_suffix<
                 ConstBufferSequence> cb{buffers};
             for(;;)
@@ -783,7 +783,7 @@ write_some(bool fin,
     else
     {
         // mask, autofrag
-        BHO_ASSERT(impl.wr_buf_size != 0);
+        assert(impl.wr_buf_size != 0);
         buffers_suffix<
             ConstBufferSequence> cb(buffers);
         for(;;)

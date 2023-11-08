@@ -18,6 +18,7 @@
 #include "asio/detail/config.hpp"
 #include "asio/detail/event.hpp"
 #include "asio/detail/fenced_block.hpp"
+#include "asio/detail/handler_invoke_helpers.hpp"
 #include "asio/detail/mutex.hpp"
 #include "asio/detail/scheduler_operation.hpp"
 
@@ -90,7 +91,7 @@ public:
     {
       fenced_block b(fenced_block::half);
       ASIO_HANDLER_INVOCATION_BEGIN(());
-      static_cast<Handler&&>(o->handler_)();
+      asio_handler_invoke_helpers::invoke(o->handler_, o->handler_);
       ASIO_HANDLER_INVOCATION_END;
     }
   }

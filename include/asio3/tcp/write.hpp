@@ -97,7 +97,7 @@ auto async_write(AsyncWriteStream& s, basic_streambuf<Allocator>& b, detail::tra
 template<
 	typename AsyncStream,
 	typename SendToken = asio::default_token_type<AsyncStream>>
-	requires is_tcp_socket<AsyncStream>
+requires is_tcp_socket<AsyncStream>
 inline auto async_send(
 	AsyncStream& sock,
 	auto&& data,

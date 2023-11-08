@@ -10,33 +10,37 @@
 
 #pragma once
 
-#include <fstream>
-
-#include <asio3/core/detail/push_options.hpp>
 #include <asio3/tcp/tcp_client.hpp>
 
 namespace asio
 {
-	class http_client : public tcp_client
+	template<typename SocketT>
+	class basic_http_client : public basic_tcp_client<SocketT>
 	{
 	public:
-		using super = tcp_client;
+		using super = basic_tcp_client<SocketT>;
+		using socket_type = SocketT;
 
 		/**
 		 * @brief constructor
 		 */
-		explicit http_client(const auto& ex) : super(ex)
+		explicit basic_http_client(const auto& ex) : super(ex)
 		{
 		}
 
 		/**
 		 * @brief destructor
 		 */
-		~http_client()
+		~basic_http_client()
 		{
-			close();
+			this->close();
+		}
+
+		inline super& base() noexcept
+		{
+			return static_cast<super&>(*this);
 		}
 	};
-}
 
-#include <asio3/core/detail/pop_options.hpp>
+	using http_client = basic_http_client<asio::tcp_socket>;
+}

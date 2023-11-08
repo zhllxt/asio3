@@ -134,7 +134,7 @@ emplace(Handler&& handler, Allocator const& alloc,
         net::cancellation_type cancel_type)
 {
     // Can't delete a handler before invoking
-    BHO_ASSERT(! has_value());
+    assert(! has_value());
     using handler_type =
         typename std::decay<Handler>::type;
     using alloc_type = typename
@@ -197,7 +197,7 @@ saved_handler::
 emplace(Handler&& handler, net::cancellation_type cancel_type)
 {
     // Can't delete a handler before invoking
-    BHO_ASSERT(! has_value());
+    assert(! has_value());
     emplace(
         std::forward<Handler>(handler),
         net::get_associated_allocator(handler),

@@ -156,7 +156,7 @@ net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 
 net::awaitable<void> client_join(net::socks5_server& server, std::shared_ptr<net::socks5_session> conn)
 {
-	co_await server.session_map.async_emplace(conn);
+	co_await server.session_map.async_add(conn);
 
 	conn->socket.set_option(net::ip::tcp::no_delay(true));
 	conn->socket.set_option(net::socket_base::keep_alive(true));
@@ -164,7 +164,7 @@ net::awaitable<void> client_join(net::socks5_server& server, std::shared_ptr<net
 	co_await proxy(conn);
 	co_await conn->async_disconnect();
 
-	co_await server.session_map.async_erase(conn);
+	co_await server.session_map.async_remove(conn);
 }
 
 net::awaitable<void> start_server(net::socks5_server& server,

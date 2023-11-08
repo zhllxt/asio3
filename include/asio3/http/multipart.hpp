@@ -165,7 +165,7 @@ public:
 	{
 		auto it = find(name);
 		if (it == cend())
-			ASIO2_THROW_EXCEPTION(std::out_of_range{ "field not found" });
+			throw std::out_of_range{ "field not found" };
 		return (*it);
 	}
 

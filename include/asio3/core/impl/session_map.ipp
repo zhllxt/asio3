@@ -13,7 +13,7 @@
 namespace asio
 {
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_emplace_op
+	struct session_map<SessionT>::async_add_op
 	{
 		auto operator()(auto state, auto self_ref, value_type conn) -> void
 		{
@@ -35,7 +35,7 @@ namespace asio
 	};
 
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_find_or_emplace_op
+	struct session_map<SessionT>::async_find_or_add_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key, auto&& create_func) -> void
 		{
@@ -65,7 +65,7 @@ namespace asio
 	};
 
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_erase_op
+	struct session_map<SessionT>::async_remove_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
 		{
@@ -87,7 +87,7 @@ namespace asio
 	};
 
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_find_op
+	struct session_map<SessionT>::async_find_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
 		{
@@ -109,7 +109,7 @@ namespace asio
 	};
 
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_disconnect_all_op
+	struct session_map<SessionT>::async_disconnect_all_op
 	{
 		auto operator()(auto state, auto self_ref, auto&& pred) -> void
 		{
@@ -125,19 +125,32 @@ namespace asio
 
 			std::size_t total = 0;
 
-			for (auto it = self.map.begin(); it != self.map.end();)
+			if (!self.map.empty())
 			{
-				if (!fun(it->second))
+				asio::experimental::channel<void(error_code)> ch(self.get_executor(), 1);
+
+				for (auto it = self.map.begin(); it != self.map.end();)
 				{
-					++it;
-					continue;
+					if (!fun(it->second))
+					{
+						++it;
+						continue;
+					}
+
+					it->second->async_disconnect([conn = it->second, &ch](auto...) mutable
+					{
+						ch.async_send(error_code{}, [](auto...) {});
+					});
+
+					it = self.map.erase(it);
+
+					++total;
 				}
 
-				co_await it->second->async_disconnect(asio::use_nothrow_deferred);
-
-				it = self.map.erase(it);
-
-				++total;
+				for (std::size_t i = 0; i < total; ++i)
+				{
+					co_await ch.async_receive(asio::use_nothrow_deferred);
+				}
 			}
 
 			self.lock.try_receive([](auto...) {});
@@ -147,7 +160,7 @@ namespace asio
 	};
 
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_send_all_op
+	struct session_map<SessionT>::async_send_all_op
 	{
 		auto operator()(auto state, auto self_ref, auto&& data, auto&& pred) -> void
 		{
@@ -181,7 +194,7 @@ namespace asio
 	};
 
 	template<typename SessionT>
-	struct session_map_t<SessionT>::async_for_each_op
+	struct session_map<SessionT>::async_for_each_op
 	{
 		template<class Function>
 		auto operator()(auto state, auto self_ref, Function&& func) -> void

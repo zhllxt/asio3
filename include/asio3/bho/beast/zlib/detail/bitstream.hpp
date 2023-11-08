@@ -65,7 +65,7 @@ public:
     void
     drop(std::size_t n)
     {
-        BHO_ASSERT(n <= n_);
+        assert(n <= n_);
         n_ -= static_cast<unsigned>(n);
         v_ >>= n;
     }
@@ -163,8 +163,8 @@ void
 bitstream::
 peek(Unsigned& value, std::size_t n)
 {
-    BHO_ASSERT(n <= sizeof(value)*8);
-    BHO_ASSERT(n <= n_);
+    assert(n <= sizeof(value)*8);
+    assert(n <= n_);
     value = static_cast<Unsigned>(
         v_ & ((1ULL << n) - 1));
 }
@@ -174,8 +174,8 @@ void
 bitstream::
 read(Unsigned& value, std::size_t n)
 {
-    BHO_ASSERT(n < sizeof(v_)*8);
-    BHO_ASSERT(n <= n_);
+    assert(n < sizeof(v_)*8);
+    assert(n <= n_);
     value = static_cast<Unsigned>(
         v_ & ((1ULL << n) - 1));
     v_ >>= n;

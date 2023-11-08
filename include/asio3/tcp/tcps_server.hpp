@@ -16,24 +16,30 @@
 namespace asio
 {
 	template<typename SessionT>
-	class tcps_server_t : public tcp_server_t<SessionT>
+	class basic_tcps_server : public basic_tcp_server<SessionT>
 	{
 	public:
-		using super = tcp_server_t<SessionT>;
+		using super = basic_tcp_server<SessionT>;
+		using socket_type = typename SessionT::socket_type;
 
-		explicit tcps_server_t(const auto& ex, ssl::context&& sslctx)
+		explicit basic_tcps_server(const auto& ex, ssl::context&& sslctx)
 			: super(ex)
 			, ssl_context(std::move(sslctx))
 		{
 		}
 
-		~tcps_server_t()
+		~basic_tcps_server()
 		{
+		}
+
+		inline super& base() noexcept
+		{
+			return static_cast<super&>(*this);
 		}
 
 	public:
 		asio::ssl::context                   ssl_context;
 	};
 
-	using tcps_server = tcps_server_t<tcps_session>;
+	using tcps_server = basic_tcps_server<tcps_session>;
 }

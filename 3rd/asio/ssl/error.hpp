@@ -77,6 +77,7 @@ static const asio::error_category&
 } // namespace ssl
 } // namespace asio
 
+#if defined(ASIO_HAS_STD_SYSTEM_ERROR)
 namespace std {
 
 template<> struct is_error_code_enum<asio::error::ssl_errors>
@@ -90,6 +91,7 @@ template<> struct is_error_code_enum<asio::ssl::error::stream_errors>
 };
 
 } // namespace std
+#endif // defined(ASIO_HAS_STD_SYSTEM_ERROR)
 
 namespace asio {
 namespace error {

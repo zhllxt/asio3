@@ -81,31 +81,31 @@ public:
 
     std::uint64_t get_affected_rows() const noexcept
     {
-        BHO_ASSERT(eof_data_.has_value);
+        assert(eof_data_.has_value);
         return eof_data_.affected_rows;
     }
 
     std::uint64_t get_last_insert_id() const noexcept
     {
-        BHO_ASSERT(eof_data_.has_value);
+        assert(eof_data_.has_value);
         return eof_data_.last_insert_id;
     }
 
     unsigned get_warning_count() const noexcept
     {
-        BHO_ASSERT(eof_data_.has_value);
+        assert(eof_data_.has_value);
         return eof_data_.warnings;
     }
 
     string_view get_info() const noexcept
     {
-        BHO_ASSERT(eof_data_.has_value);
+        assert(eof_data_.has_value);
         return string_view(info_.data(), info_.size());
     }
 
     bool get_is_out_params() const noexcept
     {
-        BHO_ASSERT(eof_data_.has_value);
+        assert(eof_data_.has_value);
         return eof_data_.is_out_params;
     }
 

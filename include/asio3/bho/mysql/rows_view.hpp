@@ -135,7 +135,7 @@ public:
      */
     row_view operator[](std::size_t i) const noexcept
     {
-        BHO_ASSERT(i < size());
+        assert(i < size());
         return detail::row_slice(fields_, num_columns_, i);
     }
 
@@ -240,9 +240,9 @@ private:
     rows_view(const field_view* fields, std::size_t num_fields, std::size_t num_columns) noexcept
         : fields_(fields), num_fields_(num_fields), num_columns_(num_columns)
     {
-        BHO_ASSERT(fields != nullptr || num_fields == 0);  // fields null => num_fields 0
-        BHO_ASSERT(num_fields == 0 || num_columns != 0);   // num_fields != 0 => num_columns != 0
-        BHO_ASSERT(num_columns == 0 || (num_fields % num_columns == 0));
+        assert(fields != nullptr || num_fields == 0);  // fields null => num_fields 0
+        assert(num_fields == 0 || num_columns != 0);   // num_fields != 0 => num_columns != 0
+        assert(num_columns == 0 || (num_fields % num_columns == 0));
     }
 
 #ifndef BHO_MYSQL_DOXYGEN

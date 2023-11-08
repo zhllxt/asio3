@@ -1961,12 +1961,12 @@ struct hashdata_internal
          size_type split;
          split = static_cast<SizeType>(prime_fmod_size::lower_size_index(bc));
          //The passed bucket size must be exactly the supported one
-         BHO_ASSERT(prime_fmod_size::size(split) == bc);
+         assert(prime_fmod_size::size(split) == bc);
          return split;
       }
       else {
          BHO_IF_CONSTEXPR(incremental) {
-            BHO_ASSERT(0 == (std::size_t(bc) & (std::size_t(bc) - 1u)));
+            assert(0 == (std::size_t(bc) & (std::size_t(bc) - 1u)));
             return size_type(bc >> 1u);
          }
          else{
@@ -1982,7 +1982,7 @@ struct hashdata_internal
       }
       else {
          BHO_IF_CONSTEXPR(incremental) {
-            BHO_ASSERT(0 == (std::size_t(bc) & (std::size_t(bc) - 1u)));
+            assert(0 == (std::size_t(bc) & (std::size_t(bc) - 1u)));
             return bc;
          }
          else{         
