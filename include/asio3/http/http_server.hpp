@@ -16,13 +16,17 @@
 
 namespace asio
 {
-	template<typename SessionT = http_session>
+	template<
+		typename SessionT = http_session,
+		typename RequestT = typename SessionT::request_type,
+		typename ResponseT = typename SessionT::response_type
+	>
 	class basic_http_server : public basic_tcp_server<SessionT>
 	{
 	public:
 		using super = basic_tcp_server<SessionT>;
-		using request_type = typename SessionT::request_type;
-		using response_type = typename SessionT::response_type;
+		using request_type = RequestT;
+		using response_type = ResponseT;
 
 	public:
 		/**

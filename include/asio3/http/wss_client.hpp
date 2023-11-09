@@ -16,7 +16,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = tcp_socket>
 	class basic_wss_client : public basic_tcps_client<SocketT>
 	{
 	public:
@@ -72,14 +72,6 @@ namespace asio
 		{
 			return asio::async_send(ws_stream,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
-		}
-
-		/**
-		 * @brief shutdown and close the socket directly.
-		 */
-		inline void close()
-		{
-			super::close();
 		}
 
 		inline super& base() noexcept

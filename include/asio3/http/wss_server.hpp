@@ -15,7 +15,7 @@
 
 namespace asio
 {
-	template<typename SessionT>
+	template<typename SessionT = wss_session>
 	class basic_wss_server : public basic_tcps_server<SessionT>
 	{
 	public:
@@ -37,5 +37,5 @@ namespace asio
 		}
 	};
 
-	using wss_server = basic_wss_server<tcps_session>;
+	using wss_server = basic_wss_server<wss_session>;
 }

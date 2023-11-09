@@ -17,7 +17,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = tcp_socket>
 	class basic_tcp_session : public std::enable_shared_from_this<basic_tcp_session<SocketT>>
 	{
 	public:

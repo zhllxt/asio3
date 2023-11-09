@@ -15,7 +15,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = tcp_socket>
 	class basic_tcps_client : public basic_tcp_client<SocketT>
 	{
 	public:
@@ -53,7 +53,8 @@ namespace asio
 
 						co_await self.base().async_stop(use_nothrow_deferred);
 
-						SSL_clear(self.ssl_stream.native_handle());
+						if (self.ssl_stream.native_handle())
+							SSL_clear(self.ssl_stream.native_handle());
 
 						co_return error_code{};
 					}, ssl_stream), token, std::ref(*this));
@@ -83,7 +84,8 @@ namespace asio
 		{
 			super::close();
 
-			SSL_clear(ssl_stream.native_handle());
+			if (ssl_stream.native_handle())
+				SSL_clear(ssl_stream.native_handle());
 		}
 
 		inline super& base() noexcept

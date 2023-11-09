@@ -23,7 +23,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = udp_socket>
 	class basic_udp_client
 	{
 	public:

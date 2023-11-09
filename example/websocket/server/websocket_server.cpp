@@ -1,60 +1,72 @@
 #include <asio3/core/fmt.hpp>
-#include <asio3/http/http_server.hpp>
+#include <asio3/http/ws_server.hpp>
 
 namespace net = ::asio;
 
-net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net::http_session> session)
+net::awaitable<void> do_recv(std::shared_ptr<net::ws_session> session)
 {
-	// This buffer is required to persist across reads
 	beast::flat_buffer buf;
 
 	for (;;)
 	{
-		// Read a request
-		http::web_request req;
-		auto [e1, n1] = co_await http::async_read(session->socket, buf, req);
+		auto [e1, n1] = co_await session->ws_stream.async_read(buf);
 		if (e1)
 			break;
 
 		session->update_alive_time();
 
-		http::web_response rep;
-		if (!server.router.route(req, rep))
-			break;
-
-		// Send the response
-		auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep), net::use_nothrow_awaitable);
+		// Echo the message
+		session->ws_stream.text(session->ws_stream.got_text());
+		auto [e2, n2] = co_await session->ws_stream.async_write(buf.data());
 		if (e2)
 			break;
 
-		if (!req.keep_alive())
-		{
-			// This means we should close the connection, usually because
-			// the response indicated the "Connection: close" semantic.
-			break;
-		}
+		// Clear the buffer
+		buf.consume(buf.size());
 	}
 
 	session->close();
 }
 
-net::awaitable<void> client_join(net::http_server& server, std::shared_ptr<net::http_session> session)
+net::awaitable<void> client_join(net::ws_server& server, std::shared_ptr<net::ws_session> session)
 {
+	// Set suggested timeout settings for the websocket
+	session->ws_stream.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
+
+	// Set a decorator to change the Server of the handshake
+	session->ws_stream.set_option(websocket::stream_base::decorator(
+		[](websocket::response_type& res)
+		{
+			res.set(http::field::server, BEAST_VERSION_STRING);
+		}));
+
+	// Accept the websocket handshake
+	auto [e0] = co_await session->ws_stream.async_accept();
+	if (e0)
+	{
+		fmt::print("websocket handshake failed: {} {} {}\n",
+			session->get_remote_address(), session->get_remote_port(), e0.message());
+		co_return;
+	}
+
 	auto addr = session->get_remote_address();
 	auto port = session->get_remote_port();
 
-	fmt::print("+ client join: {} {}\n", addr, port);
+	fmt::print("+ websocket client join: {} {}\n", addr, port);
 
 	co_await server.session_map.async_add(session);
 
-	co_await(do_http_recv(server, session) || net::watchdog(session->alive_time, net::http_idle_timeout));
+	session->socket.set_option(net::ip::tcp::no_delay(true));
+	session->socket.set_option(net::socket_base::keep_alive(true));
+
+	co_await(do_recv(session) || net::watchdog(session->alive_time, net::tcp_idle_timeout));
 
 	co_await server.session_map.async_remove(session);
 
-	fmt::print("- client exit: {} {}\n", addr, port);
+	fmt::print("- websocket client exit: {} {}\n", addr, port);
 }
 
-net::awaitable<void> start_server(net::http_server& server, std::string listen_address, std::uint16_t listen_port)
+net::awaitable<void> start_server(net::ws_server& server, std::string listen_address, std::uint16_t listen_port)
 {
 	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
 	if (ec)
@@ -75,64 +87,16 @@ net::awaitable<void> start_server(net::http_server& server, std::string listen_a
 		else
 		{
 			net::co_spawn(server.get_executor(), client_join(server,
-				std::make_shared<net::http_session>(std::move(client))), net::detached);
+				std::make_shared<net::ws_session>(std::move(client))), net::detached);
 		}
 	}
 }
-
-auto response_404()
-{
-	return http::make_error_page_response(http::status::not_found);
-}
-
-struct aop_auth
-{
-	bool before(http::web_request& req, http::web_response& rep)
-	{
-		if (req.find(http::field::authorization) == req.end())
-		{
-			rep = response_404();
-			return false;
-		}
-		return true;
-	}
-};
 
 int main()
 {
 	net::io_context_thread ctx;
 
-	net::http_server server(ctx.get_executor());
-
-	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
-	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
-	server.root_directory = std::move(root);
-
-	server.router.add("/", [&server](http::web_request& req, http::web_response& rep)
-	{
-		auto res = http::make_file_response(server.root_directory, "index.html");
-		if (res.has_value())
-			rep = std::move(res.value());
-		else
-			rep = response_404();
-		return true;
-	}, http::enable_cache);
-
-	server.router.add("/login", [](http::web_request& req, http::web_response& rep)
-	{
-		rep = response_404();
-		return true;
-	}, aop_auth{});
-
-	server.router.add("*", [&server](http::web_request& req, http::web_response& rep)
-	{
-		auto res = http::make_file_response(server.root_directory, req.target());
-		if (res.has_value())
-			rep = std::move(res.value());
-		else
-			rep = response_404();
-		return true;
-	}, http::enable_cache);
+	net::ws_server server(ctx.get_executor());
 
 	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8080), net::detached);
 

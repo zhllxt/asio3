@@ -15,7 +15,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = tcp_socket>
 	class basic_tcps_session : public basic_tcp_session<SocketT>
 	{
 	public:
@@ -49,11 +49,13 @@ namespace asio
 
 						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
 
-						co_await asio::async_shutdown(self.ssl_stream, use_nothrow_deferred);
+						co_await asio::async_shutdown(self.ssl_stream,
+							self.ssl_shutdown_timeout, use_nothrow_deferred);
 
 						co_await self.base().async_disconnect(use_nothrow_deferred);
 
-						SSL_clear(self.ssl_stream.native_handle());
+						if (self.ssl_stream.native_handle())
+							SSL_clear(self.ssl_stream.native_handle());
 
 						co_return error_code{};
 					}, ssl_stream), token, std::ref(*this));
@@ -83,7 +85,8 @@ namespace asio
 		{
 			super::close();
 
-			SSL_clear(ssl_stream.native_handle());
+			if (ssl_stream.native_handle())
+				SSL_clear(ssl_stream.native_handle());
 		}
 
 		inline super& base() noexcept
@@ -95,6 +98,8 @@ namespace asio
 		asio::ssl::context&             ssl_context;
 
 		asio::ssl::stream<socket_type&> ssl_stream;
+
+		std::chrono::steady_clock::duration ssl_shutdown_timeout{ asio::ssl_shutdown_timeout };
 	};
 
 	using tcps_session = basic_tcps_session<asio::tcp_socket>;

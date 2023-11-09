@@ -16,3 +16,5 @@
 
 add_subdirectory (tcp          )
 add_subdirectory (http         )
+add_subdirectory (https_and_wss_server)
+add_subdirectory (websocket    )

@@ -17,7 +17,7 @@
 
 namespace asio
 {
-	template<typename SessionT>
+	template<typename SessionT = udp_session>
 	class basic_udp_server
 	{
 	public:

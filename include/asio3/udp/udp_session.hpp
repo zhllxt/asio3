@@ -17,7 +17,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = udp_socket>
 	class basic_udp_session : public std::enable_shared_from_this<basic_udp_session<SocketT>>
 	{
 	public:

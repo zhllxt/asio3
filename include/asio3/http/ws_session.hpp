@@ -16,7 +16,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = tcp_socket>
 	class basic_ws_session : public basic_tcp_session<SocketT>
 	{
 	public:

@@ -76,7 +76,7 @@ net::awaitable<void> ext_transfer(
 
 		// recvd data from the front client by tcp, forward the data to back client.
 		auto [e1, n1] = co_await net::async_read_until(
-			front, net::dynamic_buffer(buf), socks5::udp_match_condition);
+			front, net::dynamic_buffer(buf), socks5::udp_match_condition{});
 		if (e1)
 			break;
 

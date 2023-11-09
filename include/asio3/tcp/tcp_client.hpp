@@ -19,7 +19,7 @@
 
 namespace asio
 {
-	template<typename SocketT>
+	template<typename SocketT = tcp_socket>
 	class basic_tcp_client
 	{
 	public:

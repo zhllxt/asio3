@@ -17,7 +17,7 @@
 
 namespace asio
 {
-	template<typename SessionT>
+	template<typename SessionT = tcp_session>
 	class basic_tcp_server
 	{
 	public:
