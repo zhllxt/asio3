@@ -34,6 +34,9 @@ namespace asio
 			aborted.clear();
 		}
 
+		basic_udp_client(basic_udp_client&&) noexcept = default;
+		basic_udp_client& operator=(basic_udp_client&&) noexcept = default;
+
 		~basic_udp_client()
 		{
 			close();

@@ -30,6 +30,9 @@ namespace asio
 		{
 		}
 
+		basic_udp_server(basic_udp_server&&) noexcept = default;
+		basic_udp_server& operator=(basic_udp_server&&) noexcept = default;
+
 		~basic_udp_server()
 		{
 		}

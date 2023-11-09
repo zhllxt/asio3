@@ -11,14 +11,13 @@
 #pragma once
 
 #include <asio3/http/httpws_server.hpp>
-#include <asio3/http/https_session.hpp>
-#include <asio3/http/wss_session.hpp>
+#include <asio3/http/flex_wss_session.hpp>
 
 namespace asio
 {
 	template<
 		typename HttpsSessionT = https_session,
-		typename WssSessionT = wss_session,
+		typename WssSessionT = flex_wss_session,
 		typename RequestT = typename HttpsSessionT::request_type,
 		typename ResponseT = typename HttpsSessionT::response_type
 	>
@@ -41,6 +40,9 @@ namespace asio
 		{
 		}
 
+		basic_httpwss_server(basic_httpwss_server&&) noexcept = default;
+		basic_httpwss_server& operator=(basic_httpwss_server&&) noexcept = default;
+
 		/**
 		 * @brief destructor
 		 */
@@ -52,5 +54,5 @@ namespace asio
 		asio::ssl::context                   ssl_context;
 	};
 
-	using httpwss_server = basic_httpwss_server<https_session, wss_session>;
+	using httpwss_server = basic_httpwss_server<https_session, flex_wss_session>;
 }

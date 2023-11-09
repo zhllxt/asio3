@@ -22,12 +22,16 @@ namespace asio
 	public:
 		using super = basic_tcps_session<SocketT>;
 		using socket_type = SocketT;
+		using ssl_stream_type = typename super::ssl_stream_type;
 
 		explicit basic_wss_session(socket_type sock, ssl::context& sslctx)
 			: super(std::move(sock), sslctx)
 			, ws_stream(super::ssl_stream)
 		{
 		}
+
+		basic_wss_session(basic_wss_session&&) noexcept = default;
+		basic_wss_session& operator=(basic_wss_session&&) noexcept = default;
 
 		~basic_wss_session()
 		{
@@ -80,7 +84,7 @@ namespace asio
 		}
 
 	public:
-		websocket::stream<asio::ssl::stream<socket_type&>&> ws_stream;
+		websocket::stream<ssl_stream_type&> ws_stream;
 	};
 
 	using wss_session = basic_wss_session<asio::tcp_socket>;

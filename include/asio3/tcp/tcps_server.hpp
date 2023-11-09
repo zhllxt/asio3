@@ -28,6 +28,9 @@ namespace asio
 		{
 		}
 
+		basic_tcps_server(basic_tcps_server&&) noexcept = default;
+		basic_tcps_server& operator=(basic_tcps_server&&) noexcept = default;
+
 		~basic_tcps_server()
 		{
 		}

@@ -10,29 +10,39 @@
 
 #pragma once
 
-#include <asio3/core/netutil.hpp>
-#include <asio3/tcp/read.hpp>
-#include <asio3/tcp/write.hpp>
-#include <asio3/tcp/disconnect.hpp>
+#include <asio3/core/asio.hpp>
+#include <asio3/core/beast.hpp>
+#include <asio3/core/stdutil.hpp>
+#include <asio3/http/https_session.hpp>
 
 namespace asio
 {
-	template<typename SocketT = tcp_socket>
-	class basic_tcp_session : public std::enable_shared_from_this<basic_tcp_session<SocketT>>
+	template<typename HttpsSessionPointerT>
+	class basic_flex_wss_session
 	{
 	public:
-		using socket_type = SocketT;
-		using key_type = std::size_t;
+		using https_session_pointer_type = HttpsSessionPointerT;
+		using https_session_type = typename asio::element_type_adapter<https_session_pointer_type>::type;
+		using key_type = typename https_session_type::key_type;
+		using socket_type = typename https_session_type::socket_type;
+		using ssl_stream_type = typename https_session_type::ssl_stream_type;
 
-	public:
-		explicit basic_tcp_session(socket_type sock) : socket(std::move(sock))
+		explicit basic_flex_wss_session(HttpsSessionPointerT&& session_ptr)
+			: https_session(std::move(session_ptr))
+			, socket(https_session->socket)
+			, ssl_context(https_session->ssl_context)
+			, ssl_stream(https_session->ssl_stream)
+			, ws_stream(https_session->ssl_stream)
+			, alive_time(https_session->alive_time)
+			, disconnect_timeout(https_session->disconnect_timeout)
+			, ssl_shutdown_timeout(https_session->ssl_shutdown_timeout)
 		{
 		}
 
-		basic_tcp_session(basic_tcp_session&&) noexcept = default;
-		basic_tcp_session& operator=(basic_tcp_session&&) noexcept = default;
+		basic_flex_wss_session(basic_flex_wss_session&&) noexcept = default;
+		basic_flex_wss_session& operator=(basic_flex_wss_session&&) noexcept = default;
 
-		~basic_tcp_session()
+		~basic_flex_wss_session()
 		{
 			close();
 		}
@@ -44,8 +54,20 @@ namespace asio
 		inline auto async_disconnect(
 			DisconnectToken&& token = asio::default_token_type<socket_type>())
 		{
-			return asio::async_disconnect(socket,
-				disconnect_timeout, std::forward<DisconnectToken>(token));
+			return asio::async_initiate<DisconnectToken, void(error_code)>(
+				experimental::co_composed<void(error_code)>(
+					[](auto state, auto self_ref) -> void
+					{
+						auto& self = self_ref.get();
+
+						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
+
+						co_await self.ws_stream.async_close(websocket::close_code::normal, use_nothrow_deferred);
+
+						co_await self.https_session->async_disconnect(use_nothrow_deferred);
+
+						co_return error_code{};
+					}, ws_stream), token, std::ref(*this));
 		}
 
 		/**
@@ -61,7 +83,7 @@ namespace asio
 			auto&& data,
 			WriteToken&& token = asio::default_token_type<socket_type>())
 		{
-			return asio::async_send(socket,
+			return asio::async_send(ws_stream,
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
 		}
 
@@ -70,9 +92,7 @@ namespace asio
 		 */
 		inline void close()
 		{
-			asio::error_code ec{};
-			socket.shutdown(asio::socket_base::shutdown_both, ec);
-			socket.close(ec);
+			https_session->close();
 		}
 
 		/**
@@ -129,7 +149,7 @@ namespace asio
 		 */
 		constexpr inline auto&& get_socket(this auto&& self)
 		{
-			return std::forward_like<decltype(self)>(self).socket;
+			return std::forward_like<decltype(self)>(self).https_session->socket;
 		}
 
 		inline void update_alive_time() noexcept
@@ -138,12 +158,22 @@ namespace asio
 		}
 
 	public:
-		socket_type socket;
+		HttpsSessionPointerT https_session;
 
-		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
+		socket_type&         socket;
 
-		std::chrono::steady_clock::duration   disconnect_timeout{ asio::tcp_disconnect_timeout };
+		asio::ssl::context&  ssl_context;
+
+		ssl_stream_type&     ssl_stream;
+
+		websocket::stream<ssl_stream_type&> ws_stream;
+
+		std::chrono::system_clock::time_point& alive_time;
+
+		std::chrono::steady_clock::duration& disconnect_timeout;
+
+		std::chrono::steady_clock::duration& ssl_shutdown_timeout;
 	};
 
-	using tcp_session = basic_tcp_session<asio::tcp_socket>;
+	using flex_wss_session = basic_flex_wss_session<std::shared_ptr<asio::https_session>>;
 }

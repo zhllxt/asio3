@@ -32,6 +32,9 @@ namespace asio
 			this->disconnect_timeout = asio::http_disconnect_timeout;
 		}
 
+		basic_http_session(basic_http_session&&) noexcept = default;
+		basic_http_session& operator=(basic_http_session&&) noexcept = default;
+
 		/**
 		 * @brief destructor
 		 */

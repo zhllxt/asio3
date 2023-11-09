@@ -8,7 +8,7 @@
 
 namespace net = ::asio;
 
-net::awaitable<void> do_websocket_recv(net::httpwss_server& server, std::shared_ptr<net::wss_session> session)
+net::awaitable<void> do_websocket_recv(net::httpwss_server& server, std::shared_ptr<net::flex_wss_session> session)
 {
 	beast::flat_buffer buf;
 
@@ -35,7 +35,7 @@ net::awaitable<void> do_websocket_recv(net::httpwss_server& server, std::shared_
 }
 
 net::awaitable<void> websocket_client_join(
-	net::httpwss_server& server, std::shared_ptr<net::wss_session> session, http::web_request req)
+	net::httpwss_server& server, std::shared_ptr<net::flex_wss_session> session, http::web_request req)
 {
 	co_await net::post(server.get_executor(), net::use_nothrow_awaitable);
 
@@ -47,6 +47,7 @@ net::awaitable<void> websocket_client_join(
 	[](websocket::response_type& res)
 	{
 		res.set(http::field::server, BEAST_VERSION_STRING);
+		res.set(http::field::authentication_results, "200 OK");
 	}));
 
 	// Accept the websocket handshake
@@ -95,10 +96,8 @@ net::awaitable<void> do_http_recv(net::httpwss_server& server, std::shared_ptr<n
 		if (websocket::is_upgrade(req) && rep.get_response_header().result() == http::status::switching_protocols)
 		{
 			net::co_spawn(server.get_executor(), websocket_client_join(server,
-				std::make_shared<net::wss_session>(
-					std::move(session->socket), session->ssl_context, std::move(session->ssl_stream)),
-				std::move(req)), net::detached);
-			break;
+				std::make_shared<net::flex_wss_session>(std::move(session)), std::move(req)), net::detached);
+			co_return;
 		}
 
 		// Send the response

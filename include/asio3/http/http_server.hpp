@@ -36,6 +36,9 @@ namespace asio
 		{
 		}
 
+		basic_http_server(basic_http_server&&) noexcept = default;
+		basic_http_server& operator=(basic_http_server&&) noexcept = default;
+
 		/**
 		 * @brief destructor
 		 */

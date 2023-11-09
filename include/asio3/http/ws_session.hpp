@@ -32,6 +32,9 @@ namespace asio
 		{
 		}
 
+		basic_ws_session(basic_ws_session&&) noexcept = default;
+		basic_ws_session& operator=(basic_ws_session&&) noexcept = default;
+
 		/**
 		 * @brief destructor
 		 */

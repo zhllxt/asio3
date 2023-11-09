@@ -30,6 +30,9 @@ namespace asio
 			aborted.clear();
 		}
 
+		basic_tcp_client(basic_tcp_client&&) noexcept = default;
+		basic_tcp_client& operator=(basic_tcp_client&&) noexcept = default;
+
 		~basic_tcp_client()
 		{
 			close();

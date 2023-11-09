@@ -31,6 +31,9 @@ namespace asio
 		{
 		}
 
+		basic_https_server(basic_https_server&&) noexcept = default;
+		basic_https_server& operator=(basic_https_server&&) noexcept = default;
+
 		~basic_https_server()
 		{
 		}

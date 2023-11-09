@@ -21,6 +21,7 @@ namespace asio
 	public:
 		using super = basic_tcp_client<SocketT>;
 		using socket_type = SocketT;
+		using ssl_stream_type = asio::ssl::stream<socket_type&>;
 
 		explicit basic_tcps_client(const auto& ex, ssl::context&& sslctx)
 			: super(ex)
@@ -28,6 +29,9 @@ namespace asio
 			, ssl_stream(super::socket, ssl_context)
 		{
 		}
+
+		basic_tcps_client(basic_tcps_client&&) noexcept = default;
+		basic_tcps_client& operator=(basic_tcps_client&&) noexcept = default;
 
 		~basic_tcps_client()
 		{
@@ -41,6 +45,8 @@ namespace asio
 		inline auto async_stop(
 			StopToken&& token = asio::default_token_type<socket_type>())
 		{
+			this->aborted.test_and_set();
+
 			return asio::async_initiate<StopToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
 					[](auto state, auto self_ref) -> void
@@ -94,9 +100,9 @@ namespace asio
 		}
 
 	public:
-		asio::ssl::context              ssl_context;
+		asio::ssl::context ssl_context;
 
-		asio::ssl::stream<socket_type&> ssl_stream;
+		ssl_stream_type    ssl_stream;
 	};
 
 	using tcps_client = basic_tcps_client<asio::tcp_socket>;

@@ -13,6 +13,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/beast.hpp>
 #include <asio3/tcp/tcps_client.hpp>
+#include <asio3/http/write.hpp>
 
 namespace asio
 {
@@ -22,12 +23,16 @@ namespace asio
 	public:
 		using super = basic_tcps_client<SocketT>;
 		using socket_type = SocketT;
+		using ssl_stream_type = typename super::ssl_stream_type;
 
 		explicit basic_wss_client(const auto& ex, ssl::context&& sslctx)
 			: super(ex, std::move(sslctx))
 			, ws_stream(super::ssl_stream)
 		{
 		}
+
+		basic_wss_client(basic_wss_client&&) noexcept = default;
+		basic_wss_client& operator=(basic_wss_client&&) noexcept = default;
 
 		~basic_wss_client()
 		{
@@ -41,6 +46,8 @@ namespace asio
 		inline auto async_stop(
 			StopToken&& token = asio::default_token_type<socket_type>())
 		{
+			this->aborted.test_and_set();
+
 			return asio::async_initiate<StopToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
 					[](auto state, auto self_ref) -> void
@@ -80,7 +87,7 @@ namespace asio
 		}
 
 	public:
-		websocket::stream<asio::ssl::stream<socket_type&>&> ws_stream;
+		websocket::stream<ssl_stream_type&> ws_stream;
 	};
 
 	using wss_client = basic_wss_client<asio::tcp_socket>;

@@ -28,6 +28,9 @@ namespace asio
 		{
 		}
 
+		basic_http_client(basic_http_client&&) noexcept = default;
+		basic_http_client& operator=(basic_http_client&&) noexcept = default;
+
 		/**
 		 * @brief destructor
 		 */

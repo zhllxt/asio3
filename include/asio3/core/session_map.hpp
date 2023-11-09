@@ -43,6 +43,9 @@ namespace asio
 			map.reserve(64);
 		}
 
+		session_map(session_map&&) noexcept = default;
+		session_map& operator=(session_map&&) noexcept = default;
+
 		~session_map()
 		{
 		}

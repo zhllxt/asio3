@@ -33,6 +33,9 @@ namespace asio
 		{
 		}
 
+		basic_ws_client(basic_ws_client&&) noexcept = default;
+		basic_ws_client& operator=(basic_ws_client&&) noexcept = default;
+
 		/**
 		 * @brief destructor
 		 */
@@ -48,6 +51,8 @@ namespace asio
 		inline auto async_stop(
 			StopToken&& token = asio::default_token_type<socket_type>())
 		{
+			this->aborted.test_and_set();
+
 			return asio::async_initiate<StopToken, void(error_code)>(
 				experimental::co_composed<void(error_code)>(
 					[](auto state, auto self_ref) -> void

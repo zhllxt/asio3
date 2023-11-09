@@ -33,6 +33,9 @@ namespace asio
 			this->ssl_shutdown_timeout = asio::http_disconnect_timeout;
 		}
 
+		basic_https_session(basic_https_session&&) noexcept = default;
+		basic_https_session& operator=(basic_https_session&&) noexcept = default;
+
 		~basic_https_session()
 		{
 			this->close();

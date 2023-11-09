@@ -21,6 +21,7 @@ namespace asio
 	public:
 		using super = basic_tcp_session<SocketT>;
 		using socket_type = SocketT;
+		using ssl_stream_type = asio::ssl::stream<socket_type&>;
 
 		explicit basic_tcps_session(socket_type sock, ssl::context& sslctx)
 			: super(std::move(sock))
@@ -28,6 +29,9 @@ namespace asio
 			, ssl_stream(super::socket, ssl_context)
 		{
 		}
+
+		basic_tcps_session(basic_tcps_session&&) noexcept = default;
+		basic_tcps_session& operator=(basic_tcps_session&&) noexcept = default;
 
 		~basic_tcps_session()
 		{
@@ -95,9 +99,9 @@ namespace asio
 		}
 
 	public:
-		asio::ssl::context&             ssl_context;
+		asio::ssl::context& ssl_context;
 
-		asio::ssl::stream<socket_type&> ssl_stream;
+		ssl_stream_type     ssl_stream;
 
 		std::chrono::steady_clock::duration ssl_shutdown_timeout{ asio::ssl_shutdown_timeout };
 	};

@@ -27,6 +27,9 @@ namespace asio
 		{
 		}
 
+		basic_wss_server(basic_wss_server&&) noexcept = default;
+		basic_wss_server& operator=(basic_wss_server&&) noexcept = default;
+
 		~basic_wss_server()
 		{
 		}
