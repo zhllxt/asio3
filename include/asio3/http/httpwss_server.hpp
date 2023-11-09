@@ -15,16 +15,11 @@
 
 namespace asio
 {
-	template<
-		typename HttpsSessionT = https_session,
-		typename WssSessionT = flex_wss_session,
-		typename RequestT = typename HttpsSessionT::request_type,
-		typename ResponseT = typename HttpsSessionT::response_type
-	>
-	class basic_httpwss_server : public basic_httpws_server<HttpsSessionT, WssSessionT, RequestT, ResponseT>
+	template<typename HttpsSessionT = https_session, typename WssSessionT = flex_wss_session>
+	class basic_httpwss_server : public basic_httpws_server<HttpsSessionT, WssSessionT>
 	{
 	public:
-		using super = basic_httpws_server<HttpsSessionT, WssSessionT, RequestT, ResponseT>;
+		using super = basic_httpws_server<HttpsSessionT, WssSessionT>;
 		using http_session_type = HttpsSessionT;
 		using ws_session_type = WssSessionT;
 		using https_session_type = HttpsSessionT;

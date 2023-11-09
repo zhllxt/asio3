@@ -24,7 +24,7 @@ net::awaitable<void> do_http_recv(net::https_server& server, std::shared_ptr<net
 		session->update_alive_time();
 
 		http::web_response rep;
-		if (!server.router.route(req, rep))
+		if (!(co_await server.router.route(req, rep)))
 			break;
 
 		// Send the response
@@ -102,14 +102,14 @@ auto response_404()
 
 struct aop_auth
 {
-	bool before(http::web_request& req, http::web_response& rep)
+	net::awaitable<bool> before(http::web_request& req, http::web_response& rep)
 	{
 		if (req.find(http::field::authorization) == req.end())
 		{
 			rep = response_404();
-			return false;
+			co_return false;
 		}
-		return true;
+		co_return true;
 	}
 };
 
@@ -126,30 +126,30 @@ int main()
 	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
 	server.root_directory = std::move(root);
 
-	server.router.add("/", [&server](http::web_request& req, http::web_response& rep)
+	server.router.add("/", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
 	{
 		auto res = http::make_file_response(server.root_directory, "index.html");
 		if (res.has_value())
 			rep = std::move(res.value());
 		else
 			rep = response_404();
-		return true;
+		co_return true;
 	}, http::enable_cache);
 
-	server.router.add("/login", [](http::web_request& req, http::web_response& rep)
+	server.router.add("/login", [](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
 	{
 		rep = response_404();
-		return true;
+		co_return true;
 	}, aop_auth{});
 
-	server.router.add("*", [&server](http::web_request& req, http::web_response& rep)
+	server.router.add("*", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
 	{
 		auto res = http::make_file_response(server.root_directory, req.target());
 		if (res.has_value())
 			rep = std::move(res.value());
 		else
 			rep = response_404();
-		return true;
+		co_return true;
 	}, http::enable_cache);
 
 	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8443), net::detached);

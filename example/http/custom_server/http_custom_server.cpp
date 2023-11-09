@@ -3,7 +3,32 @@
 
 namespace net = ::asio;
 
-net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net::http_session> session)
+// how to get the session ip and port in the http router function ?
+
+// 1. declare a custom http request class that derived from web_request
+class web_request_ex : public http::web_request
+{
+public:
+	using http::web_request::web_request;
+
+	// 2. declare a member variable. of course you can declared any variable at here.
+	std::shared_ptr<class http_session_ex> session;
+};
+
+// 3. declare a custom http session class that derived from http_session
+class http_session_ex : public net::http_session
+{
+public:
+	using net::http_session::http_session;
+
+	// 4. [important] redeclare the request_type
+	using request_type = web_request_ex;
+};
+
+// 5. declare a custom http server.
+using http_server_ex = net::basic_http_server<http_session_ex>;
+
+net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<http_session_ex> session)
 {
 	// This buffer is required to persist across reads
 	beast::flat_buffer buf;
@@ -11,10 +36,13 @@ net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net:
 	for (;;)
 	{
 		// Read a request
-		http::web_request req;
+		web_request_ex req;
 		auto [e1, n1] = co_await http::async_read(session->socket, buf, req);
 		if (e1)
 			break;
+
+		// 6. save http session into the member variable of http request.
+		req.session = session;
 
 		session->update_alive_time();
 
@@ -38,7 +66,7 @@ net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net:
 	session->close();
 }
 
-net::awaitable<void> client_join(net::http_server& server, std::shared_ptr<net::http_session> session)
+net::awaitable<void> client_join(http_server_ex& server, std::shared_ptr<http_session_ex> session)
 {
 	auto addr = session->get_remote_address();
 	auto port = session->get_remote_port();
@@ -54,7 +82,7 @@ net::awaitable<void> client_join(net::http_server& server, std::shared_ptr<net::
 	fmt::print("- client exit: {} {}\n", addr, port);
 }
 
-net::awaitable<void> start_server(net::http_server& server, std::string listen_address, std::uint16_t listen_port)
+net::awaitable<void> start_server(http_server_ex& server, std::string listen_address, std::uint16_t listen_port)
 {
 	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
 	if (ec)
@@ -75,7 +103,7 @@ net::awaitable<void> start_server(net::http_server& server, std::string listen_a
 		else
 		{
 			net::co_spawn(server.get_executor(), client_join(server,
-				std::make_shared<net::http_session>(std::move(client))), net::detached);
+				std::make_shared<http_session_ex>(std::move(client))), net::detached);
 		}
 	}
 }
@@ -87,7 +115,7 @@ auto response_404()
 
 struct aop_auth
 {
-	net::awaitable<bool> before(http::web_request& req, http::web_response& rep)
+	net::awaitable<bool> before(web_request_ex& req, http::web_response& rep)
 	{
 		if (req.find(http::field::authorization) == req.end())
 		{
@@ -102,13 +130,13 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	net::http_server server(ctx.get_executor());
+	http_server_ex server(ctx.get_executor());
 
 	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
 	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
 	server.root_directory = std::move(root);
 
-	server.router.add("/", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
+	server.router.add("/", [&server](web_request_ex& req, http::web_response& rep) -> net::awaitable<bool>
 	{
 		auto res = http::make_file_response(server.root_directory, "index.html");
 		if (res.has_value())
@@ -118,13 +146,16 @@ int main()
 		co_return true;
 	}, http::enable_cache);
 
-	server.router.add("/login", [](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
+	server.router.add("/login", [](web_request_ex& req, http::web_response& rep) -> net::awaitable<bool>
 	{
+		// 7. use the http session
+		if (req.session->get_remote_address() == "192.168.0.1")
+			co_return false;
 		rep = response_404();
 		co_return true;
 	}, aop_auth{});
 
-	server.router.add("*", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
+	server.router.add("*", [&server](web_request_ex& req, http::web_response& rep) -> net::awaitable<bool>
 	{
 		auto res = http::make_file_response(server.root_directory, req.target());
 		if (res.has_value())
