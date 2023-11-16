@@ -505,10 +505,11 @@ namespace asio::socks5::detail
 			write(p, std::uint8_t(0x05)); // VER 5.
 			write(p, std::uint8_t(urep)); // REP 
 			write(p, std::uint8_t(0x00)); // RSV.
-			write(p, std::uint8_t(atyp)); // ATYP 
 
 			if (bnd_addr.is_v4())
 			{
+				write(p, std::to_underlying(socks5::address_type::ipv4)); // ATYP 
+
 				// real length
 				bytes = 1 + 1 + 1 + 1 + 4 + 2;
 
@@ -516,6 +517,8 @@ namespace asio::socks5::detail
 			}
 			else
 			{
+				write(p, std::to_underlying(socks5::address_type::ipv6)); // ATYP 
+
 				// real length
 				bytes = 1 + 1 + 1 + 1 + 16 + 2;
 

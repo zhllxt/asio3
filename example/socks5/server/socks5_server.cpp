@@ -134,6 +134,8 @@ net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 
 	conn->handshake_info = std::move(handsk_info);
 
+	net::error_code ec{};
+
 	if (conn->handshake_info.cmd == socks5::command::connect)
 	{
 		asio::tcp_socket& front_client = conn->socket;
@@ -142,6 +144,8 @@ net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 			tcp_transfer(conn, front_client, back_client) ||
 			tcp_transfer(conn, back_client, front_client) ||
 			net::watchdog(conn->alive_time, net::proxy_idle_timeout));
+		front_client.close(ec);
+		back_client.close(ec);
 	}
 	else if (conn->handshake_info.cmd == socks5::command::udp_associate)
 	{
@@ -151,6 +155,8 @@ net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 			udp_transfer(conn, front_client, back_client) ||
 			ext_transfer(conn, front_client, back_client) ||
 			net::watchdog(conn->alive_time, net::proxy_idle_timeout));
+		front_client.close(ec);
+		back_client.close(ec);
 	}
 }
 
