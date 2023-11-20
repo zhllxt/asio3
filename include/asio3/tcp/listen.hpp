@@ -39,8 +39,11 @@ namespace asio::detail
 
 			resolver_type resolver(acceptor.get_executor());
 
+			std::string_view addr_sv = addr;
+			std::string_view port_sv = port;
+
 			auto [e1, eps] = co_await resolver.async_resolve(
-				addr, port, asio::ip::resolver_base::passive, use_nothrow_deferred);
+				addr_sv, port_sv, asio::ip::resolver_base::passive, use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 

@@ -45,8 +45,11 @@ namespace asio::detail
 
 			resolver_type resolver(sock.get_executor());
 
+			std::string_view addr_sv = addr;
+			std::string_view port_sv = port;
+
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
-			auto [e1, eps] = co_await resolver.async_resolve(addr, port, use_nothrow_deferred);
+			auto [e1, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 

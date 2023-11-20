@@ -32,7 +32,10 @@ namespace asio::detail
 
 			asio::ip::udp::resolver resolver(sock.get_executor());
 
-			auto [e1, eps] = co_await resolver.async_resolve(h, p, use_nothrow_deferred);
+			std::string_view addr_sv = h;
+			std::string_view port_sv = p;
+
+			auto [e1, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, 0 };
 

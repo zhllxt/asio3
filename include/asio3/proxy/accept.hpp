@@ -399,8 +399,11 @@ namespace asio::socks5::detail
 
 				std::string str_port = std::to_string(dst_port);
 
+				std::string_view addr_sv = dst_addr;
+				std::string_view port_sv = str_port;
+
 				asio::ip::tcp::resolver resolver(sock.get_executor());
-				auto [er, eps] = co_await resolver.async_resolve(dst_addr, str_port, use_nothrow_deferred);
+				auto [er, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
 				if (er)
 				{
 					urep = std::uint8_t(socks5::connect_result::host_unreachable);
@@ -450,8 +453,11 @@ namespace asio::socks5::detail
 				{
 					std::string str_port = std::to_string(dst_port);
 
+					std::string_view addr_sv = dst_addr;
+					std::string_view port_sv = str_port;
+
 					asio::ip::udp::resolver resolver(sock.get_executor());
-					auto [er, eps] = co_await resolver.async_resolve(dst_addr, str_port, use_nothrow_deferred);
+					auto [er, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
 					if (!er)
 					{
 						if ((*eps).endpoint().address().is_v6())
