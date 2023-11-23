@@ -94,7 +94,7 @@ int main()
 {
 	net::io_context ctx;
 
-	asio::ssl::context sslctx(net::ssl::context::sslv23);
+	net::ssl::context sslctx(net::ssl::context::sslv23);
 	net::load_cert_from_string(sslctx, net::ssl::verify_peer, ca_crt, client_crt, client_key, "123456");
 	net::wss_client client(ctx.get_executor(), std::move(sslctx));
 

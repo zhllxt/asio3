@@ -11,6 +11,9 @@
 #pragma once
 
 #include <asio3/tcp/tcp_client.hpp>
+#include <asio3/http/core.hpp>
+#include <asio3/http/read.hpp>
+#include <asio3/http/write.hpp>
 
 namespace asio
 {

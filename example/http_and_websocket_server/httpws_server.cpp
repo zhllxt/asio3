@@ -32,7 +32,7 @@ net::awaitable<void> do_websocket_recv(net::httpws_server& server, std::shared_p
 net::awaitable<void> websocket_client_join(
 	net::httpws_server& server, std::shared_ptr<net::ws_session> session, http::web_request req)
 {
-	co_await net::post(server.get_executor(), net::use_nothrow_awaitable);
+	co_await net::post(server.get_executor());
 
 	// Set suggested timeout settings for the websocket
 	session->ws_stream.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
@@ -83,8 +83,7 @@ net::awaitable<void> do_http_recv(net::httpws_server& server, std::shared_ptr<ne
 		session->update_alive_time();
 
 		http::web_response rep;
-		if (!(co_await server.router.route(req, rep)))
-			break;
+		bool result = co_await server.router.route(req, rep);
 
 		// Support websocket
 		if (websocket::is_upgrade(req) && rep.get_response_header().result() == http::status::switching_protocols)
@@ -95,11 +94,11 @@ net::awaitable<void> do_http_recv(net::httpws_server& server, std::shared_ptr<ne
 		}
 
 		// Send the response
-		auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep), net::use_nothrow_awaitable);
+		auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep));
 		if (e2)
 			break;
 
-		if (!req.keep_alive())
+		if (!result || !req.keep_alive())
 		{
 			// This means we should close the connection, usually because
 			// the response indicated the "Connection: close" semantic.

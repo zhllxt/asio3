@@ -110,7 +110,7 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	asio::ssl::context sslctx(net::ssl::context::sslv23);
+	net::ssl::context sslctx(net::ssl::context::sslv23);
 	net::load_cert_from_string(sslctx, net::ssl::verify_peer | net::ssl::verify_fail_if_no_peer_cert,
 		ca_crt, server_crt, server_key, "123456", dh);
 	net::wss_server server(ctx.get_executor(), std::move(sslctx));

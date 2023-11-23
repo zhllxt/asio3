@@ -81,8 +81,7 @@ net::awaitable<void> udp_connect(socks5::option sock5_opt)
 	}
 
 	auto result2 = co_await(
-		socks5::async_handshake(client, sock5_opt, net::use_nothrow_awaitable) ||
-		net::timeout(std::chrono::seconds(5)));
+		socks5::async_handshake(client, sock5_opt) || net::timeout(std::chrono::seconds(5)));
 	if (result2.index() == 1)
 		co_return; // timed out
 	auto [e2] = std::get<0>(std::move(result2));

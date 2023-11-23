@@ -16,8 +16,8 @@
 
 namespace asio
 {
-	using udp_resolver = as_tuple_t<deferred_t>::as_default_on_t<ip::udp::resolver>;
-	using udp_socket   = with_lock_t<as_tuple_t<deferred_t>>::as_default_on_t<ip::udp::socket>;
+	using udp_resolver = as_tuple_t<use_awaitable_t<>>::as_default_on_t<ip::udp::resolver>;
+	using udp_socket   = with_lock_t<as_tuple_t<use_awaitable_t<>>>::as_default_on_t<ip::udp::socket>;
 }
 
 namespace asio

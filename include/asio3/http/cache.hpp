@@ -37,10 +37,8 @@ namespace boost::beast::http
 #endif
 {
 	struct enable_cache_t {};
-	struct manual_read_body_t {};
 
 	constexpr enable_cache_t enable_cache;
-	constexpr manual_read_body_t manual_read_body;
 
 	template<bool isRequest, class Body, class Fields = fields>
 	inline bool is_cache_enabled(http::message<isRequest, Body, Fields>& msg)

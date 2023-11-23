@@ -47,15 +47,14 @@ net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<http_s
 		session->update_alive_time();
 
 		http::web_response rep;
-		if (!(co_await server.router.route(req, rep)))
-			break;
+		bool result = co_await server.router.route(req, rep);
 
 		// Send the response
-		auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep), net::use_nothrow_awaitable);
+		auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep));
 		if (e2)
 			break;
 
-		if (!req.keep_alive())
+		if (!result || !req.keep_alive())
 		{
 			// This means we should close the connection, usually because
 			// the response indicated the "Connection: close" semantic.

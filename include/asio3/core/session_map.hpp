@@ -25,7 +25,7 @@ namespace asio
 		using key_type   = typename session_type::key_type;
 		using value_type = std::shared_ptr<session_type>;
 		using map_type   = std::unordered_map<key_type, value_type>;
-		using lock_type  = as_tuple_t<deferred_t>::as_default_on_t<experimental::channel<void()>>;
+		using lock_type  = as_tuple_t<use_awaitable_t<>>::as_default_on_t<experimental::channel<void()>>;
 		using executor_type = typename lock_type::executor_type;
 
 		struct async_add_op;

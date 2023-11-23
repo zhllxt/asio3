@@ -1447,7 +1447,10 @@ namespace boost::beast::http
 		//std::transform(base_type.begin(), base_type.end(), base_type.begin(), [](unsigned char c) { return std::tolower(c); });
 
 		/* Look it up in the map */
-		return extension_map[base_type];
+		if (auto it = extension_map.find(base_type); it != extension_map.end())
+			return it->second;
+
+		return "application/octet-stream";
 	}
 
 	//void swap(std::map<std::string_view, std::string_view>& map)

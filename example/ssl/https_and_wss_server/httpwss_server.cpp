@@ -37,7 +37,7 @@ net::awaitable<void> do_websocket_recv(net::httpwss_server& server, std::shared_
 net::awaitable<void> websocket_client_join(
 	net::httpwss_server& server, std::shared_ptr<net::flex_wss_session> session, http::web_request req)
 {
-	co_await net::post(server.get_executor(), net::use_nothrow_awaitable);
+	co_await net::post(server.get_executor());
 
 	// Set suggested timeout settings for the websocket
 	session->ws_stream.set_option(websocket::stream_base::timeout::suggested(beast::role_type::server));
@@ -89,8 +89,7 @@ net::awaitable<void> do_http_recv(net::httpwss_server& server, std::shared_ptr<n
 		session->update_alive_time();
 
 		http::web_response rep;
-		if (!(co_await server.router.route(req, rep)))
-			break;
+		bool result = co_await server.router.route(req, rep);
 
 		// Support websocket
 		if (websocket::is_upgrade(req) && rep.get_response_header().result() == http::status::switching_protocols)
@@ -101,11 +100,11 @@ net::awaitable<void> do_http_recv(net::httpwss_server& server, std::shared_ptr<n
 		}
 
 		// Send the response
-		auto [e2, n2] = co_await beast::async_write(session->ssl_stream, std::move(rep), net::use_nothrow_awaitable);
+		auto [e2, n2] = co_await beast::async_write(session->ssl_stream, std::move(rep));
 		if (e2)
 			break;
 
-		if (!req.keep_alive())
+		if (!result || !req.keep_alive())
 		{
 			// This means we should close the connection, usually because
 			// the response indicated the "Connection: close" semantic.
@@ -190,7 +189,7 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	asio::ssl::context sslctx(net::ssl::context::sslv23);
+	net::ssl::context sslctx(net::ssl::context::sslv23);
 	net::load_cert_from_string(sslctx, net::ssl::verify_none,
 		ca_crt, server_crt, server_key, "123456", dh);
 	net::httpwss_server server(ctx.get_executor(), std::move(sslctx));

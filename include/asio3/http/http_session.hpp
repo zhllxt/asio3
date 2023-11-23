@@ -12,6 +12,8 @@
 
 #include <asio3/tcp/tcp_session.hpp>
 #include <asio3/http/core.hpp>
+#include <asio3/http/read.hpp>
+#include <asio3/http/write.hpp>
 
 namespace asio
 {

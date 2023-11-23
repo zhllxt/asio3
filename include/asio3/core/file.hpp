@@ -18,12 +18,12 @@
 
 namespace asio
 {
-	using nothrow_stream_file = as_tuple_t<deferred_t>::as_default_on_t<asio::stream_file>;
+	using nothrow_stream_file = as_tuple_t<use_awaitable_t<>>::as_default_on_t<asio::stream_file>;
 }
 
 namespace asio::detail
 {
-	struct async_read_file_op
+	struct async_read_file_content_op
 	{
 		auto operator()(auto state, auto&& ex, std::string filepath) -> void
 		{
@@ -51,7 +51,7 @@ namespace asio::detail
 			}
 
 			auto [e1, n1] = co_await asio::async_read(
-				file, asio::dynamic_buffer(buffer), asio::use_nothrow_deferred);
+				file, asio::dynamic_buffer(buffer), asio::transfer_all(), asio::use_nothrow_deferred);
 
 			if (e1 == asio::error::eof)
 			{
@@ -113,14 +113,14 @@ namespace asio
 	template<
 		typename Executor,
 		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
-	inline auto async_read_file(
+	inline auto async_read_file_content(
 		Executor&& ex,
 		is_string auto&& filepath,
 		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::string)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::string)>(
-				detail::async_read_file_op{}, ex),
+				detail::async_read_file_content_op{}, ex),
 			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)));
 	}
 
@@ -128,10 +128,11 @@ namespace asio
 	 * @brief Start an asynchronous operation to read a file.
 	 * @param filepath - The full file path.
 	 */
-	asio::awaitable<std::tuple<asio::error_code, asio::stream_file, std::string>> async_read_file(
-		is_string auto&& filepath)
+	template<typename = void>
+	asio::awaitable<std::tuple<asio::error_code, asio::stream_file, std::string>>
+		async_read_file_content(is_string auto&& filepath)
 	{
-		co_return co_await async_read_file(co_await asio::this_coro::executor,
+		co_return co_await async_read_file_content(co_await asio::this_coro::executor,
 			std::forward_like<decltype(filepath)>(filepath), asio::use_nothrow_awaitable);
 	}
 

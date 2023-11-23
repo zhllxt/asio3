@@ -15,11 +15,14 @@
 
 namespace asio
 {
-	template<typename SessionT = https_session>
-	class basic_https_server : public basic_http_server<SessionT>
+	template<
+		typename SessionT = https_session,
+		typename RouterT = http::basic_router<typename SessionT::request_type, typename SessionT::response_type>
+	>
+	class basic_https_server : public basic_http_server<SessionT, RouterT>
 	{
 	public:
-		using super = basic_http_server<SessionT>;
+		using super = basic_http_server<SessionT, RouterT>;
 
 		explicit basic_https_server(const auto& ex, ssl::context&& sslctx)
 			: super(ex)

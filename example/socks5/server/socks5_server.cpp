@@ -41,7 +41,7 @@ net::awaitable<void> udp_transfer(
 		{
 			conn->last_read_channel = net::protocol::udp;
 
-			auto [e2, n2] = co_await socks5::async_forward_data_to_backend(bound, asio::buffer(data, n1));
+			auto [e2, n2] = co_await socks5::async_forward_data_to_backend(bound, net::buffer(data, n1));
 			if (e2)
 				break;
 		}
@@ -50,14 +50,14 @@ net::awaitable<void> udp_transfer(
 			if (conn->last_read_channel == net::protocol::udp)
 			{
 				auto [e2, n2] = co_await socks5::async_forward_data_to_frontend(
-					bound, asio::buffer(data, n1), sender_endpoint, conn->get_frontend_udp_endpoint());
+					bound, net::buffer(data, n1), sender_endpoint, conn->get_frontend_udp_endpoint());
 				if (e2)
 					break;
 			}
 			else
 			{
 				auto [e2, n2] = co_await socks5::async_forward_data_to_frontend(
-					front, asio::buffer(data, n1), sender_endpoint);
+					front, net::buffer(data, n1), sender_endpoint);
 				if (e2)
 					break;
 			}
@@ -91,7 +91,7 @@ net::awaitable<void> ext_transfer(
 		// the RSV field is the real data length of the field DATA.
 		// so we need unpacket this data, and send the real data to the back client.
 
-		auto [err, ep, domain, real_data] = socks5::parse_udp_packet(asio::buffer(buf.data(), n1), true);
+		auto [err, ep, domain, real_data] = socks5::parse_udp_packet(net::buffer(buf.data(), n1), true);
 		if (err == 0)
 		{
 			if (domain.empty())
@@ -117,15 +117,14 @@ net::awaitable<void> ext_transfer(
 	}
 
 	net::error_code ec{};
-	front.shutdown(asio::socket_base::shutdown_both, ec);
+	front.shutdown(net::socket_base::shutdown_both, ec);
 	front.close(ec);
 }
 
 net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 {
 	auto result = co_await(
-		socks5::async_accept(conn->socket, conn->auth_config, net::use_nothrow_awaitable) ||
-		net::timeout(std::chrono::seconds(5)));
+		socks5::async_accept(conn->socket, conn->auth_config) || net::timeout(std::chrono::seconds(5)));
 	if (net::is_timeout(result))
 		co_return;
 	auto [e1, handsk_info] = std::get<0>(std::move(result));
@@ -138,8 +137,8 @@ net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 
 	if (conn->handshake_info.cmd == socks5::command::connect)
 	{
-		asio::tcp_socket& front_client = conn->socket;
-		asio::tcp_socket& back_client = *conn->get_backend_tcp_socket();
+		net::tcp_socket& front_client = conn->socket;
+		net::tcp_socket& back_client = *conn->get_backend_tcp_socket();
 		co_await(
 			tcp_transfer(conn, front_client, back_client) ||
 			tcp_transfer(conn, back_client, front_client) ||
@@ -149,8 +148,8 @@ net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 	}
 	else if (conn->handshake_info.cmd == socks5::command::udp_associate)
 	{
-		asio::tcp_socket& front_client = conn->socket;
-		asio::udp_socket& back_client = *conn->get_backend_udp_socket();
+		net::tcp_socket& front_client = conn->socket;
+		net::udp_socket& back_client = *conn->get_backend_udp_socket();
 		co_await(
 			udp_transfer(conn, front_client, back_client) ||
 			ext_transfer(conn, front_client, back_client) ||

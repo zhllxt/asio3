@@ -16,7 +16,10 @@
 
 namespace asio
 {
-	template<typename SessionT = http_session>
+	template<
+		typename SessionT = http_session,
+		typename RouterT = http::basic_router<typename SessionT::request_type, typename SessionT::response_type>
+	>
 	class basic_http_server : public basic_tcp_server<SessionT>
 	{
 	public:
@@ -46,7 +49,7 @@ namespace asio
 	public:
 		std::filesystem::path root_directory{ std::filesystem::current_path() };
 
-		http::basic_router<request_type, response_type> router{};
+		RouterT router{};
 	};
 
 	using http_server = basic_http_server<http_session>;

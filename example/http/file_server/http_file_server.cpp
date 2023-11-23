@@ -3,31 +3,48 @@
 
 namespace net = ::asio;
 
-net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net::http_session> session)
+struct userdata
+{
+	std::shared_ptr<net::http_session>& session;
+	beast::flat_buffer& buffer;
+	http::request_parser<http::string_body>& parser;
+	bool& need_response;
+};
+
+using http_server_ex = net::basic_http_server<
+	net::http_session, http::basic_router<http::web_request, http::web_response, userdata>>;
+
+net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<net::http_session> session)
 {
 	// This buffer is required to persist across reads
-	beast::flat_buffer buf;
+	beast::flat_buffer buffer;
 
 	for (;;)
 	{
-		// Read a request
-		http::web_request req;
-		auto [e1, n1] = co_await http::async_read(session->socket, buf, req);
-		if (e1)
+		http::request_parser<http::string_body> parser;
+
+		parser.body_limit((std::numeric_limits<std::size_t>::max)());
+
+		auto [e0, n0] = co_await http::async_read_header(session->socket, buffer, parser);
+		if (e0)
 			break;
+
+		bool need_response = true;
+		http::web_response rep;
+		bool result = co_await server.router.route(parser.get(), rep,
+			userdata{ session, buffer, parser, need_response });
 
 		session->update_alive_time();
 
-		http::web_response rep;
-		if (!(co_await server.router.route(req, rep)))
-			break;
-
 		// Send the response
-		auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep), net::use_nothrow_awaitable);
-		if (e2)
-			break;
+		if (need_response)
+		{
+			auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep));
+			if (e2)
+				break;
+		}
 
-		if (!req.keep_alive())
+		if (!result || !parser.get().keep_alive())
 		{
 			// This means we should close the connection, usually because
 			// the response indicated the "Connection: close" semantic.
@@ -38,7 +55,7 @@ net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net:
 	session->close();
 }
 
-net::awaitable<void> client_join(net::http_server& server, std::shared_ptr<net::http_session> session)
+net::awaitable<void> client_join(http_server_ex& server, std::shared_ptr<net::http_session> session)
 {
 	auto addr = session->get_remote_address();
 	auto port = session->get_remote_port();
@@ -54,7 +71,7 @@ net::awaitable<void> client_join(net::http_server& server, std::shared_ptr<net::
 	fmt::print("- client exit: {} {}\n", addr, port);
 }
 
-net::awaitable<void> start_server(net::http_server& server, std::string listen_address, std::uint16_t listen_port)
+net::awaitable<void> start_server(http_server_ex& server, std::string listen_address, std::uint16_t listen_port)
 {
 	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
 	if (ec)
@@ -87,7 +104,7 @@ auto response_404()
 
 struct aop_auth
 {
-	net::awaitable<bool> before(http::web_request& req, http::web_response& rep)
+	net::awaitable<bool> before(http::web_request& req, http::web_response& rep, userdata data)
 	{
 		if (req.find(http::field::authorization) == req.end())
 		{
@@ -102,37 +119,116 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	net::http_server server(ctx.get_executor());
+	http_server_ex server(ctx.get_executor());
 
 	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
 	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
 	server.root_directory = std::move(root);
 
-	server.router.add("/", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
+	server.router.add("/", [&server](http::web_request& req, http::web_response& rep, userdata data)
+		-> net::awaitable<bool>
 	{
-		auto res = http::make_file_response(server.root_directory, "index.html");
-		if (res.has_value())
-			rep = std::move(res.value());
-		else
+		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
+		if (e1)
+			co_return false;
+
+		std::filesystem::path filepath = server.root_directory / "index.html";
+		auto [ec, file, content] = co_await net::async_read_file_content(filepath.string());
+		if (ec)
+		{
 			rep = response_404();
+			co_return true;
+		}
+
+		rep = http::make_html_response(std::move(content));
 		co_return true;
 	}, http::enable_cache);
 
-	server.router.add("/login", [](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
+	server.router.add("*", [&server](http::web_request& req, http::web_response& rep, userdata data)
+		-> net::awaitable<bool>
 	{
-		rep = response_404();
+		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
+		if (e1)
+			co_return false;
+
+		std::filesystem::path filepath = server.root_directory;
+		filepath += req.target();
+		auto [ec, file, content] = co_await net::async_read_file_content(filepath.string());
+		if (ec)
+		{
+			rep = response_404();
+			co_return true;
+		}
+
+		auto res = http::make_text_response(std::move(content));
+		res.set(http::field::content_type, http::extension_to_mimetype(filepath.extension().string()));
+		rep = std::move(res);
+		co_return true;
+	}, http::enable_cache);
+
+	server.router.add("/download/*", [&server](http::web_request& req, http::web_response& rep, userdata data)
+		-> net::awaitable<bool>
+	{
+		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
+		if (e1)
+			co_return false;
+
+		std::filesystem::path filepath = server.root_directory;
+		filepath += req.target().substr(std::strlen("/download"));
+
+		std::error_code ec{};
+		net::stream_file file(data.session->get_executor());
+		file.open(filepath.string(), asio::file_base::read_only, ec);
+		if (ec)
+		{
+			rep = http::make_error_page_response(http::status::internal_server_error);
+			co_return true;
+		}
+
+		http::response<http::string_body> res{ http::status::ok, req.version() };
+		res.set(http::field::server, BEAST_VERSION_STRING);
+		res.set(http::field::content_type, http::extension_to_mimetype(filepath.string()));
+		//res.chunked(true);
+		res.content_length(file.size());
+
+		auto [e2, n2] = co_await http::async_send_file(data.session->socket, file, std::move(res));
+		if (e2)
+		{
+			rep = http::make_error_page_response(http::status::internal_server_error);
+			co_return true;
+		}
+
+		data.need_response = false;
+
 		co_return true;
 	}, aop_auth{});
 
-	server.router.add("*", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
+	server.router.add("/upload/*", [&server](http::web_request& req, http::web_response& rep, userdata data)
+		-> net::awaitable<bool>
 	{
-		auto res = http::make_file_response(server.root_directory, req.target());
-		if (res.has_value())
-			rep = std::move(res.value());
-		else
-			rep = response_404();
+		std::filesystem::path filepath = server.root_directory;
+		filepath += req.target().substr(std::strlen("/upload"));
+
+		std::error_code ec{};
+		net::stream_file file(data.session->get_executor());
+		file.open(filepath.string(),
+			asio::file_base::write_only | asio::file_base::create | asio::file_base::truncate, ec);
+		if (ec)
+		{
+			rep = http::make_error_page_response(http::status::internal_server_error);
+			co_return true;
+		}
+
+		auto [e2, n2] = co_await http::async_recv_file(data.session->socket, file, req);
+		if (e2)
+		{
+			rep = http::make_error_page_response(http::status::internal_server_error);
+			co_return true;
+		}
+
+		rep = http::make_text_response("upload successed", http::status::ok);
 		co_return true;
-	}, http::enable_cache);
+	}, aop_auth{});
 
 	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8080), net::detached);
 

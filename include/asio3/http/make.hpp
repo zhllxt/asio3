@@ -175,37 +175,6 @@ namespace boost::beast::http
 	//	return req;
 	//}
 
-	//template<class Body = http::string_body, class Fields = http::fields>
-	//inline http::response<Body, Fields> make_response(std::string_view uri)
-	//{
-	//	asio2::clear_last_error();
-	//	http::response_parser<Body> rep_parser;
-	//	rep_parser.eager(true);
-	//	rep_parser.put(::asio::buffer(uri), asio2::get_last_error());
-	//	http::response<Body, Fields> rep = rep_parser.get();
-	//	return rep;
-	//}
-
-	//template<class Body = http::string_body, class Fields = http::fields>
-	//inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response<Body, Fields>>
-	//	make_response(http::status code, std::string_view body, unsigned version = 11)
-	//{
-	//	http::response<Body, Fields> rep;
-	//	rep.version(version);
-	//	//rep.set(http::field::server, BEAST_VERSION_STRING);
-	//	rep.result(code);
-	//	rep.body() = body;
-	//	http::try_prepare_payload(rep);
-	//	return rep;
-	//}
-
-	//template<class Body = http::string_body, class Fields = http::fields>
-	//inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response<Body, Fields>>
-	//	make_response(unsigned code, std::string_view body, unsigned version = 11)
-	//{
-	//	return make_response(http::int_to_status(code), body, version);
-	//}
-
 	template<class StringT = std::string_view>
 	inline std::string make_error_page(http::status result, StringT&& desc = std::string_view{})
 	{

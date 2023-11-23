@@ -15,8 +15,9 @@
 
 namespace asio
 {
-	using timer = asio::as_tuple_t<::asio::deferred_t>::as_default_on_t<::asio::steady_timer>;
+	using timer = as_tuple_t<use_awaitable_t<>>::as_default_on_t<::asio::steady_timer>;
 
+	template<typename = void>
 	inline void cancel_timer(asio::steady_timer& t) noexcept
 	{
 		try
@@ -155,6 +156,7 @@ namespace asio
 	 * @brief Asynchronously sleep for a duration.
 	 * @param duration - The duration. 
 	 */
+	template<typename = void>
 	asio::awaitable<asio::error_code> async_sleep(std::chrono::steady_clock::duration duration)
 	{
 		auto [ec] = co_await async_sleep(co_await asio::this_coro::executor, duration, use_nothrow_awaitable);
@@ -165,6 +167,7 @@ namespace asio
 	 * @brief Asynchronously sleep for a duration.
 	 * @param duration - The duration. 
 	 */
+	template<typename = void>
 	asio::awaitable<asio::error_code> delay(std::chrono::steady_clock::duration duration)
 	{
 		co_return co_await async_sleep(duration);
@@ -174,6 +177,7 @@ namespace asio
 	 * @brief Asynchronously wait a timeout for the duration.
 	 * @param duration - The duration. 
 	 */
+	template<typename = void>
 	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(
 		std::chrono::steady_clock::duration duration)
 	{
@@ -184,6 +188,7 @@ namespace asio
 	 * @brief Asynchronously wait until the idle timeout.
 	 * @param duration - The deadline. 
 	 */
+	template<typename = void>
 	asio::awaitable<error_code> watchdog(std::chrono::steady_clock::time_point& deadline)
 	{
 		asio::steady_timer watchdog_timer(co_await asio::this_coro::executor);
@@ -208,6 +213,7 @@ namespace asio
 	 * @brief Asynchronously wait until the idle timeout.
 	 * @param duration - The deadline.
 	 */
+	template<typename = void>
 	asio::awaitable<error_code> watchdog(
 		asio::steady_timer& watchdog_timer,
 		std::chrono::system_clock::time_point& alive_time,
@@ -233,6 +239,7 @@ namespace asio
 	 * @brief Asynchronously wait until the idle timeout.
 	 * @param duration - The deadline. 
 	 */
+	template<typename = void>
 	asio::awaitable<error_code> watchdog(
 		std::chrono::system_clock::time_point& alive_time,
 		std::chrono::system_clock::duration idle_timeout)
@@ -251,6 +258,7 @@ namespace asio
 	 * {
 	 * }
 	 */
+	template<typename = void>
 	constexpr bool is_timeout(is_variant auto& v) noexcept
 	{
 		return std::holds_alternative<std::tuple<asio::error_code, detail::timer_tag_t>>(v);

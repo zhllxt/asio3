@@ -47,7 +47,7 @@ namespace bho::beast::http
 namespace boost::beast::http
 #endif
 {
-	template<typename RequestT, typename ResponseT>
+	template<typename RequestT, typename ResponseT, typename... Ts>
 	class basic_router
 	{
 	protected:
@@ -102,11 +102,11 @@ namespace boost::beast::http
 		struct dummy {};
 
 	public:
-		using self  = basic_router<RequestT, ResponseT>;
+		using self  = basic_router<RequestT, ResponseT, Ts...>;
 		using request_type = RequestT;
 		using response_type = ResponseT;
 		using return_type = asio::awaitable<bool>;
-		using function_type = std::function<return_type(RequestT&, ResponseT&)>;
+		using function_type = std::function<return_type(RequestT&, ResponseT&, Ts...)>;
 		using cache_type = cache;
 
 		/**
@@ -115,7 +115,7 @@ namespace boost::beast::http
 		basic_router()
 		{
 			this->not_found_router_ = std::make_shared<function_type>(
-			[](RequestT& req, ResponseT& rep) mutable -> return_type
+			[](RequestT& req, ResponseT& rep, Ts...) mutable -> return_type
 			{
 				std::string desc;
 				desc.reserve(64);
@@ -217,30 +217,30 @@ namespace boost::beast::http
 			}
 		}
 
-		template<class F, class C>
-		inline return_type _call_route_function(F& f, C* c, RequestT& req, ResponseT& rep)
+		template<class F, class C, class... TS>
+		inline return_type _call_route_function(F& f, C* c, RequestT& req, ResponseT& rep, TS&&... ts)
 		{
 			if constexpr (std::same_as<std::decay_t<C>, dummy>)
 			{
-				co_return co_await f(req, rep);
+				co_return co_await f(req, rep, std::forward<TS>(ts)...);
 			}
 			else
 			{
-				co_return c ? (co_await (c->*f)(req, rep)) : false;
+				co_return c ? (co_await (c->*f)(req, rep, std::forward<TS>(ts)...)) : false;
 			}
 		}
 
 		template<bool CacheFlag, class F, class C, class Tup>
 		requires (CacheFlag == false)
-		inline return_type _proxy(F& f, C* c, Tup& aops, RequestT& req, ResponseT& rep)
+		inline return_type _proxy(F& f, C* c, Tup& aops, RequestT& req, ResponseT& rep, Ts... ts)
 		{
-			if (!(co_await _call_aop_before(aops, req, rep)))
+			if (!(co_await _call_aop_before(aops, req, rep, ts...)))
 				co_return false;
 
-			if (!(co_await _call_route_function(f, c, req, rep)))
+			if (!(co_await _call_route_function(f, c, req, rep, ts...)))
 				co_return false;
 
-			if (!(co_await _call_aop_after(aops, req, rep)))
+			if (!(co_await _call_aop_after(aops, req, rep, ts...)))
 				co_return false;
 
 			co_return true;
@@ -248,7 +248,7 @@ namespace boost::beast::http
 
 		template<bool CacheFlag, class F, class C, class Tup>
 		requires (CacheFlag == true)
-		inline return_type _proxy(F& f, C* c, Tup& aops, RequestT& req, ResponseT& rep)
+		inline return_type _proxy(F& f, C* c, Tup& aops, RequestT& req, ResponseT& rep, Ts... ts)
 		{
 			using pcache_node = decltype(this->cache_.find(""));
 
@@ -257,13 +257,13 @@ namespace boost::beast::http
 				pcache_node pcn = this->cache_.find(req.target());
 				if (!pcn)
 				{
-					if (!(co_await _call_aop_before(aops, req, rep)))
+					if (!(co_await _call_aop_before(aops, req, rep, ts...)))
 						co_return false;
 
-					if (!(co_await _call_route_function(f, c, req, rep)))
+					if (!(co_await _call_route_function(f, c, req, rep, ts...)))
 						co_return false;
 
-					if (!(co_await _call_aop_after(aops, req, rep)))
+					if (!(co_await _call_aop_after(aops, req, rep, ts...)))
 						co_return false;
 
 					if (this->cache_.full())
@@ -282,10 +282,10 @@ namespace boost::beast::http
 				}
 				else
 				{
-					if (!(co_await _call_aop_before(aops, req, rep)))
+					if (!(co_await _call_aop_before(aops, req, rep, ts...)))
 						co_return false;
 
-					if (!(co_await _call_aop_after(aops, req, rep)))
+					if (!(co_await _call_aop_after(aops, req, rep, ts...)))
 						co_return false;
 
 					pcn->update_alive_time();
@@ -297,29 +297,29 @@ namespace boost::beast::http
 			}
 			else
 			{
-				if (!(co_await _call_aop_before(aops, req, rep)))
+				if (!(co_await _call_aop_before(aops, req, rep, ts...)))
 					co_return false;
 
-				if (!(co_await _call_route_function(f, c, req, rep)))
+				if (!(co_await _call_route_function(f, c, req, rep, ts...)))
 					co_return false;
 
-				if (!(co_await _call_aop_after(aops, req, rep)))
+				if (!(co_await _call_aop_after(aops, req, rep, ts...)))
 					co_return false;
 
 				co_return true;
 			}
 		}
 
-		template<class F>
-		inline return_type _not_found_proxy(F& f, RequestT& req, ResponseT& rep)
+		template<class F, class... TS>
+		inline return_type _not_found_proxy(F& f, RequestT& req, ResponseT& rep, TS&&... ts)
 		{
-			co_return co_await f(req, rep);
+			co_return co_await f(req, rep, std::forward<TS>(ts)...);
 		}
 
-		template<class F, class C>
-		inline return_type _not_found_proxy(F& f, C* c, RequestT& req, ResponseT& rep)
+		template<class F, class C, class... TS>
+		inline return_type _not_found_proxy(F& f, C* c, RequestT& req, ResponseT& rep, TS&&... ts)
 		{
-			co_return c ? (co_await (c->*f)(req, rep)) : false;
+			co_return c ? (co_await (c->*f)(req, rep, std::forward<TS>(ts)...)) : false;
 		}
 
 		template<class F>
@@ -349,21 +349,21 @@ namespace boost::beast::http
 		}
 
 		template<class Tup>
-		inline return_type _do_call_aop_before(Tup& aops, RequestT& req, ResponseT& rep)
+		inline return_type _do_call_aop_before(Tup& aops, RequestT& req, ResponseT& rep, Ts... ts)
 		{
-			asio::ignore_unused(aops, req, rep);
+			asio::ignore_unused(aops, req, rep, ts...);
 
 			bool continued = true;
-			co_await _for_each_tuple(aops, [&continued, &req, &rep](auto& aop) -> asio::awaitable<void>
+			co_await _for_each_tuple(aops, [&](auto& aop) -> asio::awaitable<void>
 			{
-				asio::ignore_unused(req, rep);
+				asio::ignore_unused(req, rep, ts...);
 
 				if (!continued)
 					co_return;
 
-				if constexpr (has_member_before<decltype(aop), bool, RequestT&, ResponseT&>::value)
+				if constexpr (has_member_before<decltype(aop), bool, RequestT&, ResponseT&, Ts...>::value)
 				{
-					continued = co_await aop.before(req, rep);
+					continued = co_await aop.before(req, rep, ts...);
 				}
 				else
 				{
@@ -374,10 +374,10 @@ namespace boost::beast::http
 			co_return continued;
 		}
 
-		template<class Tup>
-		inline return_type _call_aop_before(Tup& aops, RequestT& req, ResponseT& rep)
+		template<class Tup, class... TS>
+		inline return_type _call_aop_before(Tup& aops, RequestT& req, ResponseT& rep, TS&&... ts)
 		{
-			asio::ignore_unused(aops, req, rep);
+			asio::ignore_unused(aops, req, rep, ts...);
 
 			if constexpr (!std::tuple_size_v<Tup>)
 			{
@@ -385,26 +385,26 @@ namespace boost::beast::http
 			}
 			else
 			{
-				co_return co_await this->_do_call_aop_before(aops, req, rep);
+				co_return co_await this->_do_call_aop_before(aops, req, rep, std::forward<TS>(ts)...);
 			}
 		}
 
 		template<class Tup>
-		inline return_type _do_call_aop_after(Tup& aops, RequestT& req, ResponseT& rep)
+		inline return_type _do_call_aop_after(Tup& aops, RequestT& req, ResponseT& rep, Ts... ts)
 		{
-			asio::ignore_unused(aops, req, rep);
+			asio::ignore_unused(aops, req, rep, ts...);
 
 			bool continued = true;
-			co_await _for_each_tuple(aops, [&continued, &req, &rep](auto& aop) -> asio::awaitable<void>
+			co_await _for_each_tuple(aops, [&](auto& aop) -> asio::awaitable<void>
 			{
-				asio::ignore_unused(req, rep);
+				asio::ignore_unused(req, rep, ts...);
 
 				if (!continued)
 					co_return;
 
-				if constexpr (has_member_after<decltype(aop), bool, RequestT&, ResponseT&>::value)
+				if constexpr (has_member_after<decltype(aop), bool, RequestT&, ResponseT&, Ts...>::value)
 				{
-					continued = co_await aop.after(req, rep);
+					continued = co_await aop.after(req, rep, ts...);
 				}
 				else
 				{
@@ -415,10 +415,10 @@ namespace boost::beast::http
 			co_return continued;
 		}
 
-		template<class Tup>
-		inline return_type _call_aop_after(Tup& aops, RequestT& req, ResponseT& rep)
+		template<class Tup, class... TS>
+		inline return_type _call_aop_after(Tup& aops, RequestT& req, ResponseT& rep, TS&&... ts)
 		{
-			asio::ignore_unused(aops, req, rep);
+			asio::ignore_unused(aops, req, rep, ts...);
 
 			if constexpr (!std::tuple_size_v<Tup>)
 			{
@@ -426,7 +426,7 @@ namespace boost::beast::http
 			}
 			else
 			{
-				co_return co_await this->_do_call_aop_after(aops, req, rep);
+				co_return co_await this->_do_call_aop_after(aops, req, rep, std::forward<TS>(ts)...);
 			}
 		}
 
@@ -566,18 +566,19 @@ namespace boost::beast::http
 			return this->dummy_router_;
 		}
 
-		inline asio::awaitable<bool> route(RequestT& req, ResponseT& rep)
+		template<class... TS>
+		inline return_type route(RequestT& req, ResponseT& rep, TS&&... ts)
 		{
 			std::shared_ptr<function_type>& router_ptr = this->find(req);
 
 			if (router_ptr)
 			{
-				co_return co_await (*router_ptr)(req, rep);
+				co_return co_await (*router_ptr)(req, rep, std::forward<TS>(ts)...);
 			}
 
 			if (this->not_found_router_ && (*(this->not_found_router_)))
 			{
-				co_return co_await (*(this->not_found_router_))(req, rep);
+				co_return co_await (*(this->not_found_router_))(req, rep, std::forward<TS>(ts)...);
 			}
 
 			co_return false;

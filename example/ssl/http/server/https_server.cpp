@@ -24,15 +24,14 @@ net::awaitable<void> do_http_recv(net::https_server& server, std::shared_ptr<net
 		session->update_alive_time();
 
 		http::web_response rep;
-		if (!(co_await server.router.route(req, rep)))
-			break;
+		bool result = co_await server.router.route(req, rep);
 
 		// Send the response
-		auto [e2, n2] = co_await beast::async_write(session->ssl_stream, std::move(rep), net::use_nothrow_awaitable);
+		auto [e2, n2] = co_await beast::async_write(session->ssl_stream, std::move(rep));
 		if (e2)
 			break;
 
-		if (!req.keep_alive())
+		if (!result || !req.keep_alive())
 		{
 			// This means we should close the connection, usually because
 			// the response indicated the "Connection: close" semantic.
@@ -117,7 +116,7 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	asio::ssl::context sslctx(net::ssl::context::sslv23);
+	net::ssl::context sslctx(net::ssl::context::sslv23);
 	net::load_cert_from_string(sslctx, net::ssl::verify_none,
 		ca_crt, server_crt, server_key, "123456", dh);
 	net::https_server server(ctx.get_executor(), std::move(sslctx));

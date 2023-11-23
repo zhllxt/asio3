@@ -9,7 +9,7 @@ net::awaitable<void> do_recv(std::shared_ptr<net::tcp_session> session)
 
 	for (;;)
 	{
-		auto [e1, n1] = co_await net::async_read_until(session->socket, asio::dynamic_buffer(strbuf), '\n');
+		auto [e1, n1] = co_await net::async_read_until(session->socket, net::dynamic_buffer(strbuf), '\n');
 		if (e1)
 			break;
 

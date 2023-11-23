@@ -12,9 +12,12 @@
 
 #include <asio3/core/asio.hpp>
 #include <asio3/core/beast.hpp>
+#include <asio3/core/stdutil.hpp>
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/core/data_persist.hpp>
+#include <asio3/core/file.hpp>
+#include <asio3/http/mime_types.hpp>
 
 namespace asio::detail
 {
@@ -41,6 +44,124 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO3_HEADER_ONLY
+namespace bho::beast::http::detail
+#else
+namespace boost::beast::http::detail
+#endif
+{
+	template<bool isRequest, typename Body, typename Fields>
+	struct async_send_file_op
+	{
+		http::message<isRequest, Body, Fields> header;
+
+		// /boost_1_83_0/libs/beast/example/doc/http_examples.hpp
+		// send_cgi_response
+
+		auto operator()(auto state, auto sock_ref, auto file_ref, auto&& body_chunk_callback) -> void
+		{
+			auto& sock = sock_ref.get();
+			auto& file = file_ref.get();
+
+			auto chunk_callback = std::forward_like<decltype(body_chunk_callback)>(body_chunk_callback);
+
+			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+			asio::error_code ec{};
+			std::size_t sent_bytes = 0;
+
+			http::message<isRequest, http::buffer_body> msg{ std::move(header) };
+
+			msg.body().data = nullptr;
+			msg.body().more = true;
+
+			http::serializer<isRequest, http::buffer_body> sr{ msg };
+
+			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
+
+			auto [e2, n2] = co_await http::async_write_header(sock, sr, asio::use_nothrow_deferred);
+			if (e2)
+			{
+				co_return{ e2, sent_bytes };
+			}
+
+			sent_bytes += n2;
+
+			if (!!state.cancelled())
+				co_return{ asio::error::operation_aborted, sent_bytes };
+
+			std::array<char, 2048> buffer;
+			do
+			{
+				auto [e3, n3] = co_await asio::async_read_some(
+					file, asio::buffer(buffer), asio::use_nothrow_deferred);
+				if (e3 == asio::error::eof)
+				{
+					e3 = {};
+
+					assert(n3 == 0);
+
+					// `nullptr` indicates there is no buffer
+					msg.body().data = nullptr;
+
+					// `false` means no more data is coming
+					msg.body().more = false;
+				}
+				else
+				{
+					if (e3)
+					{
+						co_return{ e3, sent_bytes };
+					}
+
+					// Point to our buffer with the bytes that
+					// we received, and indicate that there may
+					// be some more data coming
+					msg.body().data = buffer.data();
+					msg.body().size = n3;
+					msg.body().more = true;
+				}
+
+				if (!!state.cancelled())
+					co_return{ asio::error::operation_aborted, sent_bytes };
+
+				// Write everything in the body buffer
+				auto [e4, n4] = co_await http::async_write(sock, sr, asio::use_nothrow_deferred);
+
+				sent_bytes += n4;
+
+				if (!!state.cancelled())
+					co_return{ asio::error::operation_aborted, sent_bytes };
+
+				// This error is returned by body_buffer during
+				// serialization when it is done sending the data
+				// provided and needs another buffer.
+				if (e4 == http::error::need_buffer)
+				{
+					e4 = {};
+				}
+				else if (e4)
+				{
+					co_return{ e4, sent_bytes };
+				}
+
+				std::string_view chunk_data{ buffer.data(), n3 };
+				if (!chunk_callback(chunk_data))
+				{
+					co_return{ asio::error::operation_aborted, sent_bytes };
+				}
+
+			} while (!sr.is_done());
+
+			co_return{ error_code{}, sent_bytes };
+        }
+	};
+}
+
 namespace asio
 {
 /**
@@ -56,16 +177,97 @@ template<
 	typename AsyncStream,
 	typename SendToken = asio::default_token_type<AsyncStream>>
 inline auto async_send(
-	websocket::stream<AsyncStream>& stream,
+	beast::websocket::stream<AsyncStream>& stream,
 	auto&& data,
 	SendToken&& token = asio::default_token_type<AsyncStream>())
 {
-	return async_initiate<SendToken, void(asio::error_code, std::size_t)>(
-		experimental::co_composed<void(asio::error_code, std::size_t)>(
+	return asio::async_initiate<SendToken, void(asio::error_code, std::size_t)>(
+		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
 			detail::websocket_stream_async_send_op{}, stream),
 		token,
 		std::ref(stream),
-		detail::data_persist(std::forward_like<decltype(data)>(data)));
+		asio::detail::data_persist(std::forward_like<decltype(data)>(data)));
+}
+
+}
+
+#ifdef ASIO3_HEADER_ONLY
+namespace bho::beast::http
+#else
+namespace boost::beast::http
+#endif
+{
+/**
+ * @brief Start an asynchronous operation to write all the data of the supplied file to a stream.
+ * @param stream - The socket stream to which the data is to be written.
+ * @param file - The file stream to which the data is to be readed.
+ * @param header - The http message header which will be written to the stream.
+ * @param chunk_callback - The file data chunk callback function. The function will
+    be called with this signature:
+    @code
+		// return true to continue sending the next data chunk.
+		// return false will stop the sending.
+        bool on_chunk(std::string_view chunk){};
+    @endcode
+ * @param token - The completion handler to invoke when the operation completes.
+ *	  The equivalent function signature of the handler must be:
+ *    @code
+ *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
+ */
+template<
+	bool isRequest,
+	typename AsyncStream,
+	typename FileStream,
+	typename Body, typename Fields,
+	typename BodyChunkCallback,
+	typename SendToken = asio::default_token_type<AsyncStream>>
+requires (std::invocable<BodyChunkCallback, std::string_view>)
+inline auto async_send_file(
+	AsyncStream& stream,
+	FileStream& file,
+	http::message<isRequest, Body, Fields> header,
+	BodyChunkCallback&& chunk_callback,
+	SendToken&& token = asio::default_token_type<AsyncStream>())
+{
+	return asio::async_initiate<SendToken, void(asio::error_code, std::size_t)>(
+		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
+			detail::async_send_file_op<isRequest, Body, Fields>{ std::move(header) }, stream),
+		token,
+		std::ref(stream),
+		std::ref(file),
+		std::forward<BodyChunkCallback>(chunk_callback));
+}
+
+/**
+ * @brief Start an asynchronous operation to write all the data of the supplied file to a stream.
+ * @param stream - The socket stream to which the data is to be written.
+ * @param file - The file stream to which the data is to be readed.
+ * @param header - The http message header which will be written to the stream.
+ * @param token - The completion handler to invoke when the operation completes.
+ *	  The equivalent function signature of the handler must be:
+ *    @code
+ *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
+ */
+template<
+	bool isRequest,
+	typename AsyncStream,
+	typename FileStream,
+	typename Body, typename Fields,
+	typename SendToken = asio::default_token_type<AsyncStream>>
+requires (!std::invocable<SendToken, std::string_view>)
+inline auto async_send_file(
+	AsyncStream& stream,
+	FileStream& file,
+	http::message<isRequest, Body, Fields> header,
+	SendToken&& token = asio::default_token_type<AsyncStream>())
+{
+	return asio::async_initiate<SendToken, void(asio::error_code, std::size_t)>(
+		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
+			detail::async_send_file_op<isRequest, Body, Fields>{ std::move(header) }, stream),
+		token,
+		std::ref(stream),
+		std::ref(file),
+		[](auto) { return true; });
 }
 
 }

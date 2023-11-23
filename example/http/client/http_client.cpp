@@ -1,37 +1,78 @@
-#include <asio3/tcp/tcp_client.hpp>
+#include <asio3/http/http_client.hpp>
 #include <asio3/core/fmt.hpp>
 
 namespace net = ::asio;
 
-net::awaitable<void> do_recv(net::tcp_client& client)
+net::awaitable<void> do_upload(net::http_client& client)
 {
-	std::string strbuf;
+	beast::flat_buffer buffer;
 
-	for (;;)
-	{
-		auto [e1, n1] = co_await net::async_read_until(client.socket, net::dynamic_buffer(strbuf), '\n');
-		if (e1)
-			break;
+	auto on_chunk = [](auto) { return true; };
 
-		auto data = net::buffer(strbuf.data(), n1);
+	std::error_code ec{};
+	net::stream_file file(client.get_executor());
+	file.open("D:/Programs/HeidiSQL_12.5_64_Portable.zip", asio::file_base::read_only, ec);
+	if (ec)
+		co_return;
 
-		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
+	http::request<http::string_body> req{ http::verb::post, "/", 11 };
+	req.target("/upload/HeidiSQL_12.5_64_Portable.zip");
+	req.set(http::field::content_type, http::extension_to_mimetype("zip"));
+	req.set(http::field::host, "127.0.0.1:8080");
+	req.chunked(true);
+	//req.content_length(file.size());
 
-		auto [e2, n2] = co_await net::async_send(client.socket, data);
-		if (e2)
-			break;
+	auto [e0, n0] = co_await http::async_send_file(client.socket, file, req, on_chunk);
 
-		strbuf.erase(0, n1);
-	}
+	fmt::print("upload finished: {}\n", e0.message());
+
+	http::response<http::string_body> res;
+	auto [e1, n1] = co_await http::async_read(client.socket, buffer, res);
 
 	client.close();
+	client.async_stop([](auto...) {});
 }
 
-net::awaitable<void> connect(net::tcp_client& client)
+net::awaitable<void> do_download(net::http_client& client)
+{
+	beast::flat_buffer buffer;
+
+	auto on_chunk = [](auto) { return true; };
+
+	std::error_code ec{};
+	net::stream_file file(client.get_executor());
+	file.open("asio-master.zip",
+		asio::file_base::write_only | asio::file_base::create | asio::file_base::truncate, ec);
+	if (ec)
+		co_return;
+
+	http::request<http::empty_body> req{ http::verb::get, "/", 11 };
+	req.target("/download/asio-master.zip");
+	req.set(http::field::host, "127.0.0.1:8080");
+
+	auto [e1, n1] = co_await http::async_write(client.socket, req);
+	if (e1)
+		co_return;
+
+	http::response_parser<http::string_body> parser;
+	parser.body_limit((std::numeric_limits<std::size_t>::max)());
+	auto [e2, n2] = co_await http::async_read_header(client.socket, buffer, parser);
+	if (e2)
+		co_return;
+
+	auto [e3, n3] = co_await http::async_recv_file(client.socket, file, parser.get(), on_chunk);
+
+	fmt::print("download finished: {}\n", e3.message());
+
+	client.close();
+	client.async_stop([](auto...) {});
+}
+
+net::awaitable<void> connect(net::http_client& client)
 {
 	while (!client.is_aborted())
 	{
-		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8028);
+		auto [ec, ep] = co_await client.async_connect("127.0.0.1", 8080);
 		if (ec)
 		{
 			// connect failed, reconnect...
@@ -43,10 +84,8 @@ net::awaitable<void> connect(net::tcp_client& client)
 
 		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
 
-		// connect success, send some message to the server...
-		co_await client.async_send("<0123456789>\n");
-
-		co_await do_recv(client);
+		//co_await do_upload(client);
+		co_await do_download(client);
 	}
 }
 
@@ -54,7 +93,7 @@ int main()
 {
 	net::io_context ctx;
 
-	net::tcp_client client(ctx.get_executor());
+	net::http_client client(ctx.get_executor());
 
 	net::co_spawn(ctx.get_executor(), connect(client), net::detached);
 
