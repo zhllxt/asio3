@@ -15,7 +15,7 @@ aux_source_directory(. SRC_FILES)
 
 source_group("" FILES ${SRC_FILES})
 
-set(TARGET_NAME websocket_server)
+set(TARGET_NAME ws_server)
 
 add_executable (
     ${TARGET_NAME}

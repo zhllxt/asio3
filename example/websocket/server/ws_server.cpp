@@ -17,7 +17,7 @@ net::awaitable<void> do_recv(std::shared_ptr<net::ws_session> session)
 
 		// Echo the message
 		session->ws_stream.text(session->ws_stream.got_text());
-		auto [e2, n2] = co_await session->ws_stream.async_write(buf.data());
+		auto [e2, n2] = co_await net::async_send(session->ws_stream, buf.data());
 		if (e2)
 			break;
 

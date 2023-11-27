@@ -24,7 +24,7 @@ net::awaitable<void> do_recv(net::wss_client& client)
 
 		client.ws_stream.text(client.ws_stream.got_text());
 
-		auto [e2, n2] = co_await client.ws_stream.async_write(buf.data());
+		auto [e2, n2] = co_await net::async_send(client.ws_stream, buf.data());
 		if (e2)
 			break;
 

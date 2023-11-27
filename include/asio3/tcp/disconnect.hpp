@@ -30,7 +30,16 @@ namespace asio::detail
 
 			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
 
-			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
+			// release lock immediately, otherwise, the following situation maybe occur:
+			// 1. the async wait is called(see below), and wait for timeout.
+			// 2. then the async send is called, and require the lock, but the lock is 
+			// holded at here, so the async send will wait for the lock forever.
+			// 3. until disconnect timed out, the async wait returned, and release lock.
+			// 4. then the async send get the lock.
+			// so, this will take 30 seconds default to exit the application.
+			{
+				[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
+			}
 
 			asio::error_code ec{};
 

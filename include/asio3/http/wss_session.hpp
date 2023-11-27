@@ -13,6 +13,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/beast.hpp>
 #include <asio3/tcp/tcps_session.hpp>
+#include <asio3/http/write.hpp>
 
 namespace asio
 {

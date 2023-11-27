@@ -13,6 +13,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/beast.hpp>
 #include <asio3/tcp/tcp_session.hpp>
+#include <asio3/http/write.hpp>
 
 namespace asio
 {
@@ -64,6 +65,23 @@ namespace asio
 
 						co_return error_code{};
 					}, this->socket), token, std::ref(*this));
+		}
+
+		/**
+		 * @brief Safety start an asynchronous operation to write all of the supplied data.
+		 * @param data - The written data.
+		 * @param token - The completion handler to invoke when the operation completes.
+		 *	  The equivalent function signature of the handler must be:
+		 *    @code
+		 *    void handler(const asio::error_code& ec, std::size_t sent_bytes);
+		 */
+		template<typename WriteToken = asio::default_token_type<socket_type>>
+		inline auto async_send(
+			auto&& data,
+			WriteToken&& token = asio::default_token_type<socket_type>())
+		{
+			return asio::async_send(ws_stream,
+				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
 		}
 
 		inline super& base() noexcept

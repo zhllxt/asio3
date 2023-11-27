@@ -14,6 +14,20 @@ public:
   /// conversions.
   struct default_constructor_tag {};
 
+  struct lock_info
+  {
+    experimental::channel<void()> ch;
+
+  #ifndef NDEBUG
+	detail::socket_type sock{ detail::invalid_socket };
+  #endif
+
+	template <typename Ex>
+	lock_info(const Ex& ex) : ch(ex, 1)
+	{
+	}
+  };
+
   /// Default constructor.
   /**
    * This constructor is only valid if the underlying completion token is
@@ -56,10 +70,10 @@ public:
         >::type = 0) noexcept
       : InnerExecutor(ex)
     {
-        lock = std::make_shared<experimental::channel<void()>>(ex, 1);
+		lock = std::make_shared<lock_info>(ex);
     }
 
-    std::shared_ptr<experimental::channel<void()>> lock;
+    std::shared_ptr<lock_info> lock;
   };
 
   /// Type alias to adapt an I/O object to use @c with_lock_t as its
@@ -103,11 +117,30 @@ namespace asio::detail
 	template<typename AsyncStream>
 	concept has_member_variable_lock = requires(AsyncStream & s)
 	{
-		s.get_executor().lock->try_send();
+		s.get_executor().lock->ch.try_send();
+	};
+
+	template<typename AsyncStream>
+	concept has_member_next_layer = requires(AsyncStream & s)
+	{
+		s.next_layer();
 	};
 
 	struct async_lock_channel_op
 	{
+		template<typename AsyncStream>
+		auto& lowest_layer(AsyncStream& s)
+		{
+			if constexpr (has_member_next_layer<std::remove_cvref_t<AsyncStream>>)
+			{
+				return s.next_layer().lowest_layer();
+			}
+			else
+			{
+				return s.lowest_layer();
+			}
+		}
+
 		template<typename AsyncStream>
 		auto operator()(auto state, std::reference_wrapper<AsyncStream> stream_ref) -> void
 		{
@@ -119,9 +152,22 @@ namespace asio::detail
 			{
 				//assert(s.get_executor().running_in_this_thread());
 
-				if (!s.get_executor().lock->try_send())
+			#ifndef NDEBUG
+				detail::socket_type& sock1 = s.get_executor().lock->sock;
+				detail::socket_type  sock2 = static_cast<detail::socket_type>(lowest_layer(s).native_handle());
+				if (sock1 == detail::invalid_socket)
 				{
-					auto [ec] = co_await s.get_executor().lock->async_send(asio::use_nothrow_deferred);
+					sock1 = sock2;
+				}
+				else if (sock2 != detail::invalid_socket)
+				{
+					assert(sock1 == sock2);
+				}
+			#endif
+
+				if (!s.get_executor().lock->ch.try_send())
+				{
+					auto [ec] = co_await s.get_executor().lock->ch.async_send(asio::use_nothrow_deferred);
 					co_return ec;
 				}
 			}
@@ -137,7 +183,7 @@ namespace asio::detail
 		{
 			//assert(s.get_executor().running_in_this_thread());
 
-			s.get_executor().lock->try_receive([](auto...) {});
+			s.get_executor().lock->ch.try_receive([](auto...) {});
 		}
 	}
 }
