@@ -91,12 +91,12 @@ namespace boost::beast::http::detail
 
 			sent_bytes += n2;
 
-			if (!!state.cancelled())
-				co_return{ asio::error::operation_aborted, sent_bytes };
-
 			std::array<char, 2048> buffer;
 			do
 			{
+				if (!!state.cancelled())
+					co_return{ asio::error::operation_aborted, sent_bytes };
+
 				auto [e3, n3] = co_await asio::async_read_some(
 					file, asio::buffer(buffer), asio::use_nothrow_deferred);
 				if (e3 == asio::error::eof)
@@ -126,16 +126,10 @@ namespace boost::beast::http::detail
 					msg.body().more = true;
 				}
 
-				if (!!state.cancelled())
-					co_return{ asio::error::operation_aborted, sent_bytes };
-
 				// Write everything in the body buffer
 				auto [e4, n4] = co_await http::async_write(sock, sr, asio::use_nothrow_deferred);
 
 				sent_bytes += n4;
-
-				if (!!state.cancelled())
-					co_return{ asio::error::operation_aborted, sent_bytes };
 
 				// This error is returned by body_buffer during
 				// serialization when it is done sending the data

@@ -12,47 +12,45 @@
 
 #pragma once
 
-#include <functional>
+#include <algorithm>
 
-namespace asio
+namespace std
 {
+	template<typename Function>
 	class defer
 	{
 	public:
-		defer() noexcept = default;
-
 		// movable
-		defer(defer&&) noexcept = default;
-		defer& operator=(defer&&) noexcept = default;
+		defer(defer&& rhs) noexcept : fn_(std::move(rhs.fn_)), valid_(rhs.valid_)
+		{
+			rhs.valid_ = false;
+		}
+		defer& operator=(defer&&) noexcept = delete;
 
 		// non copyable
 		defer(const defer&) = delete;
 		void operator=(const defer&) = delete;
 
-		template <typename Fun, typename... Args>
-		requires std::invocable<Fun, Args...>
-		defer(Fun&& fun, Args&&... args)
+		template <typename Func>
+		defer(Func&& fun) noexcept : fn_(std::forward<Func>(fun)), valid_(true)
 		{
-			this->fn_ = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
-		}
-
-		template <typename Constructor, typename Destructor>
-		requires (std::invocable<Constructor, void> && std::invocable<Destructor, void>)
-		defer(Constructor&& ctor, Destructor&& dtor)
-		{
-			(ctor)();
-
-			this->fn_ = std::forward<Destructor>(dtor);
 		}
 
 		~defer() noexcept
 		{
-			if (this->fn_) this->fn_();
+			if (valid_)
+			{
+				fn_();
+			}
 		}
 
 	protected:
-		std::function<void()> fn_;
+		Function fn_;
+		bool valid_ = false;
 	};
+
+	template<typename Function>
+	defer(Function) -> defer<Function>;
 
 #ifndef ASIO3_CONCAT
 #define ASIO3_CONCAT(a, b) a##b

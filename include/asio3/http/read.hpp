@@ -154,6 +154,9 @@ namespace boost::beast::http::detail
 
 				while (!parser.is_done())
 				{
+					if (!!state.cancelled())
+						co_return{ asio::error::operation_aborted, recvd_bytes };
+
 					// Read as much as we can. When we reach the end of the chunk, the chunk
 					// body callback will make the read return with the end_of_chunk error.
 					auto [e1, n1] = co_await http::async_read(sock, buffer, parser, asio::use_nothrow_deferred);
@@ -183,6 +186,9 @@ namespace boost::beast::http::detail
 
 				while (!parser.is_done())
 				{
+					if (!!state.cancelled())
+						co_return{ asio::error::operation_aborted, recvd_bytes };
+
 					parser.get().body().data = buf.data();
 					parser.get().body().size = buf.size();
 

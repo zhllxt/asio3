@@ -1,5 +1,7 @@
 #include <asio3/core/fmt.hpp>
 #include <asio3/http/http_server.hpp>
+#include <asio3/core/defer.hpp>
+#include <unordered_map>
 
 namespace net = ::asio;
 
@@ -121,6 +123,8 @@ int main()
 
 	http_server_ex server(ctx.get_executor());
 
+	std::unordered_map<net::cancellation_signal*, std::unique_ptr<net::cancellation_signal>> sigs;
+
 	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
 	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
 	server.root_directory = std::move(root);
@@ -166,12 +170,18 @@ int main()
 		co_return true;
 	}, http::enable_cache);
 
-	server.router.add("/download/*", [&server](http::web_request& req, http::web_response& rep, userdata data)
+	server.router.add("/download/*", [&server, &sigs](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
 	{
 		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
 		if (e1)
 			co_return false;
+
+		if (server.is_aborted())
+		{
+			rep = http::make_error_page_response(http::status::service_unavailable);
+			co_return false;
+		}
 
 		std::filesystem::path filepath = server.root_directory;
 		filepath += req.target().substr(std::strlen("/download"));
@@ -191,7 +201,18 @@ int main()
 		//res.chunked(true);
 		res.content_length(file.size());
 
-		auto [e2, n2] = co_await http::async_send_file(data.session->socket, file, std::move(res));
+		// used to interrupt the file operation, otherwise when close this application,
+		// it maybe wait for a long time until the file operation finished.
+		std::unique_ptr<net::cancellation_signal> sig = std::make_unique<net::cancellation_signal>();
+		net::cancellation_signal* psig = sig.get();
+		sigs.emplace(psig, std::move(sig));
+		std::defer remove_sig = [&sigs, psig]() mutable
+		{
+			sigs.erase(psig);
+		};
+
+		auto [e2, n2] = co_await http::async_send_file(data.session->socket, file, std::move(res),
+			net::bind_cancellation_slot(psig->slot(), net::use_nothrow_awaitable));
 		if (e2)
 		{
 			rep = http::make_error_page_response(http::status::internal_server_error);
@@ -203,9 +224,15 @@ int main()
 		co_return true;
 	}, aop_auth{});
 
-	server.router.add("/upload/*", [&server](http::web_request& req, http::web_response& rep, userdata data)
+	server.router.add("/upload/*", [&server, &sigs](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
 	{
+		if (server.is_aborted())
+		{
+			rep = http::make_error_page_response(http::status::service_unavailable);
+			co_return false;
+		}
+
 		std::filesystem::path filepath = server.root_directory;
 		filepath += req.target().substr(std::strlen("/upload"));
 
@@ -219,7 +246,18 @@ int main()
 			co_return true;
 		}
 
-		auto [e2, n2] = co_await http::async_recv_file(data.session->socket, file, req);
+		// used to interrupt the file operation, otherwise when close this application,
+		// it maybe wait for a long time until the file operation finished.
+		std::unique_ptr<net::cancellation_signal> sig = std::make_unique<net::cancellation_signal>();
+		net::cancellation_signal* psig = sig.get();
+		sigs.emplace(psig, std::move(sig));
+		std::defer remove_sig = [&sigs, psig]() mutable
+		{
+			sigs.erase(psig);
+		};
+
+		auto [e2, n2] = co_await http::async_recv_file(data.session->socket, file, req,
+			net::bind_cancellation_slot(psig->slot(), net::use_nothrow_awaitable));
 		if (e2)
 		{
 			rep = http::make_error_page_response(http::status::internal_server_error);
@@ -233,8 +271,14 @@ int main()
 	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8080), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
-	sigset.async_wait([&server](net::error_code, int) mutable
+	sigset.async_wait([&server, &sigs](net::error_code, int) mutable
 	{
+		for (auto& [key, sig] : sigs)
+		{
+			sig->emit(net::cancellation_type::terminal);
+		}
+		net::error_code ec{};
+		server.acceptor.close(ec);
 		server.async_stop([](auto) {});
 	});
 
