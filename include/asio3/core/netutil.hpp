@@ -56,8 +56,8 @@ namespace asio
 	constexpr std::chrono::milliseconds mqtt_idle_timeout       = std::chrono::milliseconds(90 * 1000); // 60 * 1.5
 	constexpr std::chrono::milliseconds proxy_idle_timeout      = std::chrono::milliseconds(5 * 60 * 1000);
 
-	constexpr std::chrono::milliseconds http_execute_timeout    = std::chrono::milliseconds(15 * 1000);
-	constexpr std::chrono::milliseconds icmp_execute_timeout    = std::chrono::milliseconds( 4 * 1000);
+	constexpr std::chrono::milliseconds http_request_timeout    = std::chrono::milliseconds(15 * 1000);
+	constexpr std::chrono::milliseconds icmp_request_timeout    = std::chrono::milliseconds( 4 * 1000);
 
 	constexpr std::chrono::milliseconds ssl_shutdown_timeout    = std::chrono::milliseconds(30 * 1000);
 	constexpr std::chrono::milliseconds  ws_shutdown_timeout    = std::chrono::milliseconds(30 * 1000);

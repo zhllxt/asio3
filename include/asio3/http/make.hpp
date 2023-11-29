@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include <asio3/http/core.hpp>
 #include <asio3/http/mime_types.hpp>
 

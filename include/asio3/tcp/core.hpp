@@ -43,4 +43,12 @@ namespace asio
 			sock.set_option(asio::ip::tcp::no_delay(option.no_delay), ec);
 		}
 	};
+
+	struct default_tcp_connect_condition
+	{
+		inline bool operator()(const asio::error_code&, const asio::ip::tcp::endpoint&) noexcept
+		{
+			return true;
+		}
+	};
 }

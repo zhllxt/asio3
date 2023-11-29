@@ -1,22 +1,27 @@
+#ifndef ASIO3_ENABLE_SSL
+#define ASIO3_ENABLE_SSL
+#endif
+
 #include <asio3/core/fmt.hpp>
-#include <asio3/http/http_server.hpp>
+#include <asio3/http/https_server.hpp>
 #include <asio3/core/defer.hpp>
 #include <unordered_map>
+#include "../../certs.hpp"
 
 namespace net = ::asio;
 
 struct userdata
 {
-	std::shared_ptr<net::http_session>& session;
+	std::shared_ptr<net::https_session>& session;
 	beast::flat_buffer& buffer;
 	http::request_parser<http::string_body>& parser;
 	bool& need_response;
 };
 
-using http_server_ex = net::basic_http_server<
-	net::http_session, http::basic_router<http::web_request, http::web_response, userdata>>;
+using http_server_ex = net::basic_https_server<
+	net::https_session, http::basic_router<http::web_request, http::web_response, userdata>>;
 
-net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<net::http_session> session)
+net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<net::https_session> session)
 {
 	// This buffer is required to persist across reads
 	beast::flat_buffer buffer;
@@ -27,7 +32,7 @@ net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<net::h
 
 		parser.body_limit((std::numeric_limits<std::size_t>::max)());
 
-		auto [e0, n0] = co_await http::async_read_header(session->socket, buffer, parser);
+		auto [e0, n0] = co_await http::async_read_header(session->ssl_stream, buffer, parser);
 		if (e0)
 			break;
 
@@ -41,7 +46,7 @@ net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<net::h
 		// Send the response
 		if (need_response)
 		{
-			auto [e2, n2] = co_await beast::async_write(session->socket, std::move(rep));
+			auto [e2, n2] = co_await beast::async_write(session->ssl_stream, std::move(rep));
 			if (e2)
 				break;
 		}
@@ -54,13 +59,22 @@ net::awaitable<void> do_http_recv(http_server_ex& server, std::shared_ptr<net::h
 		}
 	}
 
+	co_await session->ssl_stream.async_shutdown();
+
 	session->close();
 }
 
-net::awaitable<void> client_join(http_server_ex& server, std::shared_ptr<net::http_session> session)
+net::awaitable<void> client_join(http_server_ex& server, std::shared_ptr<net::https_session> session)
 {
 	auto addr = session->get_remote_address();
 	auto port = session->get_remote_port();
+
+	auto [e2] = co_await net::async_handshake(session->ssl_stream, net::ssl::stream_base::handshake_type::server);
+	if (e2)
+	{
+		fmt::print("handshake failure: {}\n", e2.message());
+		co_return;
+	}
 
 	fmt::print("+ client join: {} {}\n", addr, port);
 
@@ -94,7 +108,7 @@ net::awaitable<void> start_server(http_server_ex& server, std::string listen_add
 		else
 		{
 			net::co_spawn(server.get_executor(), client_join(server,
-				std::make_shared<net::http_session>(std::move(client))), net::detached);
+				std::make_shared<net::https_session>(std::move(client), server.ssl_context)), net::detached);
 		}
 	}
 }
@@ -121,7 +135,10 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	http_server_ex server(ctx.get_executor());
+	net::ssl::context sslctx(net::ssl::context::sslv23);
+	net::load_cert_from_string(sslctx, net::ssl::verify_none,
+		ca_crt, server_crt, server_key, "123456", dh);
+	http_server_ex server(ctx.get_executor(), std::move(sslctx));
 
 	std::unordered_map<net::cancellation_signal*, std::unique_ptr<net::cancellation_signal>> sigs;
 
@@ -132,7 +149,7 @@ int main()
 	server.router.add("/", [&server](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
 	{
-		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
+		auto [e1, n1] = co_await http::async_read(data.session->ssl_stream, data.buffer, data.parser);
 		if (e1)
 			co_return false;
 
@@ -151,7 +168,7 @@ int main()
 	server.router.add("*", [&server](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
 	{
-		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
+		auto [e1, n1] = co_await http::async_read(data.session->ssl_stream, data.buffer, data.parser);
 		if (e1)
 			co_return false;
 
@@ -173,7 +190,7 @@ int main()
 	server.router.add("/download/*", [&server, &sigs](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
 	{
-		auto [e1, n1] = co_await http::async_read(data.session->socket, data.buffer, data.parser);
+		auto [e1, n1] = co_await http::async_read(data.session->ssl_stream, data.buffer, data.parser);
 		if (e1)
 			co_return false;
 
@@ -211,7 +228,7 @@ int main()
 			sigs.erase(psig);
 		};
 
-		auto [e2, n2] = co_await http::async_send_file(data.session->socket, file, std::move(res),
+		auto [e2, n2] = co_await http::async_send_file(data.session->ssl_stream, file, std::move(res),
 			net::bind_cancellation_slot(psig->slot(), net::use_nothrow_awaitable));
 		if (e2)
 		{
@@ -256,7 +273,7 @@ int main()
 			sigs.erase(psig);
 		};
 
-		auto [e2, n2] = co_await http::async_recv_file(data.session->socket, file, data.buffer, req,
+		auto [e2, n2] = co_await http::async_recv_file(data.session->ssl_stream, file, data.buffer, req,
 			net::bind_cancellation_slot(psig->slot(), net::use_nothrow_awaitable));
 		if (e2)
 		{
@@ -268,7 +285,7 @@ int main()
 		co_return true;
 	}, aop_auth{});
 
-	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8080), net::detached);
+	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8443), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
 	sigset.async_wait([&server, &sigs](net::error_code, int) mutable

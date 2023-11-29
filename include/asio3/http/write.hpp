@@ -97,8 +97,8 @@ namespace boost::beast::http::detail
 				if (!!state.cancelled())
 					co_return{ asio::error::operation_aborted, sent_bytes };
 
-				auto [e3, n3] = co_await asio::async_read_some(
-					file, asio::buffer(buffer), asio::use_nothrow_deferred);
+				auto [e3, n3] = co_await file.async_read_some(
+					asio::buffer(buffer), asio::use_nothrow_deferred);
 				if (e3 == asio::error::eof)
 				{
 					e3 = {};

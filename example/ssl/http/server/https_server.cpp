@@ -39,6 +39,8 @@ net::awaitable<void> do_http_recv(net::https_server& server, std::shared_ptr<net
 		}
 	}
 
+	co_await session->ssl_stream.async_shutdown();
+
 	session->close();
 }
 

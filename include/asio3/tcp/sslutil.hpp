@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/with_lock.hpp>
 
 #if defined(ASIO3_ENABLE_SSL)
 namespace asio::detail

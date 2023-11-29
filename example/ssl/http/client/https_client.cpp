@@ -2,85 +2,94 @@
 #define ASIO3_ENABLE_SSL
 #endif
 
-#include <asio3/tcp/tcps_client.hpp>
+#include <asio3/http/request.hpp>
+#include <asio3/http/download.hpp>
+#include <asio3/http/upload.hpp>
+
 #include <asio3/core/fmt.hpp>
+#include <iostream>
 #include "../../certs.hpp"
 
 namespace net = ::asio;
 
-net::awaitable<void> do_recv(net::tcps_client& client)
+net::awaitable<void> do_request()
 {
-	std::string strbuf;
+	auto executor = co_await net::this_coro::executor;
 
-	for (;;)
-	{
-		auto [e1, n1] = co_await net::async_read_until(client.ssl_stream, net::dynamic_buffer(strbuf), '\n');
-		if (e1)
-			break;
+	auto [e1, resp1] = co_await http::async_request(executor, {
+		.url = "https://www.baidu.com/",
+		.header = {
+			{ "Host", "www.baidu.com" },
+			{ "Connection", "keep-alive" },
+		},
+		.method = http::verb::get,
+		.socks5_option = socks5::option{
+			.proxy_address = "127.0.0.1",
+			.proxy_port = 10808,
+		},
+		});
 
-		auto data = net::buffer(strbuf.data(), n1);
-
-		fmt::print("{} {}\n", std::chrono::system_clock::now(), data);
-
-		auto [e2, n2] = co_await net::async_send(client.ssl_stream, data);
-		if (e2)
-			break;
-
-		strbuf.erase(0, n1);
-	}
-
-	client.close();
+	std::cout << e1.message() << std::endl;
+	std::cout << resp1 << std::endl;
 }
 
-net::awaitable<void> connect(net::tcps_client& client)
+net::awaitable<void> do_download()
 {
-	while (!client.is_aborted())
+	auto executor = co_await net::this_coro::executor;
+
+	auto on_head = [](http::response<http::string_body>& msg)
 	{
-		auto [e1, ep] = co_await client.async_connect("127.0.0.1", 8002);
-		if (e1)
-		{
-			// connect failed, reconnect...
-			fmt::print("connect failure: {}\n", e1.message());
-			co_await net::delay(std::chrono::seconds(1));
-			client.close();
-			continue;
-		}
+		return true;
+	};
+	auto on_chunk = [](std::string_view data)
+	{
+		return true;
+	};
 
-		auto [e2] = co_await net::async_handshake(client.ssl_stream,
-			net::ssl::stream_base::handshake_type::client);
-		if (e2)
-		{
-			// handshake failed, reconnect...
-			fmt::print("handshake failure: {}\n", e2.message());
-			co_await net::delay(std::chrono::seconds(1));
-			client.close();
-			continue;
-		}
+	auto [e1] = co_await http::async_download(executor, {
+		.url = "https://www.winrar.com.cn/download/winrar-x64-624scp.exe",
+		.on_head = on_head,
+		.on_chunk = on_chunk,
+		.saved_filepath = "winrar-x64-624scp.exe",
+		.socks5_option = socks5::option{
+			.proxy_address = "127.0.0.1",
+			.proxy_port = 10808,
+		},
+		});
 
-		fmt::print("connect success: {} {}\n", client.get_remote_address(), client.get_remote_port());
+	std::cout << e1.message() << std::endl;
+}
 
-		// connect success, send some message to the server...
-		co_await client.async_send("<0123456789>\n");
+net::awaitable<void> do_upload()
+{
+	auto executor = co_await net::this_coro::executor;
 
-		co_await do_recv(client);
-	}
+	auto on_chunk = [](std::string_view data)
+	{
+		return true;
+	};
+
+	auto [e1, resp] = co_await http::async_upload(executor, {
+		.url = "https://127.0.0.1:8443/upload/winrar-x64-624scp.exe",
+		.on_chunk = on_chunk,
+		.local_filepath = "winrar-x64-624scp.exe",
+		.socks5_option = socks5::option{
+			.proxy_address = "127.0.0.1",
+			.proxy_port = 20808,
+		},
+		});
+
+	std::cout << e1.message() << std::endl;
+	std::cout << resp << std::endl;
 }
 
 int main()
 {
 	net::io_context ctx;
 
-	net::ssl::context sslctx(net::ssl::context::sslv23);
-	net::load_cert_from_string(sslctx, net::ssl::verify_peer, ca_crt, client_crt, client_key, "123456");
-	net::tcps_client client(ctx.get_executor(), std::move(sslctx));
-
-	net::co_spawn(ctx.get_executor(), connect(client), net::detached);
-
-	net::signal_set sigset(ctx.get_executor(), SIGINT);
-	sigset.async_wait([&client](net::error_code, int) mutable
-	{
-		client.async_stop([](auto) {});
-	});
+	//net::co_spawn(ctx.get_executor(), do_request(), net::detached);
+	//net::co_spawn(ctx.get_executor(), do_download(), net::detached);
+	net::co_spawn(ctx.get_executor(), do_upload(), net::detached);
 
 	ctx.run();
 }

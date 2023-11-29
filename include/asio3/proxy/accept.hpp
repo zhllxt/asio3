@@ -28,14 +28,6 @@ namespace asio::socks5::detail
 {
 	struct async_accept_op
 	{
-		struct tcp_connect_condition
-		{
-			inline bool operator()(const asio::error_code&, const asio::ip::tcp::endpoint&) noexcept
-			{
-				return true;
-			}
-		};
-
 		template<typename AuthConfig>
 		auto operator()(auto state, auto sock_ref, std::reference_wrapper<AuthConfig> auth_cfg_ref) -> void
 		{
@@ -413,7 +405,7 @@ namespace asio::socks5::detail
 				{
 					connect_socket_t bnd_socket(sock.get_executor());
 					auto [ed, ep] = co_await asio::async_connect(
-						bnd_socket, eps, tcp_connect_condition{}, use_nothrow_deferred);
+						bnd_socket, eps, asio::default_tcp_connect_condition{}, use_nothrow_deferred);
 
 					if (!ed)
 					{

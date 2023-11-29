@@ -48,10 +48,11 @@ namespace boost::beast::http::detail
 
 		// /boost_1_80_0/libs/beast/example/doc/http_examples.hpp
 
-		auto operator()(auto state, auto sock_ref, auto file_ref, auto&& body_chunk_callback) -> void
+		auto operator()(auto state, auto sock_ref, auto file_ref, auto buffer_ref, auto&& body_chunk_callback) -> void
 		{
 			auto& sock = sock_ref.get();
 			auto& file = file_ref.get();
+			auto& buffer = buffer_ref.get();
 
 			auto chunk_callback = std::forward_like<decltype(body_chunk_callback)>(body_chunk_callback);
 
@@ -61,9 +62,6 @@ namespace boost::beast::http::detail
 
 			asio::error_code ec{};
 			std::size_t recvd_bytes = 0;
-
-			// This buffer is required to persist across reads
-			beast::flat_buffer buffer;
 
 			// Declare the parser with an empty body since
 			// we plan on capturing the chunks ourselves.
@@ -253,6 +251,7 @@ template<
 	bool isRequest,
 	typename SockStream,
 	typename FileStream,
+	typename DynamicBuffer,
 	typename Body, typename Fields,
 	typename BodyChunkCallback,
 	typename SendToken = asio::default_token_type<SockStream>>
@@ -262,6 +261,7 @@ requires (
 inline auto async_recv_file(
 	SockStream& stream,
 	FileStream& file,
+	DynamicBuffer& buffer,
 	http::message<isRequest, Body, Fields>& header,
 	BodyChunkCallback&& chunk_callback,
 	SendToken&& token = asio::default_token_type<SockStream>())
@@ -272,6 +272,7 @@ inline auto async_recv_file(
 		token,
 		std::ref(stream),
 		std::ref(file),
+		std::ref(buffer),
 		std::forward<BodyChunkCallback>(chunk_callback));
 }
 
@@ -289,12 +290,14 @@ template<
 	bool isRequest,
 	typename SockStream,
 	typename FileStream,
+	typename DynamicBuffer,
 	typename Body, typename Fields,
 	typename SendToken = asio::default_token_type<SockStream>>
 requires (!std::invocable<SendToken, std::string_view>)
 inline auto async_recv_file(
 	SockStream& stream,
 	FileStream& file,
+	DynamicBuffer& buffer,
 	http::message<isRequest, Body, Fields>& header,
 	SendToken&& token = asio::default_token_type<SockStream>())
 {
@@ -304,6 +307,7 @@ inline auto async_recv_file(
 		token,
 		std::ref(stream),
 		std::ref(file),
+		std::ref(buffer),
 		[](auto) { return true; });
 }
 
