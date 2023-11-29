@@ -12,6 +12,7 @@
 
 #include <asio3/core/asio.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/defer.hpp>
 
 namespace asio
 {
@@ -19,6 +20,18 @@ namespace asio
 
 	template<typename = void>
 	inline void cancel_timer(asio::steady_timer& t) noexcept
+	{
+		try
+		{
+			t.cancel();
+		}
+		catch (system_error const&)
+		{
+		}
+	}
+
+	template<typename = void>
+	inline void cancel_timer(asio::timer& t) noexcept
 	{
 		try
 		{
@@ -65,7 +78,7 @@ namespace asio::detail
 
 	struct async_sleep_op
 	{
-		auto operator()(auto state, auto&& executor, std::chrono::steady_clock::duration duration) -> void
+		auto operator()(auto state, auto&& executor, asio::steady_timer::duration duration) -> void
 		{
 			co_await asio::dispatch(executor, use_nothrow_deferred);
 
@@ -95,7 +108,7 @@ namespace asio::detail
 
 		std::shared_ptr<storage> ptr;
 
-		call_func_when_timeout(auto&& executor, std::chrono::steady_clock::duration timeout_value, auto&& func)
+		call_func_when_timeout(auto&& executor, asio::steady_timer::duration timeout_value, auto&& func)
 		{
 			ptr = std::make_shared<storage>(executor);
 
@@ -125,6 +138,40 @@ namespace asio::detail
 			}
 		}
 	};
+
+	struct timer_callback_helper
+	{
+		template<class F>
+		requires (std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
+		static inline bool call(F& f, std::shared_ptr<asio::timer>& timer_ptr)
+		{
+			return f(timer_ptr);
+		}
+
+		template<class F>
+		requires (!std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
+		static inline bool call(F& f, std::shared_ptr<asio::timer>&)
+		{
+			return f();
+		}
+	};
+
+	struct timer_exit_notify_helper
+	{
+		template<class F>
+		requires (std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
+		static inline void call(F& f, std::shared_ptr<asio::timer>& timer_ptr)
+		{
+			f(timer_ptr);
+		}
+
+		template<class F>
+		requires (!std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
+		static inline void call(F& f, std::shared_ptr<asio::timer>&)
+		{
+			f();
+		}
+	};
 }
 
 namespace asio
@@ -143,7 +190,7 @@ namespace asio
 		typename SleepToken = default_token_type<asio::timer>>
 	inline auto async_sleep(
 		Executor&& executor,
-		std::chrono::steady_clock::duration duration,
+		asio::steady_timer::duration duration,
 		SleepToken&& token = default_token_type<asio::timer>())
 	{
 		return asio::async_initiate<SleepToken, void(asio::error_code)>(
@@ -157,7 +204,7 @@ namespace asio
 	 * @param duration - The duration. 
 	 */
 	template<typename = void>
-	asio::awaitable<asio::error_code> async_sleep(std::chrono::steady_clock::duration duration)
+	asio::awaitable<asio::error_code> async_sleep(asio::steady_timer::duration duration)
 	{
 		auto [ec] = co_await async_sleep(co_await asio::this_coro::executor, duration, use_nothrow_awaitable);
 		co_return ec;
@@ -168,7 +215,7 @@ namespace asio
 	 * @param duration - The duration. 
 	 */
 	template<typename = void>
-	asio::awaitable<asio::error_code> delay(std::chrono::steady_clock::duration duration)
+	asio::awaitable<asio::error_code> delay(asio::steady_timer::duration duration)
 	{
 		co_return co_await async_sleep(duration);
 	}
@@ -178,8 +225,7 @@ namespace asio
 	 * @param duration - The duration. 
 	 */
 	template<typename = void>
-	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(
-		std::chrono::steady_clock::duration duration)
+	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(asio::steady_timer::duration duration)
 	{
 		co_return std::tuple{ co_await async_sleep(duration), detail::timer_tag };
 	}
@@ -262,5 +308,136 @@ namespace asio
 	constexpr bool is_timeout(is_variant auto& v) noexcept
 	{
 		return std::holds_alternative<std::tuple<asio::error_code, detail::timer_tag_t>>(v);
+	}
+
+	/**
+	 * @brief create a timer.
+	 */
+	std::shared_ptr<asio::timer> create_timer(const auto& executor, asio::steady_timer::duration interval, auto&& callback)
+	{
+		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+
+		asio::co_spawn(executor, [t, interval, f = std::forward_like<decltype(callback)>(callback)]
+		() mutable -> asio::awaitable<asio::error_code>
+		{
+			for (;;)
+			{
+				t->expires_after(interval);
+
+				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				if (ec)
+					co_return ec;
+
+				if (!detail::timer_callback_helper::call(f, t))
+					co_return asio::error::operation_aborted;
+			}
+
+			co_return error_code{};
+		}, asio::detached);
+
+		return t;
+	}
+
+	/**
+	 * @brief create a timer.
+	 */
+	std::shared_ptr<asio::timer> create_timer(const auto& executor,
+		asio::steady_timer::duration first_delay,
+		asio::steady_timer::duration interval, auto&& callback)
+	{
+		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+
+		asio::co_spawn(executor, [t, first_delay, interval, f = std::forward_like<decltype(callback)>(callback)]
+		() mutable -> asio::awaitable<asio::error_code>
+		{
+			co_await asio::delay(first_delay);
+
+			for (;;)
+			{
+				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				if (ec)
+					co_return ec;
+
+				if (!detail::timer_callback_helper::call(f, t))
+					co_return asio::error::operation_aborted;
+
+				t->expires_after(interval);
+			}
+
+			co_return error_code{};
+		}, asio::detached);
+
+		return t;
+	}
+
+	/**
+	 * @brief create a timer.
+	 */
+	std::shared_ptr<asio::timer> create_timer(const auto& executor,
+		asio::steady_timer::duration first_delay,
+		asio::steady_timer::duration interval, std::integral auto repeat_times, auto&& callback)
+	{
+		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+
+		asio::co_spawn(executor, [t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback)]
+		() mutable -> asio::awaitable<asio::error_code>
+		{
+			co_await asio::delay(first_delay);
+
+			for (decltype(repeat_times) i = 0; i < repeat_times; ++i)
+			{
+				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				if (ec)
+					co_return ec;
+
+				if (!detail::timer_callback_helper::call(f, t))
+					co_return asio::error::operation_aborted;
+
+				t->expires_after(interval);
+			}
+
+			co_return error_code{};
+		}, asio::detached);
+
+		return t;
+	}
+
+	/**
+	 * @brief create a timer.
+	 */
+	std::shared_ptr<asio::timer> create_timer(const auto& executor,
+		asio::steady_timer::duration first_delay,
+		asio::steady_timer::duration interval, std::integral auto repeat_times, auto&& callback, auto&& exit_notify)
+	{
+		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+
+		asio::co_spawn(executor,
+		[t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback),
+			e = std::forward_like<decltype(exit_notify)>(exit_notify)]
+		() mutable -> asio::awaitable<asio::error_code>
+		{
+			co_await asio::delay(first_delay);
+
+			std::defer notify_when_destroy = [t, e = std::move(e)]() mutable
+			{
+				detail::timer_exit_notify_helper::call(e, t);
+			};
+
+			for (decltype(repeat_times) i = 0; i < repeat_times; ++i)
+			{
+				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				if (ec)
+					co_return ec;
+
+				if (!detail::timer_callback_helper::call(f, t))
+					co_return asio::error::operation_aborted;
+
+				t->expires_after(interval);
+			}
+
+			co_return error_code{};
+		}, asio::detached);
+
+		return t;
 	}
 }

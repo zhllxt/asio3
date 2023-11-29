@@ -1,4 +1,5 @@
 #include <asio3/core/fmt.hpp>
+#include <asio3/core/timer_map.hpp>
 #include <asio3/tcp/tcp_server.hpp>
 
 namespace net = ::asio;
@@ -72,12 +73,21 @@ int main()
 	net::io_context_thread ctx;
 
 	net::tcp_server server(ctx.get_executor());
+	net::timer_map timers(ctx.get_executor());
+
+	timers.start_timer(1, 1000, []() mutable
+	{
+		fmt::print("timer 1 running...\n");
+
+		return false; // return false to exit the timer.
+	});
 
 	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8028), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
-	sigset.async_wait([&server](net::error_code, int) mutable
+	sigset.async_wait([&server, &timers](net::error_code, int) mutable
 	{
+		timers.stop_all_timers();
 		server.async_stop([](auto) {});
 	});
 

@@ -60,7 +60,7 @@ net::awaitable<void> do_download(net::http_client& client)
 	if (e2)
 		co_return;
 
-	auto [e3, n3] = co_await http::async_recv_file(client.socket, file, parser.get(), on_chunk);
+	auto [e3, n3] = co_await http::async_recv_file(client.socket, file, buffer, parser.get(), on_chunk);
 
 	fmt::print("download finished: {}\n", e3.message());
 
