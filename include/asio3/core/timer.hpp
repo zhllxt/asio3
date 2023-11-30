@@ -143,16 +143,16 @@ namespace asio::detail
 	{
 		template<class F>
 		requires (std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
-		static inline bool call(F& f, std::shared_ptr<asio::timer>& timer_ptr)
+		static inline asio::awaitable<bool> call(F& f, std::shared_ptr<asio::timer>& timer_ptr)
 		{
-			return f(timer_ptr);
+			co_return co_await f(timer_ptr);
 		}
 
 		template<class F>
 		requires (!std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
-		static inline bool call(F& f, std::shared_ptr<asio::timer>&)
+		static inline asio::awaitable<bool> call(F& f, std::shared_ptr<asio::timer>&)
 		{
-			return f();
+			co_return co_await f();
 		}
 	};
 
@@ -329,7 +329,7 @@ namespace asio
 				if (ec)
 					co_return ec;
 
-				if (!detail::timer_callback_helper::call(f, t))
+				if (!(co_await detail::timer_callback_helper::call(f, t)))
 					co_return asio::error::operation_aborted;
 			}
 
@@ -352,7 +352,8 @@ namespace asio
 		[t, first_delay, interval, f = std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
-			co_await asio::delay(first_delay);
+			if (first_delay > asio::steady_timer::duration::zero())
+				co_await asio::delay(first_delay);
 
 			for (;;)
 			{
@@ -360,7 +361,7 @@ namespace asio
 				if (ec)
 					co_return ec;
 
-				if (!detail::timer_callback_helper::call(f, t))
+				if (!(co_await detail::timer_callback_helper::call(f, t)))
 					co_return asio::error::operation_aborted;
 
 				t->expires_after(interval);
@@ -385,7 +386,8 @@ namespace asio
 		[t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
-			co_await asio::delay(first_delay);
+			if (first_delay > asio::steady_timer::duration::zero())
+				co_await asio::delay(first_delay);
 
 			for (decltype(repeat_times) i = 0; i < repeat_times; ++i)
 			{
@@ -393,7 +395,7 @@ namespace asio
 				if (ec)
 					co_return ec;
 
-				if (!detail::timer_callback_helper::call(f, t))
+				if (!(co_await detail::timer_callback_helper::call(f, t)))
 					co_return asio::error::operation_aborted;
 
 				t->expires_after(interval);
@@ -419,7 +421,8 @@ namespace asio
 			e = std::forward_like<decltype(exit_notify)>(exit_notify)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
-			co_await asio::delay(first_delay);
+			if (first_delay > asio::steady_timer::duration::zero())
+				co_await asio::delay(first_delay);
 
 			std::defer notify_when_destroy = [t, e = std::move(e)]() mutable
 			{
@@ -432,7 +435,7 @@ namespace asio
 				if (ec)
 					co_return ec;
 
-				if (!detail::timer_callback_helper::call(f, t))
+				if (!(co_await detail::timer_callback_helper::call(f, t)))
 					co_return asio::error::operation_aborted;
 
 				t->expires_after(interval);

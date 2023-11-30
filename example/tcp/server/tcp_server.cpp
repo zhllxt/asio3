@@ -78,11 +78,11 @@ int main()
 	net::tcp_server server(ctx.get_executor());
 	net::timer_map timers(ctx.get_executor());
 
-	timers.async_add(1, 1000, []() mutable
+	timers.async_add(1, 1000, []() mutable -> net::awaitable<bool>
 	{
 		fmt::print("timer 1 running...\n");
 
-		return false; // return false to exit the timer.
+		co_return false; // return false to exit the timer.
 	}, [](auto) {});
 
 	net::co_spawn(ctx.get_executor(), start_server(server, timers, "0.0.0.0", 8028), net::detached);
