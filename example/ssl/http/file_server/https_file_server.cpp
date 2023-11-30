@@ -135,7 +135,11 @@ int main()
 {
 	net::io_context_thread ctx;
 
-	net::ssl::context sslctx(net::ssl::context::sslv23);
+	net::ssl::context sslctx(net::ssl::context::tlsv12);
+	sslctx.set_options(
+		net::ssl::context::default_workarounds |
+		net::ssl::context::no_sslv2 |
+		net::ssl::context::single_dh_use);
 	net::load_cert_from_string(sslctx, net::ssl::verify_none,
 		ca_crt, server_crt, server_key, "123456", dh);
 	http_server_ex server(ctx.get_executor(), std::move(sslctx));

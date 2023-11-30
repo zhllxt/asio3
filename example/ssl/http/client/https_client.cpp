@@ -2,6 +2,7 @@
 #define ASIO3_ENABLE_SSL
 #endif
 
+#include <asio3/core/root_certificates.hpp>
 #include <asio3/http/request.hpp>
 #include <asio3/http/download.hpp>
 #include <asio3/http/upload.hpp>
@@ -12,7 +13,7 @@
 
 namespace net = ::asio;
 
-net::awaitable<void> do_request()
+net::awaitable<void> do_request(net::ssl::context& sslctx)
 {
 	auto executor = co_await net::this_coro::executor;
 
@@ -33,7 +34,7 @@ net::awaitable<void> do_request()
 	std::cout << resp1 << std::endl;
 }
 
-net::awaitable<void> do_download()
+net::awaitable<void> do_download(net::ssl::context& sslctx)
 {
 	auto executor = co_await net::this_coro::executor;
 
@@ -47,6 +48,7 @@ net::awaitable<void> do_download()
 	};
 
 	auto [e1] = co_await http::async_download(executor, {
+		.sslctx = sslctx,
 		.url = "https://www.winrar.com.cn/download/winrar-x64-624scp.exe",
 		.on_head = on_head,
 		.on_chunk = on_chunk,
@@ -60,7 +62,7 @@ net::awaitable<void> do_download()
 	std::cout << e1.message() << std::endl;
 }
 
-net::awaitable<void> do_upload()
+net::awaitable<void> do_upload(net::ssl::context& sslctx)
 {
 	auto executor = co_await net::this_coro::executor;
 
@@ -87,9 +89,16 @@ int main()
 {
 	net::io_context ctx;
 
-	//net::co_spawn(ctx.get_executor(), do_request(), net::detached);
-	//net::co_spawn(ctx.get_executor(), do_download(), net::detached);
-	net::co_spawn(ctx.get_executor(), do_upload(), net::detached);
+	// The SSL context is required, and holds certificates
+	net::ssl::context sslctx(net::ssl::context::tlsv12_client);
+	// This holds the root certificate used for verification
+	net::load_root_certificates(sslctx);
+	// Verify the remote server's certificate
+	sslctx.set_verify_mode(net::ssl::verify_peer);
+
+	//net::co_spawn(ctx.get_executor(), do_request(sslctx), net::detached);
+	net::co_spawn(ctx.get_executor(), do_download(sslctx), net::detached);
+	//net::co_spawn(ctx.get_executor(), do_upload(sslctx), net::detached);
 
 	ctx.run();
 }

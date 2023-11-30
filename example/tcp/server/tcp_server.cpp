@@ -42,7 +42,8 @@ net::awaitable<void> client_join(net::tcp_server& server, std::shared_ptr<net::t
 	co_await server.session_map.async_remove(session);
 }
 
-net::awaitable<void> start_server(net::tcp_server& server, std::string listen_address, std::uint16_t listen_port)
+net::awaitable<void> start_server(net::tcp_server& server, net::timer_map& timers,
+	std::string listen_address, std::uint16_t listen_port)
 {
 	auto [ec, ep] = co_await server.async_listen(listen_address, listen_port);
 	if (ec)
@@ -52,6 +53,8 @@ net::awaitable<void> start_server(net::tcp_server& server, std::string listen_ad
 	}
 
 	fmt::print("listen success: {} {}\n", server.get_listen_address(), server.get_listen_port());
+
+	auto [timer_ptr] = co_await timers.async_find("1");
 
 	while (!server.is_aborted())
 	{
@@ -75,19 +78,19 @@ int main()
 	net::tcp_server server(ctx.get_executor());
 	net::timer_map timers(ctx.get_executor());
 
-	timers.start_timer(1, 1000, []() mutable
+	timers.async_add(1, 1000, []() mutable
 	{
 		fmt::print("timer 1 running...\n");
 
 		return false; // return false to exit the timer.
-	});
+	}, [](auto) {});
 
-	net::co_spawn(ctx.get_executor(), start_server(server, "0.0.0.0", 8028), net::detached);
+	net::co_spawn(ctx.get_executor(), start_server(server, timers, "0.0.0.0", 8028), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
 	sigset.async_wait([&server, &timers](net::error_code, int) mutable
 	{
-		timers.stop_all_timers();
+		timers.async_clear([](auto) {});
 		server.async_stop([](auto) {});
 	});
 

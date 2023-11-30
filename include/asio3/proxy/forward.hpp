@@ -24,9 +24,10 @@ namespace asio::socks5::detail
 {
 	struct async_forward_data_to_backend_op
 	{
-		auto operator()(auto state, auto bound_ref, auto buffer) -> void
+		auto operator()(auto state, auto bound_ref, auto&& buf) -> void
 		{
 			auto& bound = bound_ref.get();
+			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
 			co_await asio::dispatch(bound.get_executor(), asio::use_nothrow_deferred);
 
@@ -57,9 +58,12 @@ namespace asio::socks5::detail
 
 	struct async_forward_data_to_tcp_frontend_op
 	{
-		auto operator()(auto state, auto front_ref, auto buffer, asio::ip::udp::endpoint sender_endpoint) -> void
+		asio::ip::udp::endpoint sender_endpoint;
+
+		auto operator()(auto state, auto front_ref, auto&& buf) -> void
 		{
 			auto& front = front_ref.get();
+			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
 			co_await asio::dispatch(front.get_executor(), asio::use_nothrow_deferred);
 
@@ -80,10 +84,13 @@ namespace asio::socks5::detail
 
 	struct async_forward_data_to_udp_frontend_op
 	{
-		auto operator()(auto state, auto bound_ref, auto buffer,
-			asio::ip::udp::endpoint sender_endpoint, asio::ip::udp::endpoint frontend_endpoint) -> void
+		asio::ip::udp::endpoint sender_endpoint;
+		asio::ip::udp::endpoint frontend_endpoint;
+
+		auto operator()(auto state, auto bound_ref, auto&& buf) -> void
 		{
 			auto& bound = bound_ref.get();
+			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
 			co_await asio::dispatch(bound.get_executor(), asio::use_nothrow_deferred);
 
@@ -151,11 +158,11 @@ namespace asio::socks5
 	{
 		return async_initiate<TransferToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
-				socks5::detail::async_forward_data_to_tcp_frontend_op{}, front),
+				socks5::detail::async_forward_data_to_tcp_frontend_op{
+					std::move(sender_endpoint) }, front),
 			token,
 			std::ref(front),
-			std::forward_like<decltype(buffer)>(buffer),
-			std::move(sender_endpoint));
+			std::forward_like<decltype(buffer)>(buffer));
 	}
 
 	/**
@@ -179,11 +186,10 @@ namespace asio::socks5
 	{
 		return async_initiate<TransferToken, void(asio::error_code, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, std::size_t)>(
-				socks5::detail::async_forward_data_to_udp_frontend_op{}, bound),
+				socks5::detail::async_forward_data_to_udp_frontend_op{
+					std::move(sender_endpoint), std::move(frontend_endpoint) }, bound),
 			token,
 			std::ref(bound),
-			std::forward_like<decltype(buffer)>(buffer),
-			std::move(sender_endpoint),
-			std::move(frontend_endpoint));
+			std::forward_like<decltype(buffer)>(buffer));
 	}
 }

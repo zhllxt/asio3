@@ -25,8 +25,12 @@ namespace asio::detail
 {
 	struct async_read_file_content_op
 	{
-		auto operator()(auto state, auto&& ex, std::string filepath) -> void
+		std::string filepath;
+
+		auto operator()(auto state, auto&& executor) -> void
 		{
+			auto ex = std::forward_like<decltype(executor)>(executor);
+
 			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
@@ -64,9 +68,13 @@ namespace asio::detail
 
 	struct async_write_file_op
 	{
-		auto operator()(auto state, auto&& ex,
-			std::string filepath, auto buffers, file_base::flags open_flags) -> void
+		std::string filepath;
+
+		auto operator()(auto state, auto&& executor, auto&& buffers, file_base::flags open_flags) -> void
 		{
+			auto ex = std::forward_like<decltype(executor)>(executor);
+			auto bs = std::forward_like<decltype(buffers)>(buffers);
+
 			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
@@ -92,7 +100,7 @@ namespace asio::detail
 				}
 			}
 
-			auto [e1, n1] = co_await asio::async_write(file, buffers, asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await asio::async_write(file, bs, asio::use_nothrow_deferred);
 
 			co_return{ e1, std::move(file), n1 };
 		}
@@ -120,8 +128,9 @@ namespace asio
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::string)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::string)>(
-				detail::async_read_file_content_op{}, ex),
-			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)));
+				detail::async_read_file_content_op{
+					asio::to_string(std::forward_like<decltype(filepath)>(filepath)) }, ex),
+			token, ex);
 	}
 
 	/**
@@ -157,8 +166,9 @@ namespace asio
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::size_t)>(
-				detail::async_write_file_op{}, ex),
-			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)), buffers,
+				detail::async_write_file_op{
+					asio::to_string(std::forward_like<decltype(filepath)>(filepath)) }, ex),
+			token, ex, buffers,
 			stream_file::write_only | stream_file::create | stream_file::truncate);
 	}
 
@@ -184,8 +194,9 @@ namespace asio
 	{
 		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::size_t)>(
 			experimental::co_composed<void(asio::error_code, asio::stream_file, std::size_t)>(
-				detail::async_write_file_op{}, ex),
-			token, ex, asio::to_string(std::forward_like<decltype(filepath)>(filepath)), buffers, open_flags);
+				detail::async_write_file_op{
+					asio::to_string(std::forward_like<decltype(filepath)>(filepath)) }, ex),
+			token, ex, buffers, open_flags);
 	}
 
 	/**

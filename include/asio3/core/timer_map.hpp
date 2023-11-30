@@ -16,6 +16,7 @@
 #include <asio3/core/strutil.hpp>
 #include <asio3/core/function_traits.hpp>
 #include <asio3/core/timer.hpp>
+#include <asio3/core/with_lock.hpp>
 
 namespace asio
 {
@@ -25,7 +26,7 @@ namespace asio
 		requires (!std::same_as<std::remove_cvref_t<T>, timer_handle>)
 		timer_handle(T&& id)
 		{
-			bind(std::forward<T>(id));
+			to_handle(std::forward<T>(id));
 		}
 
 		timer_handle(timer_handle&& other) = default;
@@ -38,7 +39,7 @@ namespace asio
 		requires (!std::same_as<std::remove_cvref_t<T>, timer_handle>)
 		void operator=(T&& id)
 		{
-			bind(std::forward<T>(id));
+			to_handle(std::forward<T>(id));
 		}
 
 		inline bool operator==(const timer_handle& r) const noexcept
@@ -47,7 +48,7 @@ namespace asio
 		}
 
 		template<typename T>
-		inline void bind(T&& id)
+		inline void to_handle(T&& id)
 		{
 			using type = std::remove_cv_t<std::remove_reference_t<T>>;
 			using rtype = std::remove_pointer_t<std::remove_all_extents_t<type>>;
@@ -68,12 +69,11 @@ namespace asio
 				std::memcpy((void*)handle.data(), (const void*)id.data(),
 					sizeof(typename type::value_type) * id.size());
 			}
-			else if constexpr (std::is_integral_v<type>)
+			else if constexpr (std::integral<type>)
 			{
-				handle.resize(sizeof(type));
-				std::memcpy((void*)handle.data(), (const void*)&id, sizeof(type));
+				handle = std::to_string(id);
 			}
-			else if constexpr (std::is_floating_point_v<type>)
+			else if constexpr (std::floating_point<type>)
 			{
 				handle.resize(sizeof(type));
 				std::memcpy((void*)handle.data(), (const void*)&id, sizeof(type));
@@ -134,14 +134,59 @@ namespace asio
 		};
 	}
 
-	class timer_map
+	template<
+		typename TimerHandle,
+		typename TimerObject,
+		typename TimerHandleHash,
+		typename TimerHandleEqual,
+		typename TimerMap = std::unordered_map<
+			TimerHandle, std::shared_ptr<TimerObject>, TimerHandleHash, TimerHandleEqual>
+	>
+	class basic_timer_map
 	{
 	public:
-		using map_type = std::unordered_map<timer_handle, std::shared_ptr<asio::timer>,
-			detail::timer_handle_hash, detail::timer_handle_equal>;
+		using timer_handle_type = typename TimerHandle;
+		using timer_object_type = typename TimerObject;
+		using key_type = timer_handle_type;
+		using value_type = std::shared_ptr<timer_object_type>;
+		using map_type = typename TimerMap;
+		using lock_type = as_tuple_t<use_awaitable_t<>>::as_default_on_t<experimental::channel<void()>>;
+		using executor_type = typename lock_type::executor_type;
 
-		explicit timer_map(const auto& ex) : executor(ex)
+		struct async_add_op;
+		struct async_remove_op;
+		struct async_clear_op;
+		struct async_find_op;
+
+		explicit basic_timer_map(const auto& ex) : lock(ex, 1)
 		{
+		}
+
+		/**
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
+		 * @param interval - The amount of time between set and firing.
+		 * @param repeat_times - Total number of times the timer is executed.
+		 * @param first_delay - The timeout for the first execute of timer. 
+		 * @param fun - The callback function signature : [](){}
+		 */
+		template<typename Fun, typename AddToken = asio::default_token_type<lock_type>>
+		requires (asio::is_callable<Fun>)
+		inline auto async_add(
+			auto&& timer_id,
+			asio::steady_timer::duration first_delay,
+			asio::steady_timer::duration interval, std::integral auto repeat_times,
+			Fun&& fun,
+			AddToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<AddToken, void(bool)>(
+				asio::experimental::co_composed<void(bool)>(
+					async_add_op{}, lock),
+				token, std::ref(*this),
+				timer_handle(std::forward_like<decltype(timer_id)>(timer_id)),
+				first_delay, interval, repeat_times,
+				std::forward<Fun>(fun));
 		}
 
 		/**
@@ -151,16 +196,20 @@ namespace asio
 		 * @param interval - An integer millisecond value for the amount of time between set and firing.
 		 * @param fun - The callback function signature : [](){}
 		 */
-		template<class TimerId, class IntegerMilliseconds, class Fun, class... Args>
-		requires (asio::is_callable<Fun> && std::integral<std::remove_cvref_t<IntegerMilliseconds>>)
-		void start_timer(TimerId&& timer_id, IntegerMilliseconds interval, Fun&& fun, Args&&... args)
+		template<typename Fun, typename AddToken = asio::default_token_type<lock_type>>
+		requires (asio::is_callable<Fun>)
+		inline auto async_add(
+			auto&& timer_id,
+			std::integral auto interval,
+			Fun&& fun,
+			AddToken&& token = asio::default_token_type<lock_type>())
 		{
-			this->start_timer(
-				std::forward<TimerId>(timer_id),
+			return this->async_add(
+				std::forward_like<decltype(timer_id)>(timer_id),
+				std::chrono::milliseconds(interval),
 				std::chrono::milliseconds(interval),
 				(std::numeric_limits<std::size_t>::max)(),
-				std::chrono::milliseconds(interval),
-				std::forward<Fun>(fun), std::forward<Args>(args)...);
+				std::forward<Fun>(fun), std::forward<AddToken>(token));
 		}
 
 		/**
@@ -168,20 +217,24 @@ namespace asio
 		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
 		 *  If a timer with this id already exists, that timer will be forced to canceled.
 		 * @param interval - An integer millisecond value for the amount of time between set and firing.
-		 * @param repeat - An integer value to indicate the number of times the timer is repeated.
+		 * @param repeat_times - An integer value to indicate the number of times the timer is repeated.
 		 * @param fun - The callback function signature : [](){}
 		 */
-		template<class TimerId, class IntegerMilliseconds, class Integer, class Fun, class... Args>
-		requires (asio::is_callable<Fun>
-			&& std::integral<std::remove_cvref_t<IntegerMilliseconds>>
-			&& std::integral<std::remove_cvref_t<Integer>>)
-		void start_timer(TimerId&& timer_id, IntegerMilliseconds interval, Integer repeat, Fun&& fun, Args&&... args)
+		template<typename Fun, typename AddToken = asio::default_token_type<lock_type>>
+		requires (asio::is_callable<Fun>)
+		inline auto async_add(
+			auto&& timer_id,
+			std::integral auto interval,
+			std::integral auto repeat_times,
+			Fun&& fun,
+			AddToken&& token = asio::default_token_type<lock_type>())
 		{
-			this->start_timer(
-				std::forward<TimerId>(timer_id),
-				std::chrono::milliseconds(interval), repeat,
+			return this->async_add(
+				std::forward_like<decltype(timer_id)>(timer_id),
 				std::chrono::milliseconds(interval),
-				std::forward<Fun>(fun), std::forward<Args>(args)...);
+				std::chrono::milliseconds(interval),
+				repeat_times,
+				std::forward<Fun>(fun), std::forward<AddToken>(token));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -193,16 +246,20 @@ namespace asio
 		 * @param interval - The amount of time between set and firing.
 		 * @param fun - The callback function signature : [](){}
 		 */
-		template<class TimerId, class Rep, class Period, class Fun, class... Args>
+		template<typename Fun, typename AddToken = asio::default_token_type<lock_type>>
 		requires (asio::is_callable<Fun>)
-		void start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Fun&& fun, Args&&... args)
+		inline auto async_add(
+			auto&& timer_id,
+			asio::steady_timer::duration interval,
+			Fun&& fun,
+			AddToken&& token = asio::default_token_type<lock_type>())
 		{
-			this->start_timer(
-				std::forward<TimerId>(timer_id),
+			return this->async_add(
+				std::forward_like<decltype(timer_id)>(timer_id),
+				interval,
 				interval,
 				(std::numeric_limits<std::size_t>::max)(),
-				interval,
-				std::forward<Fun>(fun), std::forward<Args>(args)...);
+				std::forward<Fun>(fun), std::forward<AddToken>(token));
 		}
 
 		/**
@@ -210,20 +267,24 @@ namespace asio
 		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
 		 *  If a timer with this id already exists, that timer will be forced to canceled.
 		 * @param interval - The amount of time between set and firing.
-		 * @param repeat - An integer value to indicate the number of times the timer is repeated.
+		 * @param repeat_times - An integer value to indicate the number of times the timer is repeated.
 		 * @param fun - The callback function signature : [](){}
 		 */
-		template<class TimerId, class Rep, class Period, class Integer, class Fun, class... Args>
-		requires (asio::is_callable<Fun> && std::integral<std::remove_cvref_t<Integer>>)
-		void start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Integer repeat,
-			Fun&& fun, Args&&... args)
+		template<typename Fun, typename AddToken = asio::default_token_type<lock_type>>
+		requires (asio::is_callable<Fun>)
+		inline auto async_add(
+			auto&& timer_id,
+			asio::steady_timer::duration interval,
+			std::integral auto repeat_times,
+			Fun&& fun,
+			AddToken&& token = asio::default_token_type<lock_type>())
 		{
-			this->start_timer(
-				std::forward<TimerId>(timer_id),
+			return this->async_add(
+				std::forward_like<decltype(timer_id)>(timer_id),
 				interval,
-				repeat,
 				interval,
-				std::forward<Fun>(fun), std::forward<Args>(args)...);
+				repeat_times,
+				std::forward<Fun>(fun), std::forward<AddToken>(token));
 		}
 
 		/**
@@ -234,109 +295,69 @@ namespace asio
 		 * @param first_delay - The timeout for the first execute of timer.
 		 * @param fun - The callback function signature : [](){}
 		 */
-		template<class TimerId, class Rep1, class Period1, class Rep2, class Period2, class Fun, class... Args>
+		template<typename Fun, typename AddToken = asio::default_token_type<lock_type>>
 		requires (asio::is_callable<Fun>)
-		void start_timer(TimerId&& timer_id,
-			std::chrono::duration<Rep1, Period1> interval,
-			std::chrono::duration<Rep2, Period2> first_delay,
-			Fun&& fun, Args&&... args)
+		inline auto async_add(
+			auto&& timer_id,
+			asio::steady_timer::duration first_delay,
+			asio::steady_timer::duration interval,
+			Fun&& fun,
+			AddToken&& token = asio::default_token_type<lock_type>())
 		{
-			this->start_timer(
-				std::forward<TimerId>(timer_id),
+			return this->async_add(
+				std::forward_like<decltype(timer_id)>(timer_id),
+				first_delay,
 				interval,
 				(std::numeric_limits<std::size_t>::max)(),
-				first_delay,
-				std::forward<Fun>(fun), std::forward<Args>(args)...);
-		}
-
-		/**
-		 * @brief start a timer
-		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
-		 *  If a timer with this id already exists, that timer will be forced to canceled.
-		 * @param interval - The amount of time between set and firing.
-		 * @param repeat - Total number of times the timer is executed.
-		 * @param first_delay - The timeout for the first execute of timer. 
-		 * @param fun - The callback function signature : [](){}
-		 */
-		template<class TimerId, class Rep1, class Period1, class Rep2, class Period2, class Integer, class Fun, class... Args>
-		requires (asio::is_callable<Fun> && std::integral<std::remove_cvref_t<Integer>>)
-		void start_timer(TimerId&& timer_id,
-			std::chrono::duration<Rep1, Period1> interval, Integer repeat,
-			std::chrono::duration<Rep2, Period2> first_delay, Fun&& fun, Args&&... args)
-		{
-			if (repeat == static_cast<std::size_t>(0))
-			{
-				assert(false);
-				return;
-			}
-
-			if (interval > std::chrono::duration_cast<
-				std::chrono::duration<Rep1, Period1>>((asio::steady_timer::duration::max)()))
-				interval = std::chrono::duration_cast<std::chrono::duration<Rep1, Period1>>(
-					(asio::steady_timer::duration::max)());
-
-			if (first_delay > std::chrono::duration_cast<
-				std::chrono::duration<Rep2, Period2>>((asio::steady_timer::duration::max)()))
-				first_delay = std::chrono::duration_cast<std::chrono::duration<Rep2, Period2>>(
-					(asio::steady_timer::duration::max)());
-
-			timer_handle handle{ std::forward<TimerId>(timer_id) };
-
-			// if the timer is already exists, cancel it first.
-			auto iter = this->map.find(handle);
-			if (iter != this->map.end())
-			{
-				asio::cancel_timer(*(iter->second));
-			}
-
-			// the asio::steady_timer's constructor may be throw some exception.
-			std::shared_ptr<asio::timer> timer_ptr = asio::create_timer(
-				get_executor(), first_delay, interval, repeat,
-				std::bind_front(std::forward<Fun>(fun), std::forward<Args>(args)...),
-				[this, handle]() mutable
-				{
-					this->map.erase(handle);
-				});
-
-			this->map[std::move(handle)] = std::move(timer_ptr);
+				std::forward<Fun>(fun), std::forward<AddToken>(token));
 		}
 
 		/**
 		 * @brief stop the timer by timer id
 		 */
-		template<class TimerId>
-		inline void stop_timer(TimerId&& timer_id)
+		template<typename RemoveToken = asio::default_token_type<lock_type>>
+		inline auto async_remove(
+			auto&& timer_id,
+			RemoveToken&& token = asio::default_token_type<lock_type>())
 		{
-			auto iter = this->map.find(timer_id);
-			if (iter != this->map.end())
-			{
-				asio::cancel_timer(*(iter->second));
-
-				this->map.erase(iter);
-			}
+			return asio::async_initiate<RemoveToken, void(bool)>(
+				asio::experimental::co_composed<void(bool)>(
+					async_remove_op{}, lock),
+				token, std::ref(*this),
+				timer_handle(std::forward_like<decltype(timer_id)>(timer_id)));
 		}
 
 		/**
 		 * @brief stop all timers
 		 */
-		inline void stop_all_timers()
+		template<typename RemoveToken = asio::default_token_type<lock_type>>
+		inline auto async_clear(RemoveToken&& token = asio::default_token_type<lock_type>())
 		{
-			// close user custom timers
-			for (auto& [id, timer_ptr] : this->map)
-			{
-				asio::ignore_unused(id);
+			return asio::async_initiate<RemoveToken, void(bool)>(
+				asio::experimental::co_composed<void(bool)>(
+					async_clear_op{}, lock),
+				token, std::ref(*this));
+		}
 
-				asio::cancel_timer(*timer_ptr);
-			}
-
-			this->map.clear();
+		/**
+		 * @brief find session by the key
+		 */
+		template<typename FindToken = asio::default_token_type<lock_type>>
+		inline auto async_find(
+			auto&& timer_id,
+			FindToken&& token = asio::default_token_type<lock_type>())
+		{
+			return asio::async_initiate<FindToken, void(value_type)>(
+				asio::experimental::co_composed<void(value_type)>(
+					async_find_op{}, lock),
+				token, std::ref(*this),
+				timer_handle(std::forward_like<decltype(timer_id)>(timer_id)));
 		}
 
 		/**
 		 * @brief Returns true if the specified timer exists
 		 */
-		template<class TimerId>
-		inline bool contains(TimerId&& timer_id)
+		inline bool contains(const auto& timer_id)
 		{
 			return this->map.contains(timer_id);
 		}
@@ -344,23 +365,52 @@ namespace asio
 		/**
 		 * @brief Finds an element with key equivalent to key.
 		 */
-		template<class TimerId>
-		inline auto find(TimerId&& timer_id)
+		inline auto find(const auto& timer_id)
 		{
 			return this->map.find(timer_id);
 		}
 
 		/**
+		 * @brief get timer count
+		 */
+		inline std::size_t size() noexcept
+		{
+			return map.size();
+		}
+
+		/**
+		 * @brief get timer count
+		 */
+		inline std::size_t count() noexcept
+		{
+			return map.size();
+		}
+
+		/**
+		 * @brief Checks if the timer container has no elements
+		 */
+		inline bool empty() noexcept
+		{
+			return map.empty();
+		}
+
+		/**
 		 * @brief Get the executor.
 		 */
-		constexpr inline auto&& get_executor(this auto&& self)
+		inline const auto& get_executor(this auto&& self) noexcept
 		{
-			return std::forward_like<decltype(self)>(self).executor;
+			return self.lock.get_executor();
 		}
 
 	public:
-		asio::any_io_executor executor;
+		lock_type lock;
 
-		map_type map;
+		map_type  map;
 	};
+
+	using timer_map = basic_timer_map<
+		timer_handle, asio::timer,
+		detail::timer_handle_hash, detail::timer_handle_equal>;
 }
+
+#include <asio3/core/impl/timer_map.ipp>

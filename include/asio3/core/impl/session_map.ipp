@@ -13,7 +13,7 @@
 namespace asio
 {
 	template<typename SessionT>
-	struct session_map<SessionT>::async_add_op
+	struct basic_session_map<SessionT>::async_add_op
 	{
 		auto operator()(auto state, auto self_ref, value_type conn) -> void
 		{
@@ -26,16 +26,16 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
-			auto [it, inserted] = self.map.emplace(conn->hash_key(), conn);
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
 
-			self.lock.try_receive([](auto...) {});
+			auto [it, inserted] = self.map.emplace(conn->hash_key(), conn);
 
 			co_return inserted;
 		}
 	};
 
 	template<typename SessionT>
-	struct session_map<SessionT>::async_find_or_add_op
+	struct basic_session_map<SessionT>::async_find_or_add_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key, auto&& create_func) -> void
 		{
@@ -49,6 +49,8 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
+
 			bool is_new_client = false;
 
 			auto it = self.map.find(key);
@@ -58,14 +60,12 @@ namespace asio
 				it = self.map.emplace(key, create_fn()).first;
 			}
 
-			self.lock.try_receive([](auto...) {});
-
 			co_return{ it->second, is_new_client };
 		}
 	};
 
 	template<typename SessionT>
-	struct session_map<SessionT>::async_remove_op
+	struct basic_session_map<SessionT>::async_remove_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
 		{
@@ -78,16 +78,16 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
-			bool erased = (self.map.erase(key) > 0);
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
 
-			self.lock.try_receive([](auto...) {});
+			bool erased = (self.map.erase(key) > 0);
 
 			co_return erased;
 		}
 	};
 
 	template<typename SessionT>
-	struct session_map<SessionT>::async_find_op
+	struct basic_session_map<SessionT>::async_find_op
 	{
 		auto operator()(auto state, auto self_ref, key_type key) -> void
 		{
@@ -100,16 +100,16 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
-			auto it = self.map.find(key);
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
 
-			self.lock.try_receive([](auto...) {});
+			auto it = self.map.find(key);
 
 			co_return it == self.map.end() ? nullptr : it->second;
 		}
 	};
 
 	template<typename SessionT>
-	struct session_map<SessionT>::async_disconnect_all_op
+	struct basic_session_map<SessionT>::async_disconnect_all_op
 	{
 		auto operator()(auto state, auto self_ref, auto&& pred) -> void
 		{
@@ -122,6 +122,8 @@ namespace asio
 			{
 				co_await self.lock.async_send(asio::deferred);
 			}
+
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
 
 			std::size_t total = 0;
 
@@ -153,14 +155,12 @@ namespace asio
 				}
 			}
 
-			self.lock.try_receive([](auto...) {});
-
 			co_return total;
 		}
 	};
 
 	template<typename SessionT>
-	struct session_map<SessionT>::async_send_all_op
+	struct basic_session_map<SessionT>::async_send_all_op
 	{
 		auto operator()(auto state, auto self_ref, auto&& data, auto&& pred) -> void
 		{
@@ -176,6 +176,8 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
+
 			std::size_t total{ 0 };
 
 			for (auto& [key, conn] : self.map)
@@ -187,14 +189,12 @@ namespace asio
 				total += n1;
 			}
 
-			self.lock.try_receive([](auto...) {});
-
 			co_return{ error_code{}, total };
 		}
 	};
 
 	template<typename SessionT>
-	struct session_map<SessionT>::async_for_each_op
+	struct basic_session_map<SessionT>::async_for_each_op
 	{
 		template<class Function>
 		auto operator()(auto state, auto self_ref, Function&& func) -> void
@@ -213,6 +213,8 @@ namespace asio
 				co_await self.lock.async_send(asio::deferred);
 			}
 
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
+
 			for (auto& [key, conn] : self.map)
 			{
 				if constexpr (asio::is_template_instance_of<asio::awaitable, fun_ret_type>)
@@ -224,8 +226,6 @@ namespace asio
 					fn(conn);
 				}
 			}
-
-			self.lock.try_receive([](auto...) {});
 
 			co_return error_code{};
 		}

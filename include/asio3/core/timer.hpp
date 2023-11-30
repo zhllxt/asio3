@@ -313,7 +313,8 @@ namespace asio
 	/**
 	 * @brief create a timer.
 	 */
-	std::shared_ptr<asio::timer> create_timer(const auto& executor, asio::steady_timer::duration interval, auto&& callback)
+	std::shared_ptr<asio::timer> create_timer(
+		const auto& executor, asio::steady_timer::duration interval, auto&& callback)
 	{
 		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
 
@@ -347,7 +348,8 @@ namespace asio
 	{
 		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
 
-		asio::co_spawn(executor, [t, first_delay, interval, f = std::forward_like<decltype(callback)>(callback)]
+		asio::co_spawn(executor,
+		[t, first_delay, interval, f = std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
 			co_await asio::delay(first_delay);
@@ -379,7 +381,8 @@ namespace asio
 	{
 		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
 
-		asio::co_spawn(executor, [t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback)]
+		asio::co_spawn(executor,
+		[t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
 			co_await asio::delay(first_delay);
@@ -406,8 +409,8 @@ namespace asio
 	 * @brief create a timer.
 	 */
 	std::shared_ptr<asio::timer> create_timer(const auto& executor,
-		asio::steady_timer::duration first_delay,
-		asio::steady_timer::duration interval, std::integral auto repeat_times, auto&& callback, auto&& exit_notify)
+		asio::steady_timer::duration first_delay, asio::steady_timer::duration interval,
+		std::integral auto repeat_times, auto&& callback, auto&& exit_notify)
 	{
 		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
 

@@ -186,6 +186,12 @@ namespace asio::detail
 			s.get_executor().lock->ch.try_receive([](auto...) {});
 		}
 	}
+
+	template <typename... Args>
+	inline void unlock_channel(experimental::basic_channel<Args...>& ch)
+	{
+		ch.try_receive([](auto...) {});
+	}
 }
 
 namespace asio

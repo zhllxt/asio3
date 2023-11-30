@@ -42,6 +42,10 @@ namespace asio::detail
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, 0 };
 
+			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
+
 			auto [e2, n2] = co_await sock.async_send_to(
 				asio::to_buffer(msg), (*eps).endpoint(), use_nothrow_deferred);
 			co_return{ e2, n2 };
@@ -50,15 +54,20 @@ namespace asio::detail
 
 	struct async_send_data_to_endpoint_op
 	{
-		auto operator()(auto state, auto sock_ref, auto&& data, auto endpoint) -> void
+		auto operator()(auto state, auto sock_ref, auto&& data, auto&& endpoint) -> void
 		{
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			auto& sock = sock_ref.get();
 			auto msg = std::forward_like<decltype(data)>(data);
+			auto endp = std::forward_like<decltype(endpoint)>(endpoint);
+
+			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+
+			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
 			auto [e2, n2] = co_await sock.async_send_to(
-				asio::to_buffer(msg), endpoint, use_nothrow_deferred);
+				asio::to_buffer(msg), endp, use_nothrow_deferred);
 			co_return{ e2, n2 };
 		}
 	};
