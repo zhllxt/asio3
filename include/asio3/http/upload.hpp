@@ -78,7 +78,7 @@ namespace boost::beast::http::detail
 				co_return{ asio::error::invalid_argument, std::move(resp) };
 
 			http::url url;
-			ec = url.reset(opt.url);
+			ec = url.reset(http::url_encode(opt.url));
 			if (ec)
 				co_return{ ec, std::move(resp) };
 
