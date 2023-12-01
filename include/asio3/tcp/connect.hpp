@@ -53,9 +53,6 @@ namespace asio::detail
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 
-			if (wt.ptr->timeouted)
-				co_return{ asio::error::timed_out, endpoint_type{} };
-
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, endpoint_type{} };
 

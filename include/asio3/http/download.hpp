@@ -44,7 +44,7 @@ namespace boost::beast::http
 	#endif
 		std::string url;
 		std::string data;
-		std::map<std::string, std::string> header;
+		std::map<std::string, std::string> headers;
 		http::verb method = http::verb::get;
 		std::function<bool(http::response<http::string_body>&)> on_head;
 		std::function<bool(std::string_view)> on_chunk;
@@ -146,7 +146,7 @@ namespace boost::beast::http::detail
 			req.method(opt.method);
 			req.version(11);
 			req.target(url.get_target());
-			for (auto& [field_name, field_value] : opt.header)
+			for (auto& [field_name, field_value] : opt.headers)
 			{
 				req.set(field_name, field_value);
 			}

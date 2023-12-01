@@ -19,7 +19,7 @@ net::awaitable<void> do_request(net::ssl::context& sslctx)
 
 	auto [e1, resp1] = co_await http::async_request(executor, {
 		.url = "https://www.baidu.com/",
-		.header = {
+		.headers = {
 			{ "Host", "www.baidu.com" },
 			{ "Connection", "keep-alive" },
 		},

@@ -175,8 +175,8 @@ namespace asio
 		requires (asio::is_callable<Fun>)
 		inline auto async_add(
 			auto&& timer_id,
-			asio::steady_timer::duration first_delay,
-			asio::steady_timer::duration interval, std::integral auto repeat_times,
+			asio::timer::duration first_delay,
+			asio::timer::duration interval, std::integral auto repeat_times,
 			Fun&& fun,
 			AddToken&& token = asio::default_token_type<lock_type>())
 		{
@@ -250,7 +250,7 @@ namespace asio
 		requires (asio::is_callable<Fun>)
 		inline auto async_add(
 			auto&& timer_id,
-			asio::steady_timer::duration interval,
+			asio::timer::duration interval,
 			Fun&& fun,
 			AddToken&& token = asio::default_token_type<lock_type>())
 		{
@@ -274,7 +274,7 @@ namespace asio
 		requires (asio::is_callable<Fun>)
 		inline auto async_add(
 			auto&& timer_id,
-			asio::steady_timer::duration interval,
+			asio::timer::duration interval,
 			std::integral auto repeat_times,
 			Fun&& fun,
 			AddToken&& token = asio::default_token_type<lock_type>())
@@ -299,8 +299,8 @@ namespace asio
 		requires (asio::is_callable<Fun>)
 		inline auto async_add(
 			auto&& timer_id,
-			asio::steady_timer::duration first_delay,
-			asio::steady_timer::duration interval,
+			asio::timer::duration first_delay,
+			asio::timer::duration interval,
 			Fun&& fun,
 			AddToken&& token = asio::default_token_type<lock_type>())
 		{

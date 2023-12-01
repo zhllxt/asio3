@@ -153,7 +153,7 @@ namespace asio
 
 		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
 
-		asio::steady_timer    watchdog_timer{ socket.get_executor() };
+		asio::timer           watchdog_timer{ socket.get_executor() };
 	};
 
 	using udp_session = basic_udp_session<asio::udp_socket>;

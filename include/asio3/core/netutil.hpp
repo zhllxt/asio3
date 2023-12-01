@@ -371,21 +371,22 @@ namespace asio::detail
 			}
 		}
 
-		auto operator()(auto state, auto executor, auto&& awaiter) -> void
+		auto operator()(auto state, auto&& executor, auto&& awaiter) -> void
 		{
 			using awaiter_type = std::remove_cvref_t<decltype(awaiter)>;
 			using value_type = typename awaiter_type::value_type;
 			using result_type = typename detail::co_await_value_type<value_type>::type;
 
-			auto waiter = std::forward_like<decltype(awaiter)>(awaiter);
+			auto ex = std::forward_like<decltype(executor)>(executor);
+			auto aw = std::forward_like<decltype(awaiter)>(awaiter);
 
-			co_await asio::dispatch(executor, asio::use_nothrow_deferred);
+			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			experimental::channel<void(error_code, result_type)> ch{ executor, 1 };
+			experimental::channel<void(error_code, result_type)> ch{ ex, 1 };
 
-			asio::co_spawn(executor, call_coroutine(std::move(waiter), ch), asio::detached);
+			asio::co_spawn(ex, call_coroutine(std::move(aw), ch), asio::detached);
 
 			auto [ec, result] = co_await ch.async_receive(use_nothrow_deferred);
 

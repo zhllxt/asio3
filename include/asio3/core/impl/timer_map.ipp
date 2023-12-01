@@ -23,8 +23,8 @@ namespace asio
 	{
 		auto operator()(auto state, auto self_ref,
 			timer_handle&& id,
-			asio::steady_timer::duration first_delay,
-			asio::steady_timer::duration interval, auto repeat_times,
+			asio::timer::duration first_delay,
+			asio::timer::duration interval, auto repeat_times,
 			auto&& fun) -> void
 		{
 			auto& self = self_ref.get();
@@ -43,11 +43,11 @@ namespace asio
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
 
-			if (interval > (asio::steady_timer::duration::max)())
-				interval = (asio::steady_timer::duration::max)();
+			if (interval > (asio::timer::duration::max)())
+				interval = (asio::timer::duration::max)();
 
-			if (first_delay > (asio::steady_timer::duration::max)())
-				first_delay = (asio::steady_timer::duration::max)();
+			if (first_delay > (asio::timer::duration::max)())
+				first_delay = (asio::timer::duration::max)();
 
 			// if the timer is already exists, cancel it first.
 			auto iter = self.map.find(handle);
@@ -56,7 +56,7 @@ namespace asio
 				asio::cancel_timer(*(iter->second));
 			}
 
-			// the asio::steady_timer's constructor may be throw some exception.
+			// the asio::timer's constructor may be throw some exception.
 			value_type timer_ptr = asio::create_timer(
 				self.get_executor(), first_delay, interval, repeat_times,
 				std::move(callback),
