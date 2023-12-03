@@ -131,8 +131,6 @@ namespace boost::beast::http::detail
 					std::string_view body,  // A buffer holding chunk body data
 					error_code& ev)         // We can set this to indicate an error
 					{
-						content += body;
-
 						// If this is the last piece of the chunk body,
 						// set the error so that the call to `read` returns
 						// and we can process the chunk.
@@ -143,6 +141,8 @@ namespace boost::beast::http::detail
 						//chunk.append(body.data(), body.size());
 						if (!chunk_callback(body))
 							ev = asio::error::operation_aborted;
+
+						content += body;
 
 						// The return value informs the parser of how much of the body we
 						// consumed. We will indicate that we consumed everything passed in.
@@ -202,6 +202,12 @@ namespace boost::beast::http::detail
 
 					recvd_bytes += n1;
 
+					std::string_view chunk_data{ buf.data(), n1 };
+					if (!chunk_callback(chunk_data))
+					{
+						co_return{ asio::error::operation_aborted, recvd_bytes };
+					}
+
 					auto [e2, n2] = co_await asio::async_write(
 						file, asio::buffer(buf.data(), n1), asio::use_nothrow_deferred);
 					if (e2)
@@ -210,12 +216,6 @@ namespace boost::beast::http::detail
 					}
 
 					assert(n1 == buf.size() - parser.get().body().size);
-
-					std::string_view chunk_data{ buf.data(), n1 };
-					if (!chunk_callback(chunk_data))
-					{
-						co_return{ asio::error::operation_aborted, recvd_bytes };
-					}
 				}
 			}
 

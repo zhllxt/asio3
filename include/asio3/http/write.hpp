@@ -124,6 +124,12 @@ namespace boost::beast::http::detail
 					msg.body().data = buffer.data();
 					msg.body().size = n3;
 					msg.body().more = true;
+
+					std::string_view chunk_data{ buffer.data(), n3 };
+					if (!chunk_callback(chunk_data))
+					{
+						co_return{ asio::error::operation_aborted, sent_bytes };
+					}
 				}
 
 				// Write everything in the body buffer
@@ -142,13 +148,6 @@ namespace boost::beast::http::detail
 				{
 					co_return{ e4, sent_bytes };
 				}
-
-				std::string_view chunk_data{ buffer.data(), n3 };
-				if (!chunk_callback(chunk_data))
-				{
-					co_return{ asio::error::operation_aborted, sent_bytes };
-				}
-
 			} while (!sr.is_done());
 
 			co_return{ error_code{}, sent_bytes };
