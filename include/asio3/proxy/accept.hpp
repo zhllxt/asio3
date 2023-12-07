@@ -15,6 +15,7 @@
 
 #include <asio3/core/error.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/resolve.hpp>
 
 #include <asio3/proxy/core.hpp>
 #include <asio3/proxy/error.hpp>
@@ -389,13 +390,10 @@ namespace asio::socks5::detail
 			{
 				using connect_socket_t = typename std::remove_cvref_t<AuthConfig>::connect_bound_socket_type;
 
-				std::string str_port = std::to_string(dst_port);
-
-				std::string_view addr_sv = dst_addr;
-				std::string_view port_sv = str_port;
-
 				asio::ip::tcp::resolver resolver(sock.get_executor());
-				auto [er, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
+				auto [er, eps] = co_await asio::async_resolve(
+					resolver, dst_addr, dst_port,
+					asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
 				if (er)
 				{
 					urep = std::uint8_t(socks5::connect_result::host_unreachable);
@@ -443,13 +441,10 @@ namespace asio::socks5::detail
 				// if the dest id domain, bind local protocol as the same with the domain
 				else if (atyp == socks5::address_type::domain)
 				{
-					std::string str_port = std::to_string(dst_port);
-
-					std::string_view addr_sv = dst_addr;
-					std::string_view port_sv = str_port;
-
 					asio::ip::udp::resolver resolver(sock.get_executor());
-					auto [er, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
+					auto [er, eps] = co_await asio::async_resolve(
+						resolver, dst_addr, dst_port,
+						asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
 					if (!er)
 					{
 						if ((*eps).endpoint().address().is_v6())

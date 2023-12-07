@@ -14,6 +14,7 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/strutil.hpp>
 #include <asio3/core/timer.hpp>
+#include <asio3/core/resolve.hpp>
 #include <asio3/tcp/core.hpp>
 
 namespace asio::detail
@@ -45,11 +46,10 @@ namespace asio::detail
 
 			resolver_type resolver(sock.get_executor());
 
-			std::string_view addr_sv = addr;
-			std::string_view port_sv = port;
-
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
-			auto [e1, eps] = co_await resolver.async_resolve(addr_sv, port_sv, use_nothrow_deferred);
+			auto [e1, eps] = co_await asio::async_resolve(
+				resolver, std::move(addr), std::move(port),
+				asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 

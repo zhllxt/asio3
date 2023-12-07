@@ -16,6 +16,7 @@
 #include <asio3/core/beast.hpp>
 #include <asio3/core/timer.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/resolve.hpp>
 #include <asio3/core/defer.hpp>
 #include <asio3/core/root_certificates.hpp>
 
@@ -93,20 +94,20 @@ namespace boost::beast::http::detail
 
 			asio::ip::tcp::resolver resolver(ex);
 
-			std::string_view addr_sv = url.get_host();
-			std::string_view port_sv = url.get_port();
+			std::string addr{ url.get_host() };
+			std::string port{ url.get_port() };
 
-			std::string str_proxy_port;
 			if (opt.socks5_option.has_value())
 			{
 				socks5::option& s5opt = opt.socks5_option.value();
-				str_proxy_port = std::to_string(s5opt.proxy_port);
-				addr_sv = s5opt.proxy_address;
-				port_sv = str_proxy_port;
+				addr = s5opt.proxy_address;
+				port = std::to_string(s5opt.proxy_port);
 			}
 
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
-			auto [e1, eps] = co_await resolver.async_resolve(addr_sv, port_sv, asio::use_nothrow_deferred);
+			auto [e1, eps] = co_await asio::async_resolve(
+				resolver, std::move(addr), std::move(port),
+				asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
 			if (e1)
 				co_return{ e1 };
 

@@ -13,6 +13,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/strutil.hpp>
+#include <asio3/core/resolve.hpp>
 #include <asio3/udp/core.hpp>
 
 namespace asio::detail
@@ -42,11 +43,9 @@ namespace asio::detail
 
 			resolver_type resolver(sock.get_executor());
 
-			std::string_view addr_sv = addr;
-			std::string_view port_sv = port;
-
-			auto [e1, eps] = co_await resolver.async_resolve(
-				addr_sv, port_sv, asio::ip::resolver_base::passive, use_nothrow_deferred);
+			auto [e1, eps] = co_await asio::async_resolve(
+				resolver, std::move(addr), std::move(port),
+				asio::ip::resolver_base::passive, asio::use_nothrow_deferred);
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 
