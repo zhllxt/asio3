@@ -176,8 +176,7 @@ int main()
 		if (e1)
 			co_return false;
 
-		std::filesystem::path filepath = server.root_directory;
-		filepath += req.target();
+		std::filesystem::path filepath = net::make_filepath(server.root_directory, req.target());
 		auto [ec, file, content] = co_await net::async_read_file_content(filepath.string());
 		if (ec)
 		{
@@ -204,8 +203,8 @@ int main()
 			co_return false;
 		}
 
-		std::filesystem::path filepath = server.root_directory;
-		filepath += req.target().substr(std::strlen("/download"));
+		std::filesystem::path filepath = net::make_filepath(
+			server.root_directory, req.target().substr(std::strlen("/download")));
 
 		std::error_code ec{};
 		net::stream_file file(data.session->get_executor());
@@ -254,8 +253,8 @@ int main()
 			co_return false;
 		}
 
-		std::filesystem::path filepath = server.root_directory;
-		filepath += req.target().substr(std::strlen("/upload"));
+		std::filesystem::path filepath = net::make_filepath(
+			server.root_directory, req.target().substr(std::strlen("/upload")));
 
 		std::error_code ec{};
 		net::stream_file file(data.session->get_executor());

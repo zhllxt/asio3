@@ -137,7 +137,7 @@ int main()
 
 	server.router.add("/", [&server](web_request_ex& req, http::web_response& rep) -> net::awaitable<bool>
 	{
-		auto res = http::make_file_response(server.root_directory, "index.html");
+		auto res = http::make_file_response(server.root_directory, "/index.html");
 		if (res.has_value())
 			rep = std::move(res.value());
 		else

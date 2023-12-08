@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <filesystem>
+#include <asio3/core/stdutil.hpp>
 
 #include <asio3/http/core.hpp>
 #include <asio3/http/mime_types.hpp>
@@ -320,23 +320,18 @@ namespace boost::beast::http
 		std::filesystem::path file_path,
 		http::status result = http::status::ok, unsigned version = 11)
 	{
-		// if you want to build a absolute path by youself and passed it to fill_file function,
-		// call set_root_directory("") first, then passed you absolute path to fill_file is ok.
-
-		// Build the path to the requested file
 		std::filesystem::path filepath;
 
 		if (root_path.empty())
 		{
 			filepath = std::move(file_path);
-			filepath.make_preferred();
 		}
 		else
 		{
-			filepath = root_path;
-			filepath.make_preferred();
-			filepath /= file_path.make_preferred().relative_path();
+			filepath = asio::make_filepath(root_path, file_path);
 		}
+
+		filepath.make_preferred();
 
 		return make_file_response(std::move(filepath), result, version);
 	}

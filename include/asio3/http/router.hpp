@@ -270,7 +270,8 @@ namespace boost::beast::http
 					{
 						this->cache_.shrink_to_fit();
 					}
-					else
+
+					if (!this->cache_.full() && rep.get_response_header().result() == http::status::ok)
 					{
 						if (auto res = rep.to_string_body_response(); res.has_value())
 						{

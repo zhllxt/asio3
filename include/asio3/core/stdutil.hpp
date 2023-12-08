@@ -10,8 +10,11 @@
 
 #pragma once
 
+#include <cassert>
+
 #include <memory>
 #include <functional>
+#include <filesystem>
 
 #include <asio3/core/stdconcepts.hpp>
 
@@ -126,4 +129,46 @@ namespace asio
 	// explicit deduction guide (not needed as of C++20)
 	template<class... Ts>
 	variant_overloaded(Ts...) -> variant_overloaded<Ts...>;
+
+	template<typename = void>
+	bool is_subpath_of(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
+	{
+		assert(std::filesystem::is_directory(base));
+
+		auto it_base = base.begin();
+		auto it_p = p.begin();
+
+		while (it_base != base.end() && it_p != p.end())
+		{
+			if (*it_base != *it_p)
+			{
+				return false;
+			}
+
+			++it_base;
+			++it_p;
+		}
+
+		// If all components of base are matched, and p has more components, then base is a subpath of p
+		return it_base == base.end() && it_p != p.end();
+	}
+
+	template<typename = void>
+	std::filesystem::path make_filepath(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
+	{
+		assert(std::filesystem::is_directory(base));
+
+		std::filesystem::path filepath = base;
+		filepath += p;
+
+		std::error_code ec{};
+		filepath = std::filesystem::canonical(filepath, ec);
+
+		if (ec || !is_subpath_of(base, filepath))
+		{
+			return {};
+		}
+
+		return filepath;
+	}
 }
