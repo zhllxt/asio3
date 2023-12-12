@@ -49,6 +49,7 @@ namespace asio
 			return asio::async_connect(socket,
 				std::forward_like<decltype(server_address)>(server_address),
 				std::forward_like<decltype(server_port)>(server_port),
+				asio::tcp_connect_timeout,
 				std::forward<ConnectToken>(token));
 		}
 

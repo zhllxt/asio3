@@ -16,6 +16,8 @@
 #include <asio3/bho/beast/http/message.hpp>
 #include <asio3/bho/beast/http/type_traits.hpp>
 #include <optional>
+
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 

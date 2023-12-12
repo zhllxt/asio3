@@ -15,6 +15,8 @@
 #include <asio3/bho/beast/http/message.hpp>
 #include <optional>
 
+#include <cstdint>
+
 namespace bho {
 namespace beast {
 namespace http {

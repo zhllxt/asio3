@@ -65,7 +65,7 @@ namespace boost::beast::http::detail
 				co_return{ e1, pin, readed_bytes, written_bytes };
 
 			// Apply the caller's header transformation
-			transform(p.get(), e1);
+			header_callback(p.get(), e1);
 			if (e1)
 				co_return{ e1, pnull, readed_bytes, written_bytes };
 
@@ -169,7 +169,8 @@ template<
 	typename AsyncWriteStream,
 	typename DynamicBuffer,
 	typename Transform,
-	typename RelayToken = asio::default_token_type<AsyncReadStream>>
+	typename RelayToken = asio::default_token_type<AsyncReadStream>
+>
 inline auto async_relay(
 	AsyncReadStream& input,
 	AsyncWriteStream& output,
@@ -191,4 +192,105 @@ inline auto async_relay(
 			std::forward<Transform>(transform));
 }
 
+template<
+	bool isRequest,
+	typename AsyncReadStream,
+	typename AsyncWriteStream,
+	typename DynamicBuffer,
+	typename Transform
+>
+net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::size_t>> relay(
+	AsyncReadStream& input,
+	AsyncWriteStream& output,
+	DynamicBuffer& buffer,
+	auto& parser,
+	Transform&& transform)
+{
+	auto& p = parser;
+
+	auto header_callback = std::forward_like<decltype(transform)>(transform);
+
+	co_await asio::dispatch(input.get_executor());
+
+	std::size_t readed_bytes = 0, written_bytes = 0;
+	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));
+	std::uintptr_t pout = reinterpret_cast<std::uintptr_t>(std::addressof(output));
+	std::uintptr_t pnull = std::uintptr_t(0);
+
+	// A small buffer for relaying the body piece by piece
+	std::array<char, asio::tcp_frame_size> buf;
+
+	// Create a parser with a buffer body to read from the input.
+	// This will cause crash on release mode, so change to a user passed Parser.
+	//http::parser<isRequest, http::buffer_body> p;
+
+	// Create a serializer from the message contained in the parser.
+	http::serializer<isRequest, http::buffer_body, http::fields> sr{p.get()};
+
+	// Read just the header from the input
+	auto [e1, n1] = co_await http::async_read_header(input, buffer, p);
+	readed_bytes += n1;
+	if (e1)
+		co_return std::tuple{ e1, pin, readed_bytes, written_bytes };
+
+	// Apply the caller's header transformation
+	header_callback(p.get(), e1);
+	if (e1)
+		co_return std::tuple{ e1, pnull, readed_bytes, written_bytes };
+
+	// Send the transformed message to the output
+	auto [e2, n2] = co_await http::async_write_header(output, sr);
+	written_bytes += n2;
+	if(e2)
+		co_return std::tuple{ e2, pout, readed_bytes, written_bytes };
+
+	// Loop over the input and transfer it to the output
+	do
+	{
+		if (!p.is_done())
+		{
+			// Set up the body for writing into our small buffer
+			p.get().body().data = buf.data();
+			p.get().body().size = buf.size();
+
+			// Read as much as we can
+			auto [e3, n3] = co_await http::async_read(input, buffer, p);
+
+			readed_bytes += n3;
+
+			// This error is returned when buffer_body uses up the buffer
+			if (e3 == http::error::need_buffer)
+				e3 = {};
+			if (e3)
+				co_return std::tuple{ e3, pin, readed_bytes, written_bytes };
+
+			assert(n3 == buf.size() - p.get().body().size);
+
+			// Set up the body for reading.
+			// This is how much was parsed:
+			p.get().body().size = buf.size() - p.get().body().size;
+			p.get().body().data = buf.data();
+			p.get().body().more = ! p.is_done();
+		}
+		else
+		{
+			p.get().body().data = nullptr;
+			p.get().body().size = 0;
+		}
+
+		// Write everything in the buffer (which might be empty)
+		auto [e4, n4] = co_await http::async_write(output, sr);
+
+		written_bytes += n4;
+
+		// This error is returned when buffer_body uses up the buffer
+		if (e4 == http::error::need_buffer)
+			e4 = {};
+		if (e4)
+			co_return std::tuple{ e4, pout, readed_bytes, written_bytes };
+
+	} while (!p.is_done() && !sr.is_done());
+
+	co_return std::tuple{ asio::error_code{}, pnull, readed_bytes, written_bytes };
+}
 }

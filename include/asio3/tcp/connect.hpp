@@ -32,9 +32,9 @@ namespace asio::detail
 			std::string addr = asio::to_string(std::forward_like<decltype(server_address)>(server_address));
 			std::string port = asio::to_string(std::forward_like<decltype(server_port)>(server_port));
 
-			using stream_type = std::remove_cvref_t<decltype(sock)>;
-			using endpoint_type = typename stream_type::protocol_type::endpoint;
-			using resolver_type = typename stream_type::protocol_type::resolver;
+			using sock_type = std::remove_cvref_t<decltype(sock)>;
+			using endpoint_type = typename sock_type::protocol_type::endpoint;
+			using resolver_type = typename sock_type::protocol_type::resolver;
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -58,7 +58,7 @@ namespace asio::detail
 
 			if (sock.is_open())
 			{
-				for (auto&& ep : eps)
+				for (const auto& ep : eps)
 				{
 					auto [e2] = co_await sock.async_connect(ep, use_nothrow_deferred);
 					if (!e2)
@@ -72,9 +72,9 @@ namespace asio::detail
 			{
 				asio::error_code ec{};
 
-				for (auto&& ep : eps)
+				for (const auto& ep : eps)
 				{
-					stream_type tmp(sock.get_executor());
+					sock_type tmp(sock.get_executor());
 
 					tmp.open(ep.endpoint().protocol(), ec);
 					if (ec)
@@ -116,6 +116,7 @@ namespace asio
 	inline auto async_connect(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
+		std::chrono::steady_clock::duration connect_timeout,
 		ConnectToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
@@ -124,7 +125,7 @@ namespace asio
 			token, std::ref(sock),
 			std::forward_like<decltype(server_address)>(server_address),
 			std::forward_like<decltype(server_port)>(server_port),
-			asio::tcp_connect_timeout,
+			connect_timeout,
 			asio::default_tcp_socket_option_setter{});
 	}
 
