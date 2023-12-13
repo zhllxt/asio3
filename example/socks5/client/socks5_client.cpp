@@ -17,7 +17,7 @@ net::awaitable<void> tcp_connect(socks5::option sock5_opt)
 
 	net::tcp_socket client(executor);
 
-	auto [e1, ep1] = co_await net::async_connect(client, sock5_opt.proxy_address, sock5_opt.proxy_port);
+	auto [e1, ep1] = co_await net::async_connectex(client, sock5_opt.proxy_address, sock5_opt.proxy_port);
 	if (e1)
 	{
 		fmt::print("connect failure: {}\n", e1.message());
@@ -67,7 +67,7 @@ net::awaitable<void> udp_connect(socks5::option sock5_opt)
 
 	net::tcp_socket client(executor);
 
-	auto [e1, ep1] = co_await net::async_connect(client, sock5_opt.proxy_address, sock5_opt.proxy_port);
+	auto [e1, ep1] = co_await net::async_connectex(client, sock5_opt.proxy_address, sock5_opt.proxy_port);
 	if (e1)
 	{
 		fmt::print("connect failure: {}\n", e1.message());

@@ -113,10 +113,9 @@ namespace asio
 		typename AsyncStream,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
 	requires is_tcp_socket<AsyncStream>
-	inline auto async_connect(
+	inline auto async_connectex(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
-		std::chrono::steady_clock::duration connect_timeout,
 		ConnectToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<ConnectToken, void(asio::error_code, asio::ip::tcp::endpoint)>(
@@ -125,7 +124,7 @@ namespace asio
 			token, std::ref(sock),
 			std::forward_like<decltype(server_address)>(server_address),
 			std::forward_like<decltype(server_port)>(server_port),
-			connect_timeout,
+			asio::tcp_connect_timeout,
 			asio::default_tcp_socket_option_setter{});
 	}
 
@@ -146,7 +145,7 @@ namespace asio
 		typename SetOptionFn,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
 	requires (is_tcp_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
-	inline auto async_connect(
+	inline auto async_connectex(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
 		std::chrono::steady_clock::duration connect_timeout,

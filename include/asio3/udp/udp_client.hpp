@@ -47,7 +47,7 @@ namespace asio
 			is_string auto&& server_address, is_string_or_integral auto&& server_port,
 			ConnectToken&& token = asio::default_token_type<socket_type>())
 		{
-			return asio::async_connect(socket,
+			return asio::async_connectex(socket,
 				std::forward_like<decltype(server_address)>(server_address),
 				std::forward_like<decltype(server_port)>(server_port),
 				std::forward<ConnectToken>(token));

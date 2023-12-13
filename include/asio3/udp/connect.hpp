@@ -107,7 +107,7 @@ namespace asio
 		typename AsyncStream,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
 	requires (is_udp_socket<AsyncStream>)
-	inline auto async_connect(
+	inline auto async_connectex(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
 		ConnectToken&& token = asio::default_token_type<AsyncStream>())
@@ -137,7 +137,7 @@ namespace asio
 		typename SetOptionFn,
 		typename ConnectToken = asio::default_token_type<AsyncStream>>
 	requires (is_udp_socket<AsyncStream> && std::invocable<SetOptionFn, AsyncStream&>)
-	inline auto async_connect(
+	inline auto async_connectex(
 		AsyncStream& sock,
 		is_string auto&& server_address, is_string_or_integral auto&& server_port,
 		SetOptionFn&& cb_set_option,
