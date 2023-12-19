@@ -346,7 +346,7 @@ namespace boost::beast::http
 		template <typename... Args, typename F, std::size_t... I>
 		inline asio::awaitable<void> _for_each_tuple(std::tuple<Args...>& t, const F& f, std::index_sequence<I...>)
 		{
-			co_await (f(std::get<I>(t)), ...);
+			((co_await f(std::get<I>(t))), ...);
 		}
 
 		template<class Tup>
@@ -362,7 +362,8 @@ namespace boost::beast::http
 				if (!continued)
 					co_return;
 
-				if constexpr (has_member_before<decltype(aop), bool, RequestT&, ResponseT&, Ts...>::value)
+				if constexpr (has_member_before<
+					decltype(aop), asio::awaitable<bool>, RequestT&, ResponseT&, Ts...>::value)
 				{
 					continued = co_await aop.before(req, rep, ts...);
 				}
@@ -403,7 +404,8 @@ namespace boost::beast::http
 				if (!continued)
 					co_return;
 
-				if constexpr (has_member_after<decltype(aop), bool, RequestT&, ResponseT&, Ts...>::value)
+				if constexpr (has_member_after<
+					decltype(aop), asio::awaitable<bool>, RequestT&, ResponseT&, Ts...>::value)
 				{
 					continued = co_await aop.after(req, rep, ts...);
 				}
