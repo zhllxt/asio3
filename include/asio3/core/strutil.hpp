@@ -34,10 +34,15 @@
 #include <regex>
 #include <map>
 
+#include <asio3/core/asio.hpp>
 #include <asio3/core/stdconcepts.hpp>
 #include <asio3/core/stdutil.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Converts any datatype into std::basic_string.

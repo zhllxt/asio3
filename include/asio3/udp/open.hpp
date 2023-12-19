@@ -16,7 +16,11 @@
 #include <asio3/core/resolve.hpp>
 #include <asio3/udp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct udp_async_open_op
 	{
@@ -75,7 +79,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Asynchronously start a udp socket at the bind address and port.

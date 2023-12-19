@@ -16,7 +16,11 @@
 #include <asio3/core/function_traits.hpp>
 #include <asio3/core/data_persist.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SessionT>
 	class basic_session_map

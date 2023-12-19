@@ -26,14 +26,23 @@
 #include <asio3/tcp/read.hpp>
 #include <asio3/tcp/write.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5::detail
+#else
+namespace boost::asio::socks5::detail
+#endif
 {
 	struct async_handshake_op
 	{
 		auto operator()(auto state, auto sock_ref, auto sock5_opt_ref) -> void
 		{
+		#ifdef ASIO_STANDALONE
 			using ::asio::read;
 			using ::asio::write;
+		#else
+			using boost::asio::read;
+			using boost::asio::write;
+		#endif
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -488,7 +497,11 @@ namespace asio::socks5::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 	/**
 	 * @brief Perform the socks5 handshake asynchronously in the client role.
@@ -502,11 +515,11 @@ namespace asio::socks5
 	template<
 		typename AsyncStream,
 		typename Socks5Option,
-		typename HandshakeToken = default_token_type<AsyncStream>>
+		typename HandshakeToken = asio::default_token_type<AsyncStream>>
 	requires std::derived_from<std::remove_cvref_t<Socks5Option>, socks5::option>
 	inline auto async_handshake(
 		AsyncStream& sock, Socks5Option& sock5_opt,
-		HandshakeToken&& token = default_token_type<AsyncStream>())
+		HandshakeToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<HandshakeToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(

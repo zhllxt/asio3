@@ -16,7 +16,11 @@
 #include <type_traits>
 #include <concepts>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	template<typename, typename = void>
 	struct lambda_dummy_t { };
@@ -27,13 +31,13 @@ namespace asio::detail
 		template<typename R = Ret>
 		inline R operator()(const Args&...)
 		{
-			if /**/ constexpr (std::is_same_v<void, std::remove_cv_t<std::remove_reference_t<R>>>)
+			if /**/ constexpr (::std::is_same_v<void, ::std::remove_cv_t<::std::remove_reference_t<R>>>)
 			{
 				return;
 			}
-			else if constexpr (std::is_reference_v<std::remove_cv_t<R>>)
+			else if constexpr (::std::is_reference_v<::std::remove_cv_t<R>>)
 			{
-				static typename std::remove_reference_t<R> s;
+				static typename ::std::remove_reference_t<R> s;
 				return s;
 			}
 			else
@@ -44,7 +48,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/*
 	 * 1. function type								==>	Ret(Args...)
@@ -61,50 +69,50 @@ namespace asio
 	struct function_traits<Ret(Args...)>
 	{
 	public:
-		static constexpr std::size_t argc = sizeof...(Args);
+		static constexpr ::std::size_t argc = sizeof...(Args);
 		static constexpr bool is_callable = true;
 
 		typedef Ret function_type(Args...);
 		typedef Ret return_type;
-		using stl_function_type = std::function<function_type>;
+		using stl_function_type = ::std::function<function_type>;
 		using stl_lambda_type = detail::lambda_dummy_t<function_type>;
 		typedef Ret(*pointer)(Args...);
 		using class_type = void;
 
-		template<std::size_t I>
+		template<::std::size_t I>
 		struct args
 		{
 			static_assert(I < argc, "index is out of range, index must less than sizeof Args");
-			using type = typename std::tuple_element<I, std::tuple<Args...>>::type;
+			using type = typename ::std::tuple_element<I, ::std::tuple<Args...>>::type;
 		};
 
-		typedef std::tuple<Args...> tuple_type;
-		typedef std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...> pod_tuple_type;
+		typedef ::std::tuple<Args...> tuple_type;
+		typedef ::std::tuple<::std::remove_cv_t<::std::remove_reference_t<Args>>...> pod_tuple_type;
 	};
 
 	template<typename Class, typename Ret, typename... Args>
 	struct function_traits<Class, Ret(Args...)>
 	{
 	public:
-		static constexpr std::size_t argc = sizeof...(Args);
+		static constexpr ::std::size_t argc = sizeof...(Args);
 		static constexpr bool is_callable = true;
 
 		typedef Ret function_type(Args...);
 		typedef Ret return_type;
-		using stl_function_type = std::function<function_type>;
+		using stl_function_type = ::std::function<function_type>;
 		using stl_lambda_type = detail::lambda_dummy_t<function_type>;
 		typedef Ret(*pointer)(Args...);
 		using class_type = Class;
 
-		template<std::size_t I>
+		template<::std::size_t I>
 		struct args
 		{
 			static_assert(I < argc, "index is out of range, index must less than sizeof Args");
-			using type = typename std::tuple_element<I, std::tuple<Args...>>::type;
+			using type = typename ::std::tuple_element<I, ::std::tuple<Args...>>::type;
 		};
 
-		typedef std::tuple<Args...> tuple_type;
-		typedef std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...> pod_tuple_type;
+		typedef ::std::tuple<Args...> tuple_type;
+		typedef ::std::tuple<::std::remove_cv_t<::std::remove_reference_t<Args>>...> pod_tuple_type;
 	};
 
 	// regular function pointer
@@ -189,18 +197,18 @@ namespace asio
 
 	// functor lambda
 	template<typename Callable>
-	struct function_traits<Callable, std::void_t<decltype(&Callable::operator()), char>>
+	struct function_traits<Callable, ::std::void_t<decltype(&Callable::operator()), char>>
 		: function_traits<decltype(&Callable::operator())> {};
 
-	// std::function
+	// ::std::function
 	template <typename Ret, typename... Args>
-	struct function_traits<std::function<Ret(Args...)>> : function_traits<Ret(Args...)> {};
+	struct function_traits<::std::function<Ret(Args...)>> : function_traits<Ret(Args...)> {};
 
 
 	template <typename F>
 	typename function_traits<F>::stl_function_type to_function(F&& lambda)
 	{
-		return static_cast<typename function_traits<F>::stl_function_type>(std::forward<F>(lambda));
+		return static_cast<typename function_traits<F>::stl_function_type>(::std::forward<F>(lambda));
 	}
 
 	template <typename F>
@@ -210,5 +218,5 @@ namespace asio
 	}
 
 	template<typename F>
-	concept is_callable = function_traits<std::decay_t<F>>::is_callable;
+	concept is_callable = function_traits<::std::decay_t<F>>::is_callable;
 }

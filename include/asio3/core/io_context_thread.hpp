@@ -12,14 +12,18 @@
 
 #include <asio3/core/asio.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	class io_context_thread
 	{
 	public:
 		explicit io_context_thread(int concurrency_hint = 1) : context(concurrency_hint)
 		{
-			thread = std::thread([this]() mutable
+			thread = ::std::thread([this]() mutable
 			{
 				context.run();
 			});
@@ -51,7 +55,7 @@ namespace asio
 		}
 
 	public:
-		std::thread          thread{};
+		::std::thread        thread{};
 
 		asio::io_context     context;
 

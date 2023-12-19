@@ -13,7 +13,11 @@
 #include <asio3/http/httpws_server.hpp>
 #include <asio3/http/flex_wss_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<
 		typename HttpsSessionT = https_session,

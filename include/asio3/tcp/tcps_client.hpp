@@ -13,7 +13,11 @@
 #include <asio3/tcp/tcp_client.hpp>
 #include <asio3/tcp/sslutil.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = tcp_socket>
 	class basic_tcps_client : public basic_tcp_client<SocketT>

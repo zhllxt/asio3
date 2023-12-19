@@ -8,7 +8,11 @@
 #include <asio3/proxy/match_condition.hpp>
 #include <asio3/proxy/udp_header.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 using time_point = std::chrono::steady_clock::time_point;
 
 net::awaitable<void> tcp_connect(socks5::option sock5_opt)

@@ -38,7 +38,12 @@
     tl;dr: root_certificates.hpp should not be used in production code
 */
 
-namespace asio {
+#ifdef ASIO_STANDALONE
+namespace asio
+#else
+namespace boost::asio
+#endif
+{
 namespace detail {
 
 inline void load_root_certificates(asio::ssl::context& ctx, asio::error_code& ec)

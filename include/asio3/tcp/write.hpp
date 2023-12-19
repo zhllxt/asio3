@@ -16,7 +16,11 @@
 #include <asio3/core/data_persist.hpp>
 #include <asio3/tcp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct tcp_async_send_op
 	{
@@ -41,48 +45,52 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 template <typename AsyncWriteStream, typename ConstBufferSequence>
 auto async_write(AsyncWriteStream& s, const ConstBufferSequence& buffers, detail::transfer_all_t completion_condition)
 {
 	return async_write(s, buffers, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
 }
 
 template <typename AsyncWriteStream, typename Allocator>
 auto async_write(AsyncWriteStream& s, basic_streambuf<Allocator>& b, detail::transfer_all_t completion_condition)
 {
 	return async_write(s, b, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
 }
 
 template <typename AsyncWriteStream, typename ConstBufferSequence>
 auto async_write(AsyncWriteStream& s, const ConstBufferSequence& buffers, detail::transfer_at_least_t completion_condition)
 {
 	return async_write(s, buffers, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
 }
 
 template <typename AsyncWriteStream, typename Allocator>
 auto async_write(AsyncWriteStream& s, basic_streambuf<Allocator>& b, detail::transfer_at_least_t completion_condition)
 {
 	return async_write(s, b, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
 }
 
 template <typename AsyncWriteStream, typename ConstBufferSequence>
 auto async_write(AsyncWriteStream& s, const ConstBufferSequence& buffers, detail::transfer_exactly_t completion_condition)
 {
 	return async_write(s, buffers, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
 }
 
 template <typename AsyncWriteStream, typename Allocator>
 auto async_write(AsyncWriteStream& s, basic_streambuf<Allocator>& b, detail::transfer_exactly_t completion_condition)
 {
 	return async_write(s, b, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncWriteStream::executor_type>::type());
 }
 
 /**

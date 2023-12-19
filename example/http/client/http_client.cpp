@@ -1,7 +1,11 @@
 #include <asio3/http/http_client.hpp>
 #include <asio3/core/fmt.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_upload(net::http_client& client)
 {
@@ -9,9 +13,9 @@ net::awaitable<void> do_upload(net::http_client& client)
 
 	auto on_chunk = [](auto) { return true; };
 
-	std::error_code ec{};
+	net::error_code ec{};
 	net::stream_file file(client.get_executor());
-	file.open("D:/Programs/HeidiSQL_12.5_64_Portable.zip", asio::file_base::read_only, ec);
+	file.open("D:/Programs/HeidiSQL_12.5_64_Portable.zip", net::file_base::read_only, ec);
 	if (ec)
 		co_return;
 
@@ -39,10 +43,10 @@ net::awaitable<void> do_download(net::http_client& client)
 
 	auto on_chunk = [](auto) { return true; };
 
-	std::error_code ec{};
+	net::error_code ec{};
 	net::stream_file file(client.get_executor());
 	file.open("asio-master.zip",
-		asio::file_base::write_only | asio::file_base::create | asio::file_base::truncate, ec);
+		net::file_base::write_only | net::file_base::create | net::file_base::truncate, ec);
 	if (ec)
 		co_return;
 

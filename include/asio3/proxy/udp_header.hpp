@@ -16,7 +16,11 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/fixed_capacity_vector.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 namespace
 {

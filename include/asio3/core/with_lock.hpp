@@ -3,7 +3,11 @@
 #include <asio3/core/detail/push_options.hpp>
 #include <asio3/core/asio.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 
 template <typename CompletionToken>
@@ -112,7 +116,11 @@ with_lock(CompletionToken&& completion_token)
 
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	template<typename AsyncStream>
 	concept has_member_variable_lock = requires(AsyncStream & s)
@@ -142,7 +150,7 @@ namespace asio::detail
 		}
 
 		template<typename AsyncStream>
-		auto operator()(auto state, std::reference_wrapper<AsyncStream> stream_ref) -> void
+		auto operator()(auto state, ::std::reference_wrapper<AsyncStream> stream_ref) -> void
 		{
 			auto& s = stream_ref.get();
 
@@ -194,7 +202,11 @@ namespace asio::detail
 	}
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Start an asynchronous operation to lock the channcel of the stream.
@@ -206,10 +218,10 @@ namespace asio
 	 */
 	template<
 		typename AsyncStream,
-		typename LockToken = default_token_type<AsyncStream>>
+		typename LockToken = asio::default_token_type<AsyncStream>>
 	inline auto async_lock(
 		AsyncStream& s,
-		LockToken&& token = default_token_type<AsyncStream>())
+		LockToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return async_initiate<LockToken, void(asio::error_code)>(
 			experimental::co_composed<void(asio::error_code)>(

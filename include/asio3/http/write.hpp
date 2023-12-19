@@ -19,7 +19,11 @@
 #include <asio3/core/file.hpp>
 #include <asio3/http/mime_types.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct websocket_stream_async_send_op
 	{
@@ -155,7 +159,11 @@ namespace boost::beast::http::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 /**
  * @brief Start an asynchronous operation to write all of the supplied data to a stream.

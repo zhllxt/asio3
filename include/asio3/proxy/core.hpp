@@ -19,7 +19,11 @@
 #include <asio3/tcp/core.hpp>
 #include <asio3/udp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 	enum class connect_result : std::uint8_t
 	{
@@ -164,4 +168,8 @@ namespace asio::socks5
 	}
 }
 
+#ifdef ASIO_STANDALONE
 namespace socks5 = ::asio::socks5;
+#else
+namespace socks5 = boost::asio::socks5;
+#endif

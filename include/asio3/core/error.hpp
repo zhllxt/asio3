@@ -21,7 +21,11 @@
 
 #include <asio3/core/asio.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	namespace detail
 	{

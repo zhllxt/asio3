@@ -14,7 +14,11 @@
 #include <asio3/udp/core.hpp>
 #include <asio3/proxy/parser.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 /**
  * @brief Start an asynchronous receive.
@@ -45,10 +49,10 @@ namespace asio
 template <
 	typename AsyncReadStream,
 	typename MutableBufferSequence,
-	typename ReadToken = default_token_type<AsyncReadStream>>
+	typename ReadToken = asio::default_token_type<AsyncReadStream>>
 inline auto async_receive_from(AsyncReadStream& s, const MutableBufferSequence& buffers,
 	typename AsyncReadStream::endpoint_type& sender_endpoint,
-	ReadToken&& token = default_token_type<AsyncReadStream>())
+	ReadToken&& token = asio::default_token_type<AsyncReadStream>())
 {
 	return s.async_receive_from(buffers, sender_endpoint, std::forward<ReadToken>(token));
 }
@@ -64,10 +68,10 @@ inline auto async_receive_from(AsyncReadStream& s, const MutableBufferSequence& 
 template <
 	typename AsyncReadStream,
 	typename MutableBufferSequence,
-	typename ReadToken = default_token_type<AsyncReadStream>>
+	typename ReadToken = asio::default_token_type<AsyncReadStream>>
 inline auto async_receive(
 	AsyncReadStream& s, const MutableBufferSequence& buffers,
-	ReadToken&& token = default_token_type<AsyncReadStream>())
+	ReadToken&& token = asio::default_token_type<AsyncReadStream>())
 {
 	return s.async_receive(buffers, std::forward<ReadToken>(token));
 }

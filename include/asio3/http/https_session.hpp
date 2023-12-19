@@ -15,7 +15,11 @@
 #include <asio3/http/core.hpp>
 #include <asio3/tcp/tcps_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = tcp_socket>
 	class basic_https_session : public basic_tcps_session<SocketT>

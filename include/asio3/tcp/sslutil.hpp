@@ -14,7 +14,11 @@
 #include <asio3/core/with_lock.hpp>
 
 #if defined(ASIO3_ENABLE_SSL)
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct ssl_async_handshake_op
 	{
@@ -72,7 +76,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 *
@@ -279,11 +287,11 @@ namespace asio
 	 */
 	template <
 		typename SslStream,
-		typename HandshakeToken = default_token_type<SslStream>>
+		typename HandshakeToken = asio::default_token_type<SslStream>>
 	inline auto async_handshake(
 		SslStream& ssl_stream,
 		ssl::stream_base::handshake_type handsk_type,
-		HandshakeToken&& token = default_token_type<SslStream>())
+		HandshakeToken&& token = asio::default_token_type<SslStream>())
 	{
 		return async_initiate<HandshakeToken, void(asio::error_code)>(
 			experimental::co_composed<void(asio::error_code)>(
@@ -295,12 +303,12 @@ namespace asio
 
 	template <
 		typename SslStream,
-		typename HandshakeToken = default_token_type<SslStream>>
+		typename HandshakeToken = asio::default_token_type<SslStream>>
 	inline auto async_handshake(
 		SslStream& ssl_stream,
 		ssl::stream_base::handshake_type handsk_type,
 		std::chrono::steady_clock::duration handsk_timeout,
-		HandshakeToken&& token = default_token_type<SslStream>())
+		HandshakeToken&& token = asio::default_token_type<SslStream>())
 	{
 		return async_initiate<HandshakeToken, void(asio::error_code)>(
 			experimental::co_composed<void(asio::error_code)>(
@@ -345,10 +353,10 @@ namespace asio
 	 */
 	template <
 		typename SslStream,
-		typename ShutdownToken = default_token_type<SslStream>>
+		typename ShutdownToken = asio::default_token_type<SslStream>>
 	inline auto async_shutdown(
 		SslStream& ssl_stream,
-		ShutdownToken&& token = default_token_type<SslStream>())
+		ShutdownToken&& token = asio::default_token_type<SslStream>())
 	{
 		return async_initiate<ShutdownToken, void(asio::error_code)>(
 			experimental::co_composed<void(asio::error_code)>(
@@ -360,11 +368,11 @@ namespace asio
 
 	template <
 		typename SslStream,
-		typename ShutdownToken = default_token_type<SslStream>>
+		typename ShutdownToken = asio::default_token_type<SslStream>>
 	inline auto async_shutdown(
 		SslStream& ssl_stream,
 		std::chrono::steady_clock::duration shutdown_timeout,
-		ShutdownToken&& token = default_token_type<SslStream>())
+		ShutdownToken&& token = asio::default_token_type<SslStream>())
 	{
 		return async_initiate<ShutdownToken, void(asio::error_code)>(
 			experimental::co_composed<void(asio::error_code)>(

@@ -6,7 +6,11 @@
 #include <asio3/http/httpwss_server.hpp>
 #include "../certs.hpp"
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_websocket_recv(net::httpwss_server& server, std::shared_ptr<net::flex_wss_session> session)
 {

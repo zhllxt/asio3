@@ -17,7 +17,11 @@
 #include <asio3/core/data_persist.hpp>
 #include <asio3/udp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct async_send_buffer_to_host_port_op
 	{
@@ -96,7 +100,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 /**
  * @brief Start an asynchronous send.
@@ -125,13 +133,13 @@ namespace asio
 template <
 	typename AsyncWriteStream,
 	typename ConstBufferSequence,
-	typename WriteToken = default_token_type<AsyncWriteStream>>
+	typename WriteToken = asio::default_token_type<AsyncWriteStream>>
 requires (
 	asio::is_const_buffer_sequence<ConstBufferSequence>::value ||
 	asio::is_mutable_buffer_sequence<ConstBufferSequence>::value)
 inline auto async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffers,
 	const typename AsyncWriteStream::endpoint_type& destination,
-	WriteToken&& token = default_token_type<AsyncWriteStream>())
+	WriteToken&& token = asio::default_token_type<AsyncWriteStream>())
 {
 	return s.async_send_to(buffers, destination, std::forward<WriteToken>(token));
 }
@@ -163,13 +171,13 @@ inline auto async_send_to(AsyncWriteStream& s, const ConstBufferSequence& buffer
 template <
 	typename AsyncWriteStream,
 	typename DataT,
-	typename WriteToken = default_token_type<AsyncWriteStream>>
+	typename WriteToken = asio::default_token_type<AsyncWriteStream>>
 requires (
 	!asio::is_const_buffer_sequence<DataT>::value &&
 	!asio::is_mutable_buffer_sequence<DataT>::value)
 inline auto async_send_to(AsyncWriteStream& s, DataT&& data,
 	const typename AsyncWriteStream::endpoint_type& destination,
-	WriteToken&& token = default_token_type<AsyncWriteStream>())
+	WriteToken&& token = asio::default_token_type<AsyncWriteStream>())
 {
 	return asio::async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(
@@ -200,10 +208,10 @@ inline auto async_send_to(AsyncWriteStream& s, DataT&& data,
  */
 template <
 	typename AsyncWriteStream,
-	typename WriteToken = default_token_type<AsyncWriteStream>>
+	typename WriteToken = asio::default_token_type<AsyncWriteStream>>
 inline auto async_send_to(AsyncWriteStream& s, auto&& data,
 	is_string auto&& host, is_string_or_integral auto&& port,
-	WriteToken&& token = default_token_type<AsyncWriteStream>())
+	WriteToken&& token = asio::default_token_type<AsyncWriteStream>())
 {
 	return asio::async_initiate<WriteToken, void(asio::error_code, std::size_t)>(
 		asio::experimental::co_composed<void(asio::error_code, std::size_t)>(

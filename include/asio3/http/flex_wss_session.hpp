@@ -15,7 +15,11 @@
 #include <asio3/core/stdutil.hpp>
 #include <asio3/http/https_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename HttpsSessionPointerT>
 	class basic_flex_wss_session

@@ -14,13 +14,21 @@
 #include <asio3/core/with_lock.hpp>
 #include <asio3/core/impl/with_lock.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	using udp_resolver = as_tuple_t<use_awaitable_t<>>::as_default_on_t<ip::udp::resolver>;
 	using udp_socket   = with_lock_t<as_tuple_t<use_awaitable_t<>>>::as_default_on_t<ip::udp::socket>;
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	struct udp_socket_option
 	{

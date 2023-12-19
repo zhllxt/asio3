@@ -16,7 +16,11 @@
 #include <asio3/http/core.hpp>
 #include <asio3/http/write.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = tcp_socket>
 	class basic_https_client : public basic_tcps_client<SocketT>

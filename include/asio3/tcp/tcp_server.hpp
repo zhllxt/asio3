@@ -15,7 +15,11 @@
 #include <asio3/tcp/listen.hpp>
 #include <asio3/tcp/tcp_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SessionT = tcp_session>
 	class basic_tcp_server

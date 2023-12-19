@@ -17,7 +17,11 @@
 #include <asio3/core/resolve.hpp>
 #include <asio3/tcp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct tcp_async_connect_op
 	{
@@ -97,7 +101,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.

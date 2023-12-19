@@ -6,7 +6,11 @@
 #include <asio3/tcp/tcps_server.hpp>
 #include "../../certs.hpp"
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_recv(std::shared_ptr<net::tcps_session> session)
 {

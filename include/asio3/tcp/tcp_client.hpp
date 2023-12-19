@@ -17,7 +17,11 @@
 #include <asio3/tcp/disconnect.hpp>
 #include <asio3/proxy/handshake.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = tcp_socket>
 	class basic_tcp_client

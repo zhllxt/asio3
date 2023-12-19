@@ -1,7 +1,11 @@
 #include <asio3/udp/udp_server.hpp>
 #include <asio3/core/fmt.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> client_join(net::udp_server& server, std::shared_ptr<net::udp_session> session)
 {

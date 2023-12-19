@@ -13,7 +13,11 @@
 #include <asio3/tcp/tcp_server.hpp>
 #include <asio3/http/ws_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SessionT = ws_session>
 	class basic_ws_server : public basic_tcp_server<SessionT>

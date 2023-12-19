@@ -18,7 +18,11 @@
 
 #include <asio3/core/stdconcepts.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	namespace detail
 	{
@@ -176,5 +180,12 @@ namespace asio
 		}
 
 		return filepath;
+	}
+
+	template<typename = void>
+	std::filesystem::path make_filepath(const std::filesystem::path& base, ::std::string_view s) noexcept
+	{
+		std::filesystem::path p{ s };
+		return make_filepath(base, p);
 	}
 }

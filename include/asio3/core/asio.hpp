@@ -47,7 +47,9 @@
 	#if !defined(ASIO_VERSION) && defined(BOOST_ASIO_VERSION)
 	#define ASIO_VERSION BOOST_ASIO_VERSION
 	#endif
-
+	#if !defined(ASIO_NODISCARD) && defined(BOOST_ASIO_NODISCARD)
+	#define ASIO_NODISCARD BOOST_ASIO_NODISCARD
+	#endif
 	#if !defined(ASIO_CONST_BUFFER) && defined(BOOST_ASIO_CONST_BUFFER)
 	#define ASIO_CONST_BUFFER BOOST_ASIO_CONST_BUFFER
 	#endif
@@ -134,7 +136,7 @@
 		using error_category  = ::boost::system::error_category;
 		using executor_guard  = asio::executor_work_guard<asio::io_context::executor_type>;
 	}
-	namespace asio = ::boost::asio;
+	//namespace asio = ::boost::asio;
 	namespace bho  = ::boost; // bho means boost header only
 
 	// [ adding definitions to namespace alias ]
@@ -148,15 +150,24 @@
 	//}
 #endif // ASIO_STANDALONE
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
-	template<typename T, typename U = std::remove_cvref_t<T>>
-	using default_token_type = typename ::asio::default_completion_token<typename U::executor_type>::type;
+	template<typename T, typename U = ::std::remove_cvref_t<T>>
+	using default_token_type = typename asio::default_completion_token<typename U::executor_type>::type;
 
 	constexpr auto use_nothrow_deferred  = asio::as_tuple(asio::deferred);
 	constexpr auto use_nothrow_awaitable = asio::as_tuple(asio::use_awaitable);
 }
 
+#ifdef ASIO_STANDALONE
 using namespace asio::experimental::awaitable_operators;
+#else
+using namespace boost::asio::experimental::awaitable_operators;
+#endif
+
 
 #include <asio3/core/detail/pop_options.hpp>

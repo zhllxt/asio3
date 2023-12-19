@@ -10,7 +10,11 @@
 
 #pragma once
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	namespace detail
 	{

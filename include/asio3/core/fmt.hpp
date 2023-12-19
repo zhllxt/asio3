@@ -197,6 +197,7 @@ struct fmt::formatter<wxString, wchar_t>
 // Custom format for asio::buffer
 #if __has_include(<asio3/core/asio.hpp>)
 #include <asio3/core/asio.hpp>
+#ifdef ASIO_STANDALONE
 template <>
 struct fmt::formatter<asio::const_buffer> : formatter<std::string_view>
 {
@@ -215,7 +216,7 @@ struct fmt::formatter<asio::mutable_buffer> : formatter<std::string_view>
 		return formatter<std::string_view>::format(sv, ctx);
 	}
 };
-#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+#if !defined(ASIO_NO_DEPRECATED)
 template <>
 struct fmt::formatter<asio::const_buffers_1> : formatter<std::string_view>
 {
@@ -234,6 +235,46 @@ struct fmt::formatter<asio::mutable_buffers_1> : formatter<std::string_view>
 		return formatter<std::string_view>::format(sv, ctx);
 	}
 };
+#endif
+#else
+template <>
+struct fmt::formatter<boost::asio::const_buffer> : formatter<std::string_view>
+{
+	auto format(const boost::asio::const_buffer& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::const_pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+template <>
+struct fmt::formatter<boost::asio::mutable_buffer> : formatter<std::string_view>
+{
+	auto format(const boost::asio::mutable_buffer& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+#if !defined(BOOST_ASIO_NO_DEPRECATED)
+template <>
+struct fmt::formatter<boost::asio::const_buffers_1> : formatter<std::string_view>
+{
+	auto format(const boost::asio::const_buffers_1& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::const_pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+template <>
+struct fmt::formatter<boost::asio::mutable_buffers_1> : formatter<std::string_view>
+{
+	auto format(const boost::asio::mutable_buffers_1& b, format_context& ctx) const
+	{
+		std::string_view sv{ reinterpret_cast<std::string_view::pointer>(b.data()), b.size() };
+		return formatter<std::string_view>::format(sv, ctx);
+	}
+};
+#endif
 #endif
 #endif
 
@@ -282,7 +323,11 @@ auto kvformat_do(::std::basic_string<CharT>& allfmt, Tuple&& tp_vals)
 template<class FmtStr, class T, class... Args>
 auto kvformat(FmtStr&& fmtstr, T&& val, Args&&... args)
 {
+#ifdef ASIO_STANDALONE
 	auto allfmt = asio::to_basic_string(::std::forward<FmtStr>(fmtstr));
+#else
+	auto allfmt = boost::asio::to_basic_string(::std::forward<FmtStr>(fmtstr));
+#endif
 
 	if constexpr (sizeof...(Args) > ::std::size_t(0))
 	{

@@ -12,7 +12,11 @@
 
 #include <asio3/core/asio.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 	///-----------------------------------------------------------------------------------------------
 	/// SOCKS Protocol Version 5: 
@@ -225,6 +229,7 @@ namespace asio::socks5
 	}
 }
 
+#ifdef ASIO_STANDALONE
 namespace std
 {
 	template<>
@@ -238,3 +243,18 @@ namespace std
 		static bool const value = true;
 	};
 }
+#else
+namespace std
+{
+	template<>
+	struct is_error_code_enum<boost::asio::socks5::error>
+	{
+		static bool const value = true;
+	};
+	template<>
+	struct is_error_condition_enum<boost::asio::socks5::condition>
+	{
+		static bool const value = true;
+	};
+}
+#endif

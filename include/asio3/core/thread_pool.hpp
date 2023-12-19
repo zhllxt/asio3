@@ -51,7 +51,11 @@
 #include <functional>
 #include <stdexcept>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	class thread_group;
 

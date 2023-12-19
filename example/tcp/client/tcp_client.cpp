@@ -1,7 +1,11 @@
 #include <asio3/tcp/tcp_client.hpp>
 #include <asio3/core/fmt.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_recv(net::tcp_client& client)
 {

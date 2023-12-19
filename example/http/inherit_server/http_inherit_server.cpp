@@ -1,7 +1,11 @@
 #include <asio3/core/fmt.hpp>
 #include <asio3/http/http_server.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 // how to get the session ip and port in the http router function ?
 

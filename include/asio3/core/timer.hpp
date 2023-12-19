@@ -16,7 +16,11 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/defer.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 // Forward declaration with defaulted arguments.
 template <typename Clock,
@@ -60,7 +64,7 @@ public:
    * These handlers can no longer be cancelled, and therefore are passed an
    * error code that indicates the successful completion of the wait operation.
    */
-  std::size_t cancel(std::memory_order order = std::memory_order_seq_cst)
+  ::std::size_t cancel(::std::memory_order order = ::std::memory_order_seq_cst)
   {
 	canceled_.test_and_set(order);
     return basic_waitable_timer<Clock, WaitTraits, Executor>::cancel();
@@ -90,19 +94,19 @@ public:
    * These handlers can no longer be cancelled, and therefore are passed an
    * error code that indicates the successful completion of the wait operation.
    */
-  std::size_t cancel(asio::error_code& ec, std::memory_order order = std::memory_order_seq_cst)
+  ::std::size_t cancel(asio::error_code& ec, ::std::memory_order order = ::std::memory_order_seq_cst)
   {
     canceled_.test_and_set(order);
     return basic_waitable_timer<Clock, WaitTraits, Executor>::cancel(ec);
   }
 #endif // !defined(ASIO_NO_DEPRECATED)
 
-  inline bool canceled(std::memory_order order = std::memory_order_seq_cst) const noexcept
+  inline bool canceled(::std::memory_order order = ::std::memory_order_seq_cst) const noexcept
   {
 	return canceled_.test(order);
   }
 
-  inline void clear(std::memory_order order = std::memory_order_seq_cst) noexcept
+  inline void clear(::std::memory_order order = ::std::memory_order_seq_cst) noexcept
   {
 	return canceled_.clear(order);
   }
@@ -111,14 +115,18 @@ protected:
   /// Why use this flag, beacuase the ec param maybe zero when the timer callback is
   /// called after the timer cancel function has called already.
   /// 
-  /// Initializes std::atomic_flag to clear state. (since C++20)
-  std::atomic_flag canceled_{};
+  /// Initializes ::std::atomic_flag to clear state. (since C++20)
+  ::std::atomic_flag canceled_{};
 };
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
-	using timer = as_tuple_t<use_awaitable_t<>>::as_default_on_t<::asio::basic_timer<std::chrono::steady_clock>>;
+	using timer = as_tuple_t<use_awaitable_t<>>::as_default_on_t<asio::basic_timer<::std::chrono::steady_clock>>;
 
 	inline void cancel_timer(auto& t) noexcept
 	{
@@ -132,7 +140,11 @@ namespace asio
 	}
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct timer_tag_t {};
 
@@ -142,7 +154,7 @@ namespace asio::detail
 	{
 		auto operator()(auto state, auto&& executor, asio::timer::duration duration) -> void
 		{
-			auto ex = std::forward_like<decltype(executor)>(executor);
+			auto ex = ::std::forward_like<decltype(executor)>(executor);
 
 			co_await asio::dispatch(ex, use_nothrow_deferred);
 
@@ -160,14 +172,14 @@ namespace asio::detail
 
 	struct call_func_when_timeout
 	{
-		std::shared_ptr<asio::timer> timer_ptr;
+		::std::shared_ptr<asio::timer> timer_ptr;
 
 		call_func_when_timeout(auto&& executor, asio::timer::duration timeout_value, auto&& func)
 		{
-			timer_ptr = std::make_shared<asio::timer>(executor);
+			timer_ptr = ::std::make_shared<asio::timer>(executor);
 			timer_ptr->expires_after(timeout_value);
 			timer_ptr->async_wait(
-			[p = timer_ptr, f = std::forward_like<decltype(func)>(func)]
+			[p = timer_ptr, f = ::std::forward_like<decltype(func)>(func)]
 			(const asio::error_code& ec) mutable
 			{
 				if (!ec)
@@ -190,15 +202,15 @@ namespace asio::detail
 	struct timer_callback_helper
 	{
 		template<class F>
-		requires (std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
-		static inline asio::awaitable<bool> call(F& f, std::shared_ptr<asio::timer>& timer_ptr)
+		requires (::std::invocable<::std::decay_t<F>, ::std::shared_ptr<asio::timer>&>)
+		static inline asio::awaitable<bool> call(F& f, ::std::shared_ptr<asio::timer>& timer_ptr)
 		{
 			co_return co_await f(timer_ptr);
 		}
 
 		template<class F>
-		requires (!std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
-		static inline asio::awaitable<bool> call(F& f, std::shared_ptr<asio::timer>&)
+		requires (!::std::invocable<::std::decay_t<F>, ::std::shared_ptr<asio::timer>&>)
+		static inline asio::awaitable<bool> call(F& f, ::std::shared_ptr<asio::timer>&)
 		{
 			co_return co_await f();
 		}
@@ -207,22 +219,26 @@ namespace asio::detail
 	struct timer_exit_notify_helper
 	{
 		template<class F>
-		requires (std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
-		static inline void call(F& f, std::shared_ptr<asio::timer>& timer_ptr)
+		requires (::std::invocable<::std::decay_t<F>, ::std::shared_ptr<asio::timer>&>)
+		static inline void call(F& f, ::std::shared_ptr<asio::timer>& timer_ptr)
 		{
 			f(timer_ptr);
 		}
 
 		template<class F>
-		requires (!std::invocable<std::decay_t<F>, std::shared_ptr<asio::timer>&>)
-		static inline void call(F& f, std::shared_ptr<asio::timer>&)
+		requires (!::std::invocable<::std::decay_t<F>, ::std::shared_ptr<asio::timer>&>)
+		static inline void call(F& f, ::std::shared_ptr<asio::timer>&)
 		{
 			f();
 		}
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Asynchronously sleep for a duration.
@@ -235,11 +251,11 @@ namespace asio
 	 */
 	template<
 		typename Executor,
-		typename SleepToken = default_token_type<asio::timer>>
+		typename SleepToken = asio::default_token_type<asio::timer>>
 	inline auto async_sleep(
 		Executor&& executor,
 		asio::timer::duration duration,
-		SleepToken&& token = default_token_type<asio::timer>())
+		SleepToken&& token = asio::default_token_type<asio::timer>())
 	{
 		return asio::async_initiate<SleepToken, void(asio::error_code)>(
 			asio::experimental::co_composed<void(asio::error_code)>(
@@ -273,9 +289,9 @@ namespace asio
 	 * @param duration - The duration. 
 	 */
 	template<typename = void>
-	asio::awaitable<std::tuple<asio::error_code, detail::timer_tag_t>> timeout(asio::timer::duration duration)
+	asio::awaitable<::std::tuple<asio::error_code, detail::timer_tag_t>> timeout(asio::timer::duration duration)
 	{
-		co_return std::tuple{ co_await async_sleep(duration), detail::timer_tag };
+		co_return ::std::tuple{ co_await async_sleep(duration), detail::timer_tag };
 	}
 
 	/**
@@ -283,11 +299,11 @@ namespace asio
 	 * @param duration - The deadline. 
 	 */
 	template<typename = void>
-	asio::awaitable<error_code> watchdog(std::chrono::steady_clock::time_point& deadline)
+	asio::awaitable<error_code> watchdog(::std::chrono::steady_clock::time_point& deadline)
 	{
 		asio::steady_timer watchdog_timer(co_await asio::this_coro::executor);
 
-		auto now = std::chrono::steady_clock::now();
+		auto now = ::std::chrono::steady_clock::now();
 
 		while (deadline > now)
 		{
@@ -297,7 +313,7 @@ namespace asio
 			if (ec)
 				co_return ec;
 
-			now = std::chrono::steady_clock::now();
+			now = ::std::chrono::steady_clock::now();
 		}
 
 		co_return asio::error::timed_out;
@@ -310,10 +326,10 @@ namespace asio
 	template<typename = void>
 	asio::awaitable<error_code> watchdog(
 		asio::timer& watchdog_timer,
-		std::chrono::system_clock::time_point& alive_time,
-		std::chrono::system_clock::duration idle_timeout)
+		::std::chrono::system_clock::time_point& alive_time,
+		::std::chrono::system_clock::duration idle_timeout)
 	{
-		auto idled_duration = std::chrono::system_clock::now() - alive_time;
+		auto idled_duration = ::std::chrono::system_clock::now() - alive_time;
 
 		while (idled_duration < idle_timeout)
 		{
@@ -325,7 +341,7 @@ namespace asio
 			if (watchdog_timer.canceled())
 				co_return asio::error::operation_aborted;
 
-			idled_duration = std::chrono::system_clock::now() - alive_time;
+			idled_duration = ::std::chrono::system_clock::now() - alive_time;
 		}
 
 		co_return asio::error::timed_out;
@@ -337,8 +353,8 @@ namespace asio
 	 */
 	template<typename = void>
 	asio::awaitable<error_code> watchdog(
-		std::chrono::system_clock::time_point& alive_time,
-		std::chrono::system_clock::duration idle_timeout)
+		::std::chrono::system_clock::time_point& alive_time,
+		::std::chrono::system_clock::duration idle_timeout)
 	{
 		asio::timer watchdog_timer(co_await asio::this_coro::executor);
 
@@ -347,7 +363,7 @@ namespace asio
 
 	/**
 	 * @brief Check whether the result of the awaitable_operators is timeout.
-	 * @param v - The result of the awaitable_operators which type is std::variant<...>
+	 * @param v - The result of the awaitable_operators which type is ::std::variant<...>
 	 * @eg:
 	 * auto result = co_await (asio::async_connect(...) || asio::timeout(...));
 	 * if (asio::is_timeout(result))
@@ -357,18 +373,18 @@ namespace asio
 	template<typename = void>
 	constexpr bool is_timeout(is_variant auto& v) noexcept
 	{
-		return std::holds_alternative<std::tuple<asio::error_code, detail::timer_tag_t>>(v);
+		return ::std::holds_alternative<::std::tuple<asio::error_code, detail::timer_tag_t>>(v);
 	}
 
 	/**
 	 * @brief create a timer.
 	 */
-	std::shared_ptr<asio::timer> create_timer(
+	::std::shared_ptr<asio::timer> create_timer(
 		const auto& executor, asio::timer::duration interval, auto&& callback)
 	{
-		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+		::std::shared_ptr<asio::timer> t = ::std::make_shared<asio::timer>(executor);
 
-		asio::co_spawn(executor, [t, interval, f = std::forward_like<decltype(callback)>(callback)]
+		asio::co_spawn(executor, [t, interval, f = ::std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
 			for (;;)
@@ -394,14 +410,14 @@ namespace asio
 	/**
 	 * @brief create a timer.
 	 */
-	std::shared_ptr<asio::timer> create_timer(const auto& executor,
+	::std::shared_ptr<asio::timer> create_timer(const auto& executor,
 		asio::timer::duration first_delay,
 		asio::timer::duration interval, auto&& callback)
 	{
-		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+		::std::shared_ptr<asio::timer> t = ::std::make_shared<asio::timer>(executor);
 
 		asio::co_spawn(executor,
-		[t, first_delay, interval, f = std::forward_like<decltype(callback)>(callback)]
+		[t, first_delay, interval, f = ::std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
 			if (first_delay > asio::timer::duration::zero())
@@ -430,14 +446,14 @@ namespace asio
 	/**
 	 * @brief create a timer.
 	 */
-	std::shared_ptr<asio::timer> create_timer(const auto& executor,
+	::std::shared_ptr<asio::timer> create_timer(const auto& executor,
 		asio::timer::duration first_delay,
-		asio::timer::duration interval, std::integral auto repeat_times, auto&& callback)
+		asio::timer::duration interval, ::std::integral auto repeat_times, auto&& callback)
 	{
-		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+		::std::shared_ptr<asio::timer> t = ::std::make_shared<asio::timer>(executor);
 
 		asio::co_spawn(executor,
-		[t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback)]
+		[t, first_delay, interval, repeat_times, f = ::std::forward_like<decltype(callback)>(callback)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
 			if (first_delay > asio::timer::duration::zero())
@@ -466,21 +482,21 @@ namespace asio
 	/**
 	 * @brief create a timer.
 	 */
-	std::shared_ptr<asio::timer> create_timer(const auto& executor,
+	::std::shared_ptr<asio::timer> create_timer(const auto& executor,
 		asio::timer::duration first_delay, asio::timer::duration interval,
-		std::integral auto repeat_times, auto&& callback, auto&& exit_notify)
+		::std::integral auto repeat_times, auto&& callback, auto&& exit_notify)
 	{
-		std::shared_ptr<asio::timer> t = std::make_shared<asio::timer>(executor);
+		::std::shared_ptr<asio::timer> t = ::std::make_shared<asio::timer>(executor);
 
 		asio::co_spawn(executor,
-		[t, first_delay, interval, repeat_times, f = std::forward_like<decltype(callback)>(callback),
-			e = std::forward_like<decltype(exit_notify)>(exit_notify)]
+		[t, first_delay, interval, repeat_times, f = ::std::forward_like<decltype(callback)>(callback),
+			e = ::std::forward_like<decltype(exit_notify)>(exit_notify)]
 		() mutable -> asio::awaitable<asio::error_code>
 		{
 			if (first_delay > asio::timer::duration::zero())
 				co_await asio::delay(first_delay);
 
-			std::defer notify_when_destroy = [t, e = std::move(e)]() mutable
+			::std::defer notify_when_destroy = [t, e = ::std::move(e)]() mutable
 			{
 				detail::timer_exit_notify_helper::call(e, t);
 			};

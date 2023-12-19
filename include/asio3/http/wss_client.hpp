@@ -15,7 +15,11 @@
 #include <asio3/tcp/tcps_client.hpp>
 #include <asio3/http/write.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = tcp_socket>
 	class basic_wss_client : public basic_tcps_client<SocketT>

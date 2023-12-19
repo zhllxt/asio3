@@ -11,7 +11,11 @@
 #include <iostream>
 #include "../../certs.hpp"
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_request(net::ssl::context& sslctx)
 {

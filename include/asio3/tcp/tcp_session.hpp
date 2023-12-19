@@ -15,7 +15,11 @@
 #include <asio3/tcp/write.hpp>
 #include <asio3/tcp/disconnect.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = tcp_socket>
 	class basic_tcp_session : public std::enable_shared_from_this<basic_tcp_session<SocketT>>

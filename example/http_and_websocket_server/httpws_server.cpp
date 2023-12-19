@@ -1,7 +1,11 @@
 #include <asio3/core/fmt.hpp>
 #include <asio3/http/httpws_server.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_websocket_recv(net::httpws_server& server, std::shared_ptr<net::ws_session> session)
 {

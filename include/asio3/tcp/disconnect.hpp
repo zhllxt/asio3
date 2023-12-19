@@ -13,7 +13,11 @@
 #include <asio3/core/timer.hpp>
 #include <asio3/tcp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct tcp_async_disconnect_op
 	{
@@ -92,7 +96,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Asynchronously graceful disconnect the socket connection.

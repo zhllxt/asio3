@@ -4,7 +4,12 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/with_lock.hpp>
 
-namespace asio {
+#ifdef ASIO_STANDALONE
+namespace asio
+#else
+namespace boost::asio
+#endif
+{
 
 #if !defined(GENERATING_DOCUMENTATION)
 

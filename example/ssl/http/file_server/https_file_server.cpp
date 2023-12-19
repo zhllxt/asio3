@@ -8,7 +8,11 @@
 #include <unordered_map>
 #include "../../certs.hpp"
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 struct userdata
 {
@@ -206,9 +210,9 @@ int main()
 		std::filesystem::path filepath = net::make_filepath(
 			server.root_directory, req.target().substr(std::strlen("/download")));
 
-		std::error_code ec{};
+		net::error_code ec{};
 		net::stream_file file(data.session->get_executor());
-		file.open(filepath.string(), asio::file_base::read_only, ec);
+		file.open(filepath.string(), net::file_base::read_only, ec);
 		if (ec)
 		{
 			rep = http::make_error_page_response(http::status::internal_server_error);
@@ -256,10 +260,10 @@ int main()
 		std::filesystem::path filepath = net::make_filepath(
 			server.root_directory, req.target().substr(std::strlen("/upload")));
 
-		std::error_code ec{};
+		net::error_code ec{};
 		net::stream_file file(data.session->get_executor());
 		file.open(filepath.string(),
-			asio::file_base::write_only | asio::file_base::create | asio::file_base::truncate, ec);
+			net::file_base::write_only | net::file_base::create | net::file_base::truncate, ec);
 		if (ec)
 		{
 			rep = http::make_error_page_response(http::status::internal_server_error);

@@ -6,7 +6,11 @@
 #include <asio3/http/https_server.hpp>
 #include "../../certs.hpp"
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_http_recv(net::https_server& server, std::shared_ptr<net::https_session> session)
 {

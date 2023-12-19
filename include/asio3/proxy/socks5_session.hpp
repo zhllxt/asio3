@@ -15,7 +15,11 @@
 #include <asio3/tcp/tcp_session.hpp>
 #include <asio3/udp/udp_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT, typename BoundSocketT = udp_socket>
 	class basic_socks5_session : public basic_tcp_session<SocketT>

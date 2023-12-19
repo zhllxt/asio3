@@ -15,7 +15,11 @@
 #include <asio3/udp/write.hpp>
 #include <asio3/udp/disconnect.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = udp_socket>
 	class basic_udp_session : public std::enable_shared_from_this<basic_udp_session<SocketT>>

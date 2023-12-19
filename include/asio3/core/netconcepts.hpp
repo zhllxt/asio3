@@ -12,10 +12,14 @@
 
 #include <concepts>
 
-#include <asio3/core/stdconcepts.hpp>
 #include <asio3/core/asio.hpp>
+#include <asio3/core/stdconcepts.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename T, typename U = std::remove_cvref_t<T>>
 	concept is_tcp_socket = std::is_same_v<typename U::lowest_layer_type::protocol_type, asio::ip::tcp>;

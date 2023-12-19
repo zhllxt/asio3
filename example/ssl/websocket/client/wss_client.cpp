@@ -6,7 +6,11 @@
 #include <asio3/core/fmt.hpp>
 #include "../../certs.hpp"
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_recv(net::wss_client& client)
 {

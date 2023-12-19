@@ -15,7 +15,11 @@
 #include <asio3/udp/open.hpp>
 #include <asio3/udp/udp_session.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SessionT = udp_session>
 	class basic_udp_server

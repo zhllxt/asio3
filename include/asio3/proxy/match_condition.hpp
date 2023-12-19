@@ -75,7 +75,11 @@
  * @endcode
  */
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 struct udp_match_condition
 {

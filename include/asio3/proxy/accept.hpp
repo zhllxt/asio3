@@ -25,16 +25,26 @@
 
 #include <asio3/udp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5::detail
+#else
+namespace boost::asio::socks5::detail
+#endif
 {
 	struct async_accept_op
 	{
 		template<typename AuthConfig>
 		auto operator()(auto state, auto sock_ref, std::reference_wrapper<AuthConfig> auth_cfg_ref) -> void
 		{
+		#ifdef ASIO_STANDALONE
 			using ::asio::read;
 			using ::asio::write;
 			using ::std::to_underlying;
+		#else
+			using boost::asio::read;
+			using boost::asio::write;
+			using ::std::to_underlying;
+		#endif
 
 			auto& sock = sock_ref.get();
 
@@ -532,7 +542,11 @@ namespace asio::socks5::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 	/**
 	 * @brief Perform the socks5 handshake asynchronously in the server role.
@@ -546,11 +560,11 @@ namespace asio::socks5
 	template<
 		typename AsyncStream,
 		typename AuthConfig,
-		typename AcceptToken = default_token_type<AsyncStream>>
+		typename AcceptToken = asio::default_token_type<AsyncStream>>
 	requires std::derived_from<std::remove_cvref_t<AuthConfig>, socks5::auth_config>
 	inline auto async_accept(
 		AsyncStream& sock, AuthConfig& auth_cfg,
-		AcceptToken&& token = default_token_type<AsyncStream>())
+		AcceptToken&& token = asio::default_token_type<AsyncStream>())
 	{
 		return asio::async_initiate<AcceptToken, void(asio::error_code, socks5::handshake_info)>(
 			asio::experimental::co_composed<void(asio::error_code, socks5::handshake_info)>(

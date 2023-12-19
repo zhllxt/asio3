@@ -13,48 +13,52 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/tcp/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 template <typename AsyncReadStream, typename MutableBufferSequence>
 auto async_read(AsyncReadStream& s, const MutableBufferSequence& buffers, detail::transfer_all_t completion_condition)
 {
 	return async_read(s, buffers, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
 }
 
 template <typename AsyncReadStream, typename Allocator>
 auto async_read(AsyncReadStream& s, basic_streambuf<Allocator>& b, detail::transfer_all_t completion_condition)
 {
 	return async_read(s, b, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
 }
 
 template <typename AsyncReadStream, typename MutableBufferSequence>
 auto async_read(AsyncReadStream& s, const MutableBufferSequence& buffers, detail::transfer_at_least_t completion_condition)
 {
 	return async_read(s, buffers, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
 }
 
 template <typename AsyncReadStream, typename Allocator>
 auto async_read(AsyncReadStream& s, basic_streambuf<Allocator>& b, detail::transfer_at_least_t completion_condition)
 {
 	return async_read(s, b, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
 }
 
 template <typename AsyncReadStream, typename MutableBufferSequence>
 auto async_read(AsyncReadStream& s, const MutableBufferSequence& buffers, detail::transfer_exactly_t completion_condition)
 {
 	return async_read(s, buffers, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
 }
 
 template <typename AsyncReadStream, typename Allocator>
 auto async_read(AsyncReadStream& s, basic_streambuf<Allocator>& b, detail::transfer_exactly_t completion_condition)
 {
 	return async_read(s, b, std::move(completion_condition),
-		::asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
+		asio::default_completion_token<typename AsyncReadStream::executor_type>::type());
 }
 
 /**
@@ -81,9 +85,9 @@ auto async_read(AsyncReadStream& s, basic_streambuf<Allocator>& b, detail::trans
 template <
 	typename AsyncReadStream,
 	typename MutableBufferSequence,
-	typename ReadToken = default_token_type<AsyncReadStream>>
+	typename ReadToken = asio::default_token_type<AsyncReadStream>>
 inline auto async_read_some(AsyncReadStream& s, const MutableBufferSequence& buffers,
-	ReadToken&& token = default_token_type<AsyncReadStream>())
+	ReadToken&& token = asio::default_token_type<AsyncReadStream>())
 {
 	return s.async_read_some(buffers, std::forward<ReadToken>(token));
 }

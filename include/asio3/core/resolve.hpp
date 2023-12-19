@@ -14,7 +14,11 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/strutil.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct async_resolve_op
 	{
@@ -61,7 +65,11 @@ namespace asio::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/// Asynchronously perform forward resolution of a query to a list of entries.
 	/**

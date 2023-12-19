@@ -14,7 +14,11 @@
 #include <asio3/http/http_session.hpp>
 #include <asio3/http/router.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<
 		typename SessionT = http_session,

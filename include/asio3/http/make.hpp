@@ -318,7 +318,7 @@ namespace boost::beast::http
 	inline std::expected<http::response<http::file_body>, error_code> make_file_response(
 		std::filesystem::path root_path,
 		std::filesystem::path file_path,
-		http::status result = http::status::ok, unsigned version = 11)
+		http::status result, unsigned version = 11)
 	{
 		std::filesystem::path filepath;
 
@@ -334,5 +334,16 @@ namespace boost::beast::http
 		filepath.make_preferred();
 
 		return make_file_response(std::move(filepath), result, version);
+	}
+
+	/**
+	 * @brief Respond to http request with local file
+	 */
+	inline std::expected<http::response<http::file_body>, error_code> make_file_response(
+		std::filesystem::path root_path,
+		beast::string_view file_path,
+		http::status result = http::status::ok, unsigned version = 11)
+	{
+		return make_file_response(std::move(root_path), std::filesystem::path(std::string_view(file_path)), result, version);
 	}
 }

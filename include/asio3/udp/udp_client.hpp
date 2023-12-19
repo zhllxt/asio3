@@ -21,7 +21,11 @@
 #include <asio3/proxy/parser.hpp>
 #include <asio3/proxy/udp_header.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SocketT = udp_socket>
 	class basic_udp_client

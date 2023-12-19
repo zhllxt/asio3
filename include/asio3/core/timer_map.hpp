@@ -18,7 +18,11 @@
 #include <asio3/core/timer.hpp>
 #include <asio3/core/with_lock.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	struct timer_handle
 	{

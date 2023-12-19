@@ -10,7 +10,11 @@
 
 #pragma once
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template<typename SessionT>
 	struct basic_session_map<SessionT>::async_add_op

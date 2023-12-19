@@ -1,7 +1,11 @@
 #include <asio3/core/fmt.hpp>
 #include <asio3/http/http_server.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace net = ::asio;
+#else
+namespace net = boost::asio;
+#endif
 
 net::awaitable<void> do_http_recv(net::http_server& server, std::shared_ptr<net::http_session> session)
 {

@@ -20,7 +20,11 @@
 #include <asio3/proxy/match_condition.hpp>
 #include <asio3/proxy/udp_header.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5::detail
+#else
+namespace boost::asio::socks5::detail
+#endif
 {
 	struct async_forward_data_to_backend_op
 	{
@@ -111,7 +115,11 @@ namespace asio::socks5::detail
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
 {
 	/**
 	 * @brief Start an asynchronous operation to transfer data between front and back.

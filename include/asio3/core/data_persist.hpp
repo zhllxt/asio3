@@ -13,7 +13,11 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/strutil.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	template<class T>
 	inline auto data_persist(T&& data)

@@ -16,42 +16,50 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/strutil.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	using nothrow_stream_file = as_tuple_t<use_awaitable_t<>>::as_default_on_t<asio::stream_file>;
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	struct async_read_file_content_op
 	{
-		std::string filepath;
+		::std::string filepath;
 
 		auto operator()(auto state, auto&& executor) -> void
 		{
-			auto ex = std::forward_like<decltype(executor)>(executor);
+			auto ex = ::std::forward_like<decltype(executor)>(executor);
 
 			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			std::string buffer;
+			::std::string buffer;
 
 			asio::stream_file file(ex);
 
 			error_code ec{};
 
-			auto fsize = std::filesystem::file_size(filepath, ec);
+			auto fsize = ::std::filesystem::file_size(filepath, ec);
 			if (!ec)
 			{
-				buffer.reserve(std::size_t(fsize));
+				buffer.reserve(::std::size_t(fsize));
 			}
 
 			file.open(filepath, asio::stream_file::read_only, ec);
 
 			if (ec)
 			{
-				co_return{ ec, std::move(file), std::move(buffer) };
+				co_return{ ec, ::std::move(file), ::std::move(buffer) };
 			}
 
 			auto [e1, n1] = co_await asio::async_read(
@@ -62,18 +70,18 @@ namespace asio::detail
 				e1 = {};
 			}
 
-			co_return{ e1, std::move(file), std::move(buffer) };
+			co_return{ e1, ::std::move(file), ::std::move(buffer) };
 		}
 	};
 
 	struct async_write_file_op
 	{
-		std::string filepath;
+		::std::string filepath;
 
-		auto operator()(auto state, auto&& executor, auto&& buffers, file_base::flags open_flags) -> void
+		auto operator()(auto state, auto&& executor, auto&& buffers, asio::file_base::flags open_flags) -> void
 		{
-			auto ex = std::forward_like<decltype(executor)>(executor);
-			auto bs = std::forward_like<decltype(buffers)>(buffers);
+			auto ex = ::std::forward_like<decltype(executor)>(executor);
+			auto bs = ::std::forward_like<decltype(buffers)>(buffers);
 
 			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
 
@@ -87,7 +95,7 @@ namespace asio::detail
 
 			if (ec)
 			{
-				co_return{ ec, std::move(file), 0 };
+				co_return{ ec, ::std::move(file), 0 };
 			}
 
 			if (open_flags & file_base::append)
@@ -96,18 +104,22 @@ namespace asio::detail
 
 				if (ec)
 				{
-					co_return{ ec, std::move(file), 0 };
+					co_return{ ec, ::std::move(file), 0 };
 				}
 			}
 
 			auto [e1, n1] = co_await asio::async_write(file, bs, asio::use_nothrow_deferred);
 
-			co_return{ e1, std::move(file), n1 };
+			co_return{ e1, ::std::move(file), n1 };
 		}
 	};
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/**
 	 * @brief Start an asynchronous operation to read a file.
@@ -116,20 +128,20 @@ namespace asio
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
-     *    void handler(const asio::error_code& ec, asio::stream_file file, std::string content);
+     *    void handler(const asio::error_code& ec, asio::stream_file file, ::std::string content);
 	 */
 	template<
 		typename Executor,
-		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
+		typename ReadToken = asio::default_token_type<asio::nothrow_stream_file>>
 	inline auto async_read_file_content(
 		Executor&& ex,
 		is_string auto&& filepath,
-		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
+		ReadToken&& token = asio::default_token_type<asio::nothrow_stream_file>())
 	{
-		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::string)>(
-			experimental::co_composed<void(asio::error_code, asio::stream_file, std::string)>(
+		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, ::std::string)>(
+			experimental::co_composed<void(asio::error_code, asio::stream_file, ::std::string)>(
 				detail::async_read_file_content_op{
-					asio::to_string(std::forward_like<decltype(filepath)>(filepath)) }, ex),
+					asio::to_string(::std::forward_like<decltype(filepath)>(filepath)) }, ex),
 			token, ex);
 	}
 
@@ -138,11 +150,11 @@ namespace asio
 	 * @param filepath - The full file path.
 	 */
 	template<typename = void>
-	asio::awaitable<std::tuple<asio::error_code, asio::stream_file, std::string>>
+	asio::awaitable<::std::tuple<asio::error_code, asio::stream_file, ::std::string>>
 		async_read_file_content(is_string auto&& filepath)
 	{
 		co_return co_await async_read_file_content(co_await asio::this_coro::executor,
-			std::forward_like<decltype(filepath)>(filepath), asio::use_nothrow_awaitable);
+			::std::forward_like<decltype(filepath)>(filepath), asio::use_nothrow_awaitable);
 	}
 
 	/**
@@ -152,22 +164,22 @@ namespace asio
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
-     *    void handler(const asio::error_code& ec, asio::stream_file file, std::size_t bytes_writen);
+     *    void handler(const asio::error_code& ec, asio::stream_file file, ::std::size_t bytes_writen);
 	 */
 	template<
 		typename Executor,
 		typename ConstBufferSequence,
-		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
+		typename ReadToken = asio::default_token_type<asio::nothrow_stream_file>>
 	inline auto async_write_file(
 		Executor&& ex,
 		is_string auto&& filepath,
 		const ConstBufferSequence& buffers,
-		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
+		ReadToken&& token = asio::default_token_type<asio::nothrow_stream_file>())
 	{
-		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::size_t)>(
-			experimental::co_composed<void(asio::error_code, asio::stream_file, std::size_t)>(
+		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, ::std::size_t)>(
+			experimental::co_composed<void(asio::error_code, asio::stream_file, ::std::size_t)>(
 				detail::async_write_file_op{
-					asio::to_string(std::forward_like<decltype(filepath)>(filepath)) }, ex),
+					asio::to_string(::std::forward_like<decltype(filepath)>(filepath)) }, ex),
 			token, ex, buffers,
 			stream_file::write_only | stream_file::create | stream_file::truncate);
 	}
@@ -179,23 +191,23 @@ namespace asio
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
      *    @code
-     *    void handler(const asio::error_code& ec, asio::stream_file file, std::size_t bytes_writen);
+     *    void handler(const asio::error_code& ec, asio::stream_file file, ::std::size_t bytes_writen);
 	 */
 	template<
 		typename Executor,
 		typename ConstBufferSequence,
-		typename ReadToken = default_token_type<asio::nothrow_stream_file>>
+		typename ReadToken = asio::default_token_type<asio::nothrow_stream_file>>
 	inline auto async_write_file(
 		Executor&& ex,
 		is_string auto&& filepath,
 		const ConstBufferSequence& buffers,
 		file_base::flags open_flags,
-		ReadToken&& token = default_token_type<asio::nothrow_stream_file>())
+		ReadToken&& token = asio::default_token_type<asio::nothrow_stream_file>())
 	{
-		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, std::size_t)>(
-			experimental::co_composed<void(asio::error_code, asio::stream_file, std::size_t)>(
+		return async_initiate<ReadToken, void(asio::error_code, asio::stream_file, ::std::size_t)>(
+			experimental::co_composed<void(asio::error_code, asio::stream_file, ::std::size_t)>(
 				detail::async_write_file_op{
-					asio::to_string(std::forward_like<decltype(filepath)>(filepath)) }, ex),
+					asio::to_string(::std::forward_like<decltype(filepath)>(filepath)) }, ex),
 			token, ex, buffers, open_flags);
 	}
 
@@ -204,11 +216,11 @@ namespace asio
 	 * @param filepath - The full file path.
 	 */
 	template<typename ConstBufferSequence>
-	asio::awaitable<std::tuple<asio::error_code, asio::stream_file, std::size_t>> async_write_file(
+	asio::awaitable<::std::tuple<asio::error_code, asio::stream_file, ::std::size_t>> async_write_file(
 		is_string auto&& filepath, const ConstBufferSequence& buffers,
 		file_base::flags open_flags = stream_file::write_only | stream_file::create | stream_file::truncate)
 	{
 		co_return co_await async_write_file(co_await asio::this_coro::executor,
-			std::forward_like<decltype(filepath)>(filepath), buffers, open_flags, asio::use_nothrow_awaitable);
+			::std::forward_like<decltype(filepath)>(filepath), buffers, open_flags, asio::use_nothrow_awaitable);
 	}
 }

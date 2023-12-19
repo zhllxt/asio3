@@ -22,7 +22,11 @@
 #	endif
 #endif
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	/**
 	 * @brief set tcp socket keep alive options
