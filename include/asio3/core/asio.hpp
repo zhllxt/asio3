@@ -136,7 +136,7 @@
 		using error_category  = ::boost::system::error_category;
 		using executor_guard  = asio::executor_work_guard<asio::io_context::executor_type>;
 	}
-	//namespace asio = ::boost::asio;
+	namespace asio = ::boost::asio;
 	namespace bho  = ::boost; // bho means boost header only
 
 	// [ adding definitions to namespace alias ]
@@ -168,6 +168,5 @@ using namespace asio::experimental::awaitable_operators;
 #else
 using namespace boost::asio::experimental::awaitable_operators;
 #endif
-
 
 #include <asio3/core/detail/pop_options.hpp>
