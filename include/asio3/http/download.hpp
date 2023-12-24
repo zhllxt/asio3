@@ -152,6 +152,16 @@ namespace boost::beast::http::detail
 				req.set(field_name, field_value);
 			}
 
+			req.body() = opt.data;
+			try
+			{
+				req.prepare_payload();
+			}
+			catch (const std::exception&)
+			{
+				assert(false);
+			}
+
 			// Some sites must set the http::field::host
 			if (req.find(http::field::host) == req.end())
 			{

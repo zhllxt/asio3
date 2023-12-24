@@ -44,7 +44,6 @@ namespace boost::beast::http
 		std::optional<std::reference_wrapper<asio::ssl::context>> sslctx;
 	#endif
 		std::string url;
-		std::string data;
 		std::map<std::string, std::string> headers;
 		http::verb method = http::verb::post;
 		std::function<bool(std::string_view)> on_chunk;
