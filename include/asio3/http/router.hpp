@@ -363,13 +363,19 @@ namespace boost::beast::http
 					co_return;
 
 				if constexpr (has_member_before<
+					decltype(aop), asio::awaitable<bool>, RequestT&, ResponseT&>::value)
+				{
+					continued = co_await aop.before(req, rep);
+				}
+				else if constexpr (has_member_before<
 					decltype(aop), asio::awaitable<bool>, RequestT&, ResponseT&, Ts...>::value)
 				{
 					continued = co_await aop.before(req, rep, ts...);
 				}
 				else
 				{
-					std::ignore = true;
+					// note: You have set a AOP, but the function signature of the AOP is incorrect
+					assert(false);
 				}
 			}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
 
@@ -405,13 +411,19 @@ namespace boost::beast::http
 					co_return;
 
 				if constexpr (has_member_after<
+					decltype(aop), asio::awaitable<bool>, RequestT&, ResponseT&>::value)
+				{
+					continued = co_await aop.after(req, rep);
+				}
+				else if constexpr (has_member_after<
 					decltype(aop), asio::awaitable<bool>, RequestT&, ResponseT&, Ts...>::value)
 				{
 					continued = co_await aop.after(req, rep, ts...);
 				}
 				else
 				{
-					std::ignore = true;
+					// note: You have set a AOP, but the function signature of the AOP is incorrect
+					assert(false);
 				}
 			}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
 

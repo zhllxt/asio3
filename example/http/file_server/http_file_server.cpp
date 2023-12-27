@@ -110,7 +110,7 @@ auto response_404()
 
 struct aop_auth
 {
-	net::awaitable<bool> before(http::web_request& req, http::web_response& rep, userdata data)
+	net::awaitable<bool> before(http::web_request& req, http::web_response& rep)
 	{
 		if (req.find(http::field::authorization) == req.end())
 		{
@@ -150,7 +150,7 @@ int main()
 
 		rep = http::make_html_response(std::move(content));
 		co_return true;
-	}, http::enable_cache);
+	}, http::enable_cache, aop_auth{});
 
 	server.router.add("*", [&server](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
