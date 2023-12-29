@@ -434,3 +434,6 @@ cmake-build*
 !/3rd/openssl/prebuilt/windows/x86/
 !/3rd/openssl/prebuilt/windows/x64/ossl_static.pdb
 !/3rd/openssl/bin
+!/include/asio3/bho/predef/architecture/x86/
+!/include/asio3/bho/predef/hardware/simd/x86/
+!/include/asio3/bho/predef/hardware/simd/x86_amd/
