@@ -51,6 +51,8 @@
 #include <functional>
 #include <stdexcept>
 
+#include <asio3/core/asio.hpp>
+
 #ifdef ASIO_STANDALONE
 namespace asio
 #else

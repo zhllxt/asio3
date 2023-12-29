@@ -14,7 +14,7 @@
 
 #include <asio3/core/predef.h>
 #include <asio3/core/error.hpp>
-#include <asio3/core/detail/netutil.hpp>
+#include <asio3/core/netutil.hpp>
 
 #if ASIO3_OS_WINDOWS
 #	if __has_include(<Mstcpip.h>)
@@ -38,7 +38,7 @@ namespace boost::asio::detail
 	 * onoff - false, idle - 7200, interval - 75, count - 8
 	 */
 	template<class SocketT>
-	requires detail::is_tcp_socket<SocketT>
+	requires is_tcp_socket<SocketT>
 	bool set_keepalive_options(
 		SocketT&     socket,
 		bool         onoff = true,
@@ -141,7 +141,7 @@ namespace boost::asio::detail
 	}
 
 	template<class SocketT>
-	requires (!detail::is_tcp_socket<SocketT>)
+	requires (!is_tcp_socket<SocketT>)
 	bool set_keepalive_options(
 		SocketT&     socket,
 		bool         onoff = true,
