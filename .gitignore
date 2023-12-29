@@ -437,3 +437,4 @@ cmake-build*
 !/include/asio3/bho/predef/architecture/x86/
 !/include/asio3/bho/predef/hardware/simd/x86/
 !/include/asio3/bho/predef/hardware/simd/x86_amd/
+!/include/asio3/bho/predef/hardware/simd/arm/
