@@ -152,7 +152,7 @@ int main()
 
 	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
 	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
-	server.root_directory = std::move(root);
+	server.webroot = std::move(root);
 
 	server.router.add("/", [&server](http::web_request& req, http::web_response& rep, userdata data)
 		-> net::awaitable<bool>
@@ -161,7 +161,7 @@ int main()
 		if (e1)
 			co_return false;
 
-		std::filesystem::path filepath = server.root_directory / "index.html";
+		std::filesystem::path filepath = server.webroot / "index.html";
 		auto [ec, file, content] = co_await net::async_read_file_content(filepath.string());
 		if (ec)
 		{
@@ -180,7 +180,7 @@ int main()
 		if (e1)
 			co_return false;
 
-		std::filesystem::path filepath = net::make_filepath(server.root_directory, req.target());
+		std::filesystem::path filepath = net::make_filepath(server.webroot, req.target());
 		auto [ec, file, content] = co_await net::async_read_file_content(filepath.string());
 		if (ec)
 		{
@@ -208,7 +208,7 @@ int main()
 		}
 
 		std::filesystem::path filepath = net::make_filepath(
-			server.root_directory, req.target().substr(std::strlen("/download")));
+			server.webroot, req.target().substr(std::strlen("/download")));
 
 		net::error_code ec{};
 		net::stream_file file(data.session->get_executor());
@@ -258,7 +258,7 @@ int main()
 		}
 
 		std::filesystem::path filepath = net::make_filepath(
-			server.root_directory, req.target().substr(std::strlen("/upload")));
+			server.webroot, req.target().substr(std::strlen("/upload")));
 
 		net::error_code ec{};
 		net::stream_file file(data.session->get_executor());

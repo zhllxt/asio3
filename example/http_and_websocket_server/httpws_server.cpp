@@ -181,11 +181,11 @@ int main()
 
 	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
 	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
-	server.root_directory = std::move(root);
+	server.webroot = std::move(root);
 
 	server.router.add("/", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
 	{
-		auto res = http::make_file_response(server.root_directory, "/index.html");
+		auto res = http::make_file_response(server.webroot, "/index.html");
 		if (res.has_value())
 			rep = std::move(res.value());
 		else
@@ -216,7 +216,7 @@ int main()
 
 	server.router.add("*", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>
 	{
-		auto res = http::make_file_response(server.root_directory, req.target());
+		auto res = http::make_file_response(server.webroot, req.target());
 		if (res.has_value())
 			rep = std::move(res.value());
 		else

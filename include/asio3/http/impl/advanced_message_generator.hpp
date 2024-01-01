@@ -314,6 +314,7 @@ private:
 
 };
 
+template<typename>
 advanced_message_generator::advanced_message_generator()
     : impl_(std::make_unique<
             generator_impl<false, http::string_body, http::fields>>(

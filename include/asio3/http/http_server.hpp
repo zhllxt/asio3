@@ -51,7 +51,7 @@ namespace boost::asio
 		}
 
 	public:
-		std::filesystem::path root_directory{ std::filesystem::current_path() };
+		std::filesystem::path webroot{ std::filesystem::current_path() };
 
 		RouterT router{};
 	};

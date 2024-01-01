@@ -61,6 +61,7 @@ class advanced_message_generator
 public:
     using const_buffers_type = span<net::const_buffer>;
 
+    template<typename = void>
     advanced_message_generator();
 
     template <bool isRequest, class Body, class Fields>
