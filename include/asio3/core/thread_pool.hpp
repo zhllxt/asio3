@@ -51,9 +51,9 @@
 #include <functional>
 #include <stdexcept>
 
-#include <asio3/core/asio.hpp>
+#include <asio3/config.hpp>
 
-#ifdef ASIO_STANDALONE
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
 #else
 namespace boost::asio

@@ -83,6 +83,14 @@ namespace boost::asio
 				std::forward_like<decltype(data)>(data), std::forward<WriteToken>(token));
 		}
 
+		/**
+		 * @brief Get the ws_stream.
+		 */
+		constexpr inline auto&& get_stream(this auto&& self)
+		{
+			return std::forward_like<decltype(self)>(self).ws_stream;
+		}
+
 		inline super& base() noexcept
 		{
 			return static_cast<super&>(*this);

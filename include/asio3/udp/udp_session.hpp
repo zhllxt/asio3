@@ -140,6 +140,14 @@ namespace boost::asio
 			return std::forward_like<decltype(self)>(self).socket;
 		}
 
+		/**
+		 * @brief Get the socket.
+		 */
+		constexpr inline auto&& get_stream(this auto&& self)
+		{
+			return std::forward_like<decltype(self)>(self).socket;
+		}
+
 		inline void update_alive_time() noexcept
 		{
 			alive_time = std::chrono::system_clock::now();

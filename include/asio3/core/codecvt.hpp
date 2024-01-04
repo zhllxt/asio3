@@ -33,7 +33,11 @@
 #  endif
 #endif
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 using codecvt_base = std::codecvt_base;
 
@@ -1239,7 +1243,11 @@ private:
 
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
     /**
      * @brief Return default system locale name in POSIX format.
@@ -1354,9 +1362,7 @@ namespace asio
 	template<class StringT>
 	inline auto gbk_to_utf8(const StringT& str, const std::string& locale_name = "chs") noexcept
 	{
-		using CharT = typename detail::char_type<StringT>::type;
-
-		clear_last_error();
+		using CharT = typename asio::char_type<StringT>::type;
 
 		std::wstring w;
 
@@ -1367,8 +1373,6 @@ namespace asio
 		}
 		catch (const std::exception&)
 		{
-			set_last_error(std::errc::invalid_argument);
-
 			return std::basic_string<CharT>{};
 		}
 
@@ -1383,8 +1387,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 w = conv.from_bytes(sv.data(), sv.data() + sv.size());
@@ -1402,8 +1404,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 return conv.to_bytes(sv.data(), sv.data() + sv.size());
@@ -1419,9 +1419,7 @@ namespace asio
 	template<class StringT>
     inline auto utf8_to_gbk(const StringT& str, const std::string& locale_name = "chs") noexcept
 	{
-        using CharT = typename detail::char_type<StringT>::type;
-
-        clear_last_error();
+        using CharT = typename asio::char_type<StringT>::type;
 
 		std::wstring w;
 
@@ -1432,8 +1430,6 @@ namespace asio
         }
         catch (const std::exception&)
         {
-            set_last_error(std::errc::invalid_argument);
-
             return std::string{};
         }
 
@@ -1448,8 +1444,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 w = conv.from_bytes(sv.data(), sv.data() + sv.size());
@@ -1467,8 +1461,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 return conv.to_bytes(sv.data(), sv.data() + sv.size());
@@ -1485,8 +1477,6 @@ namespace asio
 	template<class StringT>
     inline std::string wcstombs(const StringT& str, const std::string& locale_name = asio::get_codecvt_locale()) noexcept
 	{
-        clear_last_error();
-
         auto sv = asio::to_basic_string_view(str);
 
         std::codecvt_byname<wchar_t, char, std::mbstate_t>* c = nullptr;
@@ -1496,8 +1486,6 @@ namespace asio
         }
         catch (const std::exception&)
         {
-            set_last_error(std::errc::invalid_argument);
-
             return std::string{};
         }
 
@@ -1509,8 +1497,6 @@ namespace asio
         }
         catch (const std::range_error&)
         {
-            set_last_error(std::errc::result_out_of_range);
-
             sv = sv.substr(0, conv.converted());
 
             return conv.to_bytes(sv.data(), sv.data() + sv.size());
@@ -1526,8 +1512,6 @@ namespace asio
 	template<class StringT>
     inline std::wstring mbstowcs(const StringT& str, const std::string& locale_name = asio::get_codecvt_locale()) noexcept
 	{
-        clear_last_error();
-
         auto sv = asio::to_basic_string_view(str);
 
         std::codecvt_byname<wchar_t, char, std::mbstate_t>* c = nullptr;
@@ -1537,8 +1521,6 @@ namespace asio
         }
         catch (const std::exception&)
         {
-            set_last_error(std::errc::invalid_argument);
-
             return std::wstring{};
         }
 
@@ -1550,8 +1532,6 @@ namespace asio
         }
         catch (const std::range_error&)
         {
-            set_last_error(std::errc::result_out_of_range);
-
             sv = sv.substr(0, conv.converted());
 
             return conv.from_bytes(sv.data(), sv.data() + sv.size());
@@ -1566,9 +1546,7 @@ namespace asio
 	template<class StringT>
 	inline std::string utf8_to_locale(const StringT& str) noexcept
 	{
-		using CharT = typename detail::char_type<StringT>::type;
-
-        clear_last_error();
+		using CharT = typename asio::char_type<StringT>::type;
 
         std::wstring w;
 
@@ -1579,8 +1557,6 @@ namespace asio
         }
         catch (const std::exception&)
         {
-            set_last_error(std::errc::invalid_argument);
-
             return std::string{};
         }
 
@@ -1595,8 +1571,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 w = conv.from_bytes(sv.data(), sv.data() + sv.size());
@@ -1614,8 +1588,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 return conv.to_bytes(sv.data(), sv.data() + sv.size());
@@ -1631,9 +1603,7 @@ namespace asio
 	template<class StringT>
 	inline std::string locale_to_utf8(const StringT& str) noexcept
 	{
-        using CharT = typename detail::char_type<StringT>::type;
-
-        clear_last_error();
+        using CharT = typename asio::char_type<StringT>::type;
 
         std::wstring w;
 
@@ -1644,8 +1614,6 @@ namespace asio
         }
         catch (const std::exception&)
         {
-            set_last_error(std::errc::invalid_argument);
-
             return std::string{};
         }
 
@@ -1660,8 +1628,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 w = conv.from_bytes(sv.data(), sv.data() + sv.size());
@@ -1679,8 +1645,6 @@ namespace asio
             }
             catch (const std::range_error&)
             {
-                set_last_error(std::errc::result_out_of_range);
-
                 sv = sv.substr(0, conv.converted());
 
                 return conv.to_bytes(sv.data(), sv.data() + sv.size());

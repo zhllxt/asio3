@@ -41,7 +41,13 @@ under the same license as the original, which is listed below.
 
 #include <string>
 
+#include <asio3/config.hpp>
+
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	class sha1
 	{

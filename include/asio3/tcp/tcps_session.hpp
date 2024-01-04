@@ -97,6 +97,14 @@ namespace boost::asio
 				SSL_clear(ssl_stream.native_handle());
 		}
 
+		/**
+		 * @brief Get the ssl_stream.
+		 */
+		constexpr inline auto&& get_stream(this auto&& self)
+		{
+			return std::forward_like<decltype(self)>(self).ssl_stream;
+		}
+
 		inline super& base() noexcept
 		{
 			return static_cast<super&>(*this);

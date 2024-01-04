@@ -36,9 +36,9 @@
 		#include <asio3/bho/beast/websocket/ssl.hpp>
 	#endif
 #else
-	#ifndef BOOST_BEAST_USE_STD_STRING_VIEW
-	#define BOOST_BEAST_USE_STD_STRING_VIEW
-	#endif
+	//#ifndef BOOST_BEAST_USE_STD_STRING_VIEW
+	//#define BOOST_BEAST_USE_STD_STRING_VIEW
+	//#endif
 	#include <boost/beast.hpp>
 	#if defined(ASIO3_ENABLE_SSL) || defined(ASIO3_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277

@@ -20,7 +20,13 @@
 #include <array>
 #include <sstream>
 
+#include <asio3/config.hpp>
+
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	class aes
 	{

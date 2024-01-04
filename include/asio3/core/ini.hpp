@@ -86,7 +86,13 @@
  * Linux platform needs to add -lpthread option in link libraries
  */
 
+#include <asio3/config.hpp>
+
+#ifdef ASIO3_HEADER_ONLY
 namespace asio::detail::iniutil
+#else
+namespace boost::asio::detail::iniutil
+#endif
 {
 	template<class T>
 	struct convert;
@@ -344,7 +350,11 @@ namespace asio::detail::iniutil
 	};
 }
 
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	// use namespace asio::detail::iniutil to avoid conflict with
 	// asio::detail in file "asio3/core/strutil.hpp"

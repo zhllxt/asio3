@@ -15,7 +15,11 @@
 
 #include <asio3/http/core.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 
 }

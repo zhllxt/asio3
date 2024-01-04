@@ -12,10 +12,14 @@
 
 #include <functional>
 
-#include <asio3/core/detail/concepts.hpp>
+#include <asio3/core/stdconcepts.hpp>
 #include <asio3/core/asio.hpp>
 
+#ifdef ASIO_STANDALONE
 namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
 {
 	/**
 	 * BKDR Hash Function

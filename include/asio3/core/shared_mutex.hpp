@@ -84,7 +84,13 @@
 #define ASIO3_NO_THREAD_SAFETY_ANALYSIS \
   ASIO3_THREAD_ANNOTATION_ATTRIBUTE__(no_thread_safety_analysis)
 
+#include <asio3/config.hpp>
+
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	// Defines an annotated interface for mutexes.
 	// These methods can be implemented to use any internal mutex implementation.

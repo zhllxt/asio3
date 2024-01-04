@@ -40,7 +40,11 @@
 #endif // !BOOST_UUID_COMPAT_PRE_1_71_MD5
 #endif // !ASIO3_DISABLE_AUTO_BOOST_UUID_COMPAT_PRE_1_71_MD5
 
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	class md5
 	{

@@ -15,7 +15,13 @@
 #include <atomic>
 #include <thread>
 
+#include <asio3/config.hpp>
+
+#ifdef ASIO3_HEADER_ONLY
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	class spin_lock
 	{

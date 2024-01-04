@@ -17,9 +17,9 @@
 #include <asio3/core/impl/program_location.ipp>
 
 #if ASIO3_OS_WINDOWS
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code& ec) {
-        return bho::dll::detail::path_from_handle(NULL, ec);
+        return asio3::dll::detail::path_from_handle(NULL, ec);
     }
 }}}
 #endif
@@ -43,14 +43,14 @@ namespace boost::asio
     */
     inline std::filesystem::path program_location(std::error_code& ec) {
         ec.clear();
-        return ::bho::dll::detail::program_location_impl(ec);
+        return ::asio3::dll::detail::program_location_impl(ec);
     }
 
     //! \overload program_location(boost::dll::fs::error_code& ec) {
     inline std::filesystem::path program_location() {
         std::filesystem::path ret;
         std::error_code ec;
-        ret = ::bho::dll::detail::program_location_impl(ec);
+        ret = ::asio3::dll::detail::program_location_impl(ec);
 
         if (ec) {
             throw std::filesystem::filesystem_error("asio::program_location() failed", ec);

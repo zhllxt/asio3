@@ -13,7 +13,7 @@
 
 #include <mach-o/dyld.h>
 
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         ec.clear();
 
@@ -33,18 +33,18 @@ namespace bho { namespace dll { namespace detail {
         delete[] p;
         return ret;
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #elif ASIO3_OS_SOLARIS
 
 #include <stdlib.h>
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code& ec) {
         ec.clear();
 
         return std::filesystem::path(getexecname());
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #elif ASIO3_OS_BSD_FREE
 
@@ -52,7 +52,7 @@ namespace bho { namespace dll { namespace detail {
 #include <sys/sysctl.h>
 #include <stdlib.h>
 
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code& ec) {
         ec.clear();
 
@@ -67,32 +67,32 @@ namespace bho { namespace dll { namespace detail {
 
         return std::filesystem::path(buf);
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 
 
 #elif ASIO3_OS_BSD_NET
 
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         return std::filesystem::read_symlink("/proc/curproc/exe", ec);
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #elif ASIO3_OS_BSD_DRAGONFLY
 
 
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         return std::filesystem::read_symlink("/proc/curproc/file", ec);
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #elif ASIO3_OS_QNX
 
 #include <fstream>
 #include <string> // for std::getline
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         ec.clear();
 
@@ -108,12 +108,12 @@ namespace bho { namespace dll { namespace detail {
 
         return std::filesystem::path(s);
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #elif ASIO3_OS_WINDOWS
 
 #include <Windows.h>
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
 
     inline std::error_code last_error_code() noexcept {
         DWORD err = ::GetLastError();
@@ -138,7 +138,7 @@ namespace bho { namespace dll { namespace detail {
             return std::filesystem::path(path_hldr);
         }
 
-        ec = bho::dll::detail::last_error_code();
+        ec = asio3::dll::detail::last_error_code();
         for (unsigned i = 2; i < 1025 && static_cast<DWORD>(ec.value()) == ERROR_INSUFFICIENT_BUFFER_; i *= 2) {
             std::string p(std::size_t(DEFAULT_PATH_SIZE_ * i), '\0');
             const std::size_t size = ::GetModuleFileNameA(handle, &p[0], DEFAULT_PATH_SIZE_ * i);
@@ -149,25 +149,25 @@ namespace bho { namespace dll { namespace detail {
                 return std::filesystem::path(p);
             }
 
-            ec = bho::dll::detail::last_error_code();
+            ec = asio3::dll::detail::last_error_code();
         }
 
         // Error other than ERROR_INSUFFICIENT_BUFFER_ occurred or failed to allocate buffer big enough.
         return std::filesystem::path();
     }
 
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #else  // ASIO3_OS_LINUX || ASIO3_OS_UNIX || ASIO3_OS_HPUX || ASIO3_OS_ANDROID
 
-namespace bho { namespace dll { namespace detail {
+namespace asio3 { namespace dll { namespace detail {
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         // We can not use
-        // bho::dll::detail::path_from_handle(dlopen(NULL, RTLD_LAZY | RTLD_LOCAL), ignore);
+        // asio3::dll::detail::path_from_handle(dlopen(NULL, RTLD_LAZY | RTLD_LOCAL), ignore);
         // because such code returns empty path.
 
         return std::filesystem::read_symlink("/proc/self/exe", ec);   // Linux specific
     }
-}}} // namespace bho::dll::detail
+}}} // namespace asio3::dll::detail
 
 #endif

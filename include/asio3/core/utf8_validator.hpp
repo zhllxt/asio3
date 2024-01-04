@@ -36,7 +36,14 @@
 #include <string>
 #include <string_view>
 
-namespace asio {
+#include <asio3/config.hpp>
+
+#ifdef ASIO3_HEADER_ONLY
+namespace asio
+#else
+namespace boost::asio
+#endif
+{
 namespace utf8_validator {
 
 /// State that represents a valid utf8 input sequence
