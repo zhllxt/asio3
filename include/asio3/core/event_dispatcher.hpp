@@ -1394,18 +1394,20 @@ public:
 	}
 
 #if !defined(__GNUC__) || __GNUC__ >= 5
-	void operator() (Args ...args) const
+	std::size_t operator() (Args ...args) const
 	{
-		for_each_if([&args...](callback_type & cb) -> bool
+		std::size_t num = 0;
+		for_each_if([&num, &args...](callback_type & cb) mutable -> bool
 		{
 			// We can't use std::forward here, because if we use std::forward,
 			// for arg that is passed by value, and the callback prototype accepts it by value,
 			// std::forward will move it and may cause the original value invalid.
 			// That happens on any value-to-value passing, no matter the callback moves it or not.
-
+			++num;
 			cb(args...);
 			return can_continue_invoking_type::can_continue_invoking(args...);
 		});
+		return num;
 	}
 #else
 	// This is a patch version for GCC 4. It inlines the unrolled do_for_each_if.
@@ -1413,8 +1415,9 @@ public:
 	// https://github.com/wqking/eventpp/issues/19
 	// This is a compromised patch for GCC 4, it may be not maintained or updated unless there are bugs.
 	// We don't use the patch as main code because the patch generates longer code, and duplicated with do_for_each_if.
-	void operator() (Args ...args) const
+	std::size_t operator() (Args ...args) const
 	{
+		std::size_t num = 0;
 		node_ptr n;
 
 		{
@@ -1428,6 +1431,7 @@ public:
 		{
 			if(n->counter != removed_counter && counter >= n->counter)
 			{
+				++num;
 				n->callback(args...);
 				if(! can_continue_invoking_type::can_continue_invoking(args...))
 				{
@@ -1440,6 +1444,8 @@ public:
 				n = n->next;
 			}
 		}
+
+		return num;
 	}
 #endif
 
@@ -2231,7 +2237,7 @@ public:
 		return true;
 	}
 
-	void dispatch(Args ...args) const
+	std::size_t dispatch(Args ...args) const
 	{
 		static_assert(argument_passing_mode_type::can_include_event_type,
 			"Dispatching arguments count doesn't match required (event type should be included).");
@@ -2241,11 +2247,11 @@ public:
 
 		const event_type e = get_event_t::get_event(args...);
 
-		direct_dispatch(e, std::forward<Args>(args)...);
+		return direct_dispatch(e, std::forward<Args>(args)...);
 	}
 
 	template <typename T>
-	void dispatch(T && first, Args ...args) const
+	std::size_t dispatch(T && first, Args ...args) const
 	{
 		static_assert(argument_passing_mode_type::can_exclude_event_type,
 			"Dispatching arguments count doesn't match required (event type should NOT be included).");
@@ -2255,24 +2261,26 @@ public:
 
 		const event_type e = get_event_t::get_event(std::forward<T>(first), args...);
 
-		direct_dispatch(e, std::forward<Args>(args)...);
+		return direct_dispatch(e, std::forward<Args>(args)...);
 	}
 
 	// Bypass any get_event policy. The first argument is the event type.
 	// Most used for internal purpose.
-	void direct_dispatch(const event_type & e, Args ...args) const
+	std::size_t direct_dispatch(const event_type & e, Args ...args) const
 	{
 		if(! dispatcheres::for_each_mixins<mixin_root_type, mixins_type, do_mixin_before_dispatch>::for_each(
 			this, typename std::add_lvalue_reference<Args>::type(args)...))
 		{
-			return;
+			return 0;
 		}
 
 		const callback_list_type * callable_list = do_find_callable_list(e);
 		if(callable_list)
 		{
-			(*callable_list)(std::forward<Args>(args)...);
+			return (*callable_list)(std::forward<Args>(args)...);
 		}
+
+		return 0;
 	}
 
 protected:
