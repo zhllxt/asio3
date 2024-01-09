@@ -1264,6 +1264,7 @@ namespace boost::asio
      *
      * /boost/libs/locale/src/boost/locale/util/default_locale.cpp
      */ 
+    template<typename = void>
     inline std::string get_system_locale(bool use_utf8_on_windows = false)
     {
         char const *lang = 0;
@@ -1314,6 +1315,7 @@ namespace boost::asio
      * @brief Return default system locale name that can be used in codecvt.
      *
      */ 
+    template<typename = void>
     inline std::string get_codecvt_locale(bool use_utf8_on_windows = false)
     {
         char const *lang = 0;

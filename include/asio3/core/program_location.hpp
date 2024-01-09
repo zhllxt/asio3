@@ -18,6 +18,7 @@
 
 #if ASIO3_OS_WINDOWS
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code& ec) {
         return asio3::dll::detail::path_from_handle(NULL, ec);
     }
@@ -41,12 +42,14 @@ namespace boost::asio
     * \param ec Variable that will be set to the result of the operation.
     * \throws std::bad_alloc in case of insufficient memory. Overload that does not accept \forcedlinkfs{error_code} also throws \forcedlinkfs{system_error}.
     */
+    template<typename = void>
     inline std::filesystem::path program_location(std::error_code& ec) {
         ec.clear();
         return ::asio3::dll::detail::program_location_impl(ec);
     }
 
     //! \overload program_location(boost::dll::fs::error_code& ec) {
+    template<typename = void>
     inline std::filesystem::path program_location() {
         std::filesystem::path ret;
         std::error_code ec;

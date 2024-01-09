@@ -209,6 +209,7 @@ namespace boost::beast::http
 	 * @param content - the response body, it's usually a simple string,
 	 * and the content-type is "text/plain" by default.
 	 */
+	template<typename = void>
 	inline http::response<http::string_body> make_text_response(
 		asio::is_string auto&& content, http::status result = http::status::ok,
 		std::string_view mimetype = "text/plain", unsigned version = 11)
@@ -240,6 +241,7 @@ namespace boost::beast::http
 	/**
 	 * @brief Respond to http request with json content
 	 */
+	template<typename = void>
 	inline http::response<http::string_body> make_json_response(
 		asio::is_string auto&& content, http::status result = http::status::ok,
 		std::string_view mimetype = "application/json", unsigned version = 11)
@@ -253,6 +255,7 @@ namespace boost::beast::http
 	 * @param content - the response body, may be a plain text string, or a stardand
 	 * <html>...</html> string, it's just that the content-type is "text/html" by default.
 	 */
+	template<typename = void>
 	inline http::response<http::string_body> make_html_response(
 		asio::is_string auto&& content, http::status result = http::status::ok,
 		std::string_view mimetype = "text/html", unsigned version = 11)
@@ -278,6 +281,7 @@ namespace boost::beast::http
 	/**
 	 * @brief Respond to http request with local file
 	 */
+	template<typename = void>
 	inline std::expected<http::response<http::file_body>, error_code> make_file_response(
 		std::filesystem::path filepath,
 		http::status result = http::status::ok, unsigned version = 11)
@@ -315,6 +319,7 @@ namespace boost::beast::http
 	/**
 	 * @brief Respond to http request with local file
 	 */
+	template<typename = void>
 	inline std::expected<http::response<http::file_body>, error_code> make_file_response(
 		std::filesystem::path root_path,
 		std::filesystem::path file_path,
@@ -339,6 +344,7 @@ namespace boost::beast::http
 	/**
 	 * @brief Respond to http request with local file
 	 */
+	template<typename = void>
 	inline std::expected<http::response<http::file_body>, error_code> make_file_response(
 		std::filesystem::path root_path,
 		beast::string_view file_path,

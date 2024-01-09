@@ -15,6 +15,33 @@
 #include <asio3/core/strutil.hpp>
 
 #ifdef ASIO_STANDALONE
+namespace asio
+#else
+namespace boost::asio
+#endif
+{
+	template<typename AsyncResolver>
+	inline asio::awaitable<asio::error_code> resolve(
+		AsyncResolver& resolver, is_string auto&& host, is_string_or_integral auto&& service,
+		auto& results, asio::ip::resolver_base::flags resolve_flags)
+	{
+		std::string addr = asio::to_string(std::forward_like<decltype(host)>(host));
+		std::string port = asio::to_string(std::forward_like<decltype(service)>(service));
+		std::string_view addr_sv = addr;
+		std::string_view port_sv = port;
+
+		co_await asio::dispatch(resolver.get_executor(), use_nothrow_awaitable);
+
+		auto [e1, eps] = co_await resolver.async_resolve(
+			addr_sv, port_sv, resolve_flags, use_nothrow_awaitable);
+
+		results = std::move(eps);
+
+		co_return e1;
+	}
+}
+
+#ifdef ASIO_STANDALONE
 namespace asio::detail
 #else
 namespace boost::asio::detail
@@ -22,43 +49,68 @@ namespace boost::asio::detail
 {
 	struct async_resolve_op
 	{
+		//auto operator()(
+		//	auto state, auto resolver_ref,
+		//	auto&& host, auto&& service, asio::ip::resolver_base::flags resolve_flags) -> void
+		//{
+		//	auto& resolver = resolver_ref.get();
+
+		//	std::string addr = asio::to_string(std::forward_like<decltype(host)>(host));
+		//	std::string port = asio::to_string(std::forward_like<decltype(service)>(service));
+
+		//	using resolver_type = std::remove_cvref_t<decltype(resolver)>;
+
+		//	state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+		//	co_await asio::dispatch(resolver.get_executor(), use_nothrow_deferred);
+
+		//	std::string_view addr_sv = addr;
+		//	std::string_view port_sv = port;
+
+		//	//asio::experimental::channel<void(asio::error_code)> ch(resolver.get_executor(), 1);
+
+		//	//typename resolver_type::results_type eps{};
+
+		//	// on vs2022 and release mode, the "addr_sv, port_sv" will be optimized and 
+		//	// cause crash.
+		//	// 
+		//	//auto [e1, eps] = co_await resolver.async_resolve(
+		//	//	addr_sv, port_sv, asio::ip::resolver_base::passive, use_nothrow_deferred);
+
+		//	//resolver.async_resolve(
+		//	//	addr_sv, port_sv, resolve_flags,
+		//	//	[&eps, &ch](const asio::error_code& ec, typename resolver_type::results_type results) mutable
+		//	//	{
+		//	//		eps = std::move(results);
+		//	//		ch.try_send(ec);
+		//	//	});
+
+		//	asio::error_code e1{};
+		//	auto eps = resolver.resolve(addr_sv, port_sv, resolve_flags, e1);
+
+		//	//auto [e1] = co_await ch.async_receive(use_nothrow_deferred);
+
+		//	co_return{ e1, std::move(eps) };
+		//}
+
 		auto operator()(
 			auto state, auto resolver_ref,
 			auto&& host, auto&& service, asio::ip::resolver_base::flags resolve_flags) -> void
 		{
 			auto& resolver = resolver_ref.get();
 
-			std::string addr = asio::to_string(std::forward_like<decltype(host)>(host));
-			std::string port = asio::to_string(std::forward_like<decltype(service)>(service));
-
 			using resolver_type = std::remove_cvref_t<decltype(resolver)>;
-
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
-			co_await asio::dispatch(resolver.get_executor(), use_nothrow_deferred);
-
-			std::string_view addr_sv = addr;
-			std::string_view port_sv = port;
-
-			asio::experimental::channel<void(asio::error_code)> ch(resolver.get_executor(), 1);
 
 			typename resolver_type::results_type eps{};
 
-			// on vs2022 and release mode, the "addr_sv, port_sv" will be optimized and 
-			// cause crash.
-			// 
-			//auto [e1, eps] = co_await resolver.async_resolve(
-			//	addr_sv, port_sv, asio::ip::resolver_base::passive, use_nothrow_deferred);
-
-			resolver.async_resolve(
-				addr_sv, port_sv, resolve_flags,
-				[&eps, &ch](const asio::error_code& ec, typename resolver_type::results_type results) mutable
-				{
-					eps = std::move(results);
-					ch.try_send(ec);
-				});
-
-			auto [e1] = co_await ch.async_receive(use_nothrow_deferred);
+			auto [e1] = co_await asio::async_call_coroutine(
+				resolver.get_executor(), asio::resolve(
+					resolver,
+					std::forward_like<decltype(host)>(host),
+					std::forward_like<decltype(service)>(service),
+					eps,
+					resolve_flags
+				), asio::use_nothrow_deferred);
 
 			co_return{ e1, std::move(eps) };
 		}

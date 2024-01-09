@@ -128,14 +128,13 @@ net::awaitable<void> ext_transfer(
 net::awaitable<void> proxy(std::shared_ptr<net::socks5_session> conn)
 {
 	auto result = co_await(
-		socks5::async_accept(conn->socket, conn->auth_config) || net::timeout(std::chrono::seconds(5)));
+		socks5::accept(conn->socket, conn->auth_config, conn->handshake_info) ||
+		net::timeout(std::chrono::seconds(5)));
 	if (net::is_timeout(result))
 		co_return;
-	auto [e1, handsk_info] = std::get<0>(std::move(result));
+	auto e1 = std::get<0>(result);
 	if (e1)
 		co_return;
-
-	conn->handshake_info = std::move(handsk_info);
 
 	net::error_code ec{};
 

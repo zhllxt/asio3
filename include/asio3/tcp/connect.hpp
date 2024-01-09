@@ -18,6 +18,73 @@
 #include <asio3/tcp/core.hpp>
 
 #ifdef ASIO_STANDALONE
+namespace asio
+#else
+namespace boost::asio
+#endif
+{
+	/**
+	 * @brief Asynchronously establishes a socket connection by trying each endpoint in a sequence.
+	 * @param sock - The socket reference to be connected.
+	 * @param server_address - The target server address. 
+	 * @param server_port - The target server port. 
+	 */
+	template<typename AsyncStream>
+	requires is_tcp_socket<AsyncStream>
+	inline asio::awaitable<asio::error_code> connect(
+		AsyncStream& sock,
+		is_string auto&& server_address, is_string_or_integral auto&& server_port)
+	{
+		std::string addr = asio::to_string(std::forward_like<decltype(server_address)>(server_address));
+		std::string port = asio::to_string(std::forward_like<decltype(server_port)>(server_port));
+
+		using sock_type = std::remove_cvref_t<decltype(sock)>;
+		using endpoint_type = typename sock_type::protocol_type::endpoint;
+		using resolver_type = typename sock_type::protocol_type::resolver;
+
+		resolver_type resolver(sock.get_executor());
+
+		// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
+		auto [e1, eps] = co_await resolver.async_resolve(
+			addr, port, asio::ip::resolver_base::flags(), asio::use_nothrow_awaitable);
+		if (e1)
+			co_return e1;
+
+		if (sock.is_open())
+		{
+			for (const auto& ep : eps)
+			{
+				auto [e2] = co_await sock.async_connect(ep, use_nothrow_awaitable);
+				if (!e2)
+					co_return e2;
+			}
+		}
+		else
+		{
+			asio::error_code ec{};
+
+			for (const auto& ep : eps)
+			{
+				sock_type tmp(sock.get_executor());
+
+				tmp.open(ep.endpoint().protocol(), ec);
+				if (ec)
+					continue;
+
+				auto [e2] = co_await tmp.async_connect(ep, use_nothrow_awaitable);
+				if (!e2)
+				{
+					sock = std::move(tmp);
+					co_return e2;
+				}
+			}
+		}
+
+		co_return asio::error::connection_refused;
+	}
+}
+
+#ifdef ASIO_STANDALONE
 namespace asio::detail
 #else
 namespace boost::asio::detail

@@ -14,6 +14,7 @@
 #include <mach-o/dyld.h>
 
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         ec.clear();
 
@@ -39,6 +40,7 @@ namespace asio3 { namespace dll { namespace detail {
 
 #include <stdlib.h>
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code& ec) {
         ec.clear();
 
@@ -53,6 +55,7 @@ namespace asio3 { namespace dll { namespace detail {
 #include <stdlib.h>
 
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code& ec) {
         ec.clear();
 
@@ -74,6 +77,7 @@ namespace asio3 { namespace dll { namespace detail {
 #elif ASIO3_OS_BSD_NET
 
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         return std::filesystem::read_symlink("/proc/curproc/exe", ec);
     }
@@ -83,6 +87,7 @@ namespace asio3 { namespace dll { namespace detail {
 
 
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         return std::filesystem::read_symlink("/proc/curproc/file", ec);
     }
@@ -93,6 +98,7 @@ namespace asio3 { namespace dll { namespace detail {
 #include <fstream>
 #include <string> // for std::getline
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         ec.clear();
 
@@ -115,6 +121,7 @@ namespace asio3 { namespace dll { namespace detail {
 #include <Windows.h>
 namespace asio3 { namespace dll { namespace detail {
 
+    template<typename = void>
     inline std::error_code last_error_code() noexcept {
         DWORD err = ::GetLastError();
         return std::error_code(
@@ -123,6 +130,7 @@ namespace asio3 { namespace dll { namespace detail {
         );
     }
 
+    template<typename = void>
     inline std::filesystem::path path_from_handle(HMODULE handle, std::error_code &ec) {
 
         const DWORD ERROR_INSUFFICIENT_BUFFER_ = 0x7A;
@@ -161,6 +169,7 @@ namespace asio3 { namespace dll { namespace detail {
 #else  // ASIO3_OS_LINUX || ASIO3_OS_UNIX || ASIO3_OS_HPUX || ASIO3_OS_ANDROID
 
 namespace asio3 { namespace dll { namespace detail {
+    template<typename = void>
     inline std::filesystem::path program_location_impl(std::error_code &ec) {
         // We can not use
         // asio3::dll::detail::path_from_handle(dlopen(NULL, RTLD_LAZY | RTLD_LOCAL), ignore);
