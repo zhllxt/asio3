@@ -165,6 +165,7 @@ namespace boost::beast::http
  */
 template<
 	bool isRequest,
+	typename Body,
 	typename AsyncReadStream,
 	typename AsyncWriteStream,
 	typename DynamicBuffer,
@@ -175,7 +176,7 @@ inline auto async_relay(
 	AsyncReadStream& input,
 	AsyncWriteStream& output,
 	DynamicBuffer& buffer,
-	auto& parser,
+	http::parser<isRequest, Body>& parser,
 	Transform&& transform,
 	RelayToken&& token = asio::default_token_type<AsyncReadStream>())
 {

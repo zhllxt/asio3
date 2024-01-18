@@ -375,7 +375,6 @@ namespace boost::beast::http
 				else
 				{
 					// note: You have set a AOP, but the function signature of the AOP is incorrect
-					assert(false);
 				}
 			}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
 
@@ -423,7 +422,6 @@ namespace boost::beast::http
 				else
 				{
 					// note: You have set a AOP, but the function signature of the AOP is incorrect
-					assert(false);
 				}
 			}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
 

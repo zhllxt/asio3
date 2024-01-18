@@ -537,59 +537,59 @@ namespace boost::asio::socks5
 	}
 }
 
-//#ifdef ASIO_STANDALONE
-//namespace asio::socks5::detail
-//#else
-//namespace boost::asio::socks5::detail
-//#endif
-//{
-//	struct async_accept_op
-//	{
-//		auto operator()(auto state, auto sock_ref, auto auth_cfg_ref, auto handsk_info_ref) -> void
-//		{
-//			auto& sock = sock_ref.get();
-//			auto& auth_cfg = auth_cfg_ref.get();
-//			auto& handsk_info = handsk_info_ref.get();
-//
-//			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-//
-//			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
-//
-//			auto [e1] = co_await asio::async_call_coroutine(sock.get_executor(),
-//				socks5::accept(sock, auth_cfg, handsk_info), asio::use_nothrow_deferred);
-//
-//			co_return{ e1 };
-//		}
-//	};
-//}
-//
-//#ifdef ASIO_STANDALONE
-//namespace asio::socks5
-//#else
-//namespace boost::asio::socks5
-//#endif
-//{
-//	/**
-//	 * @brief Perform the socks5 handshake asynchronously in the server role.
-//	 * @param socket - The read/write stream object reference.
-//	 * @param auth_cfg - The socks5 auth option reference.
-//	 * @param token - The completion handler to invoke when the operation completes.
-//	 *	  The equivalent function signature of the handler must be:
-//	 *    @code
-//	 *    void handler(const asio::error_code& ec);
-//	 */
-//	template<
-//		typename AsyncStream,
-//		typename AuthConfig,
-//		typename AcceptToken = asio::default_token_type<AsyncStream>>
-//	requires std::derived_from<std::remove_cvref_t<AuthConfig>, socks5::auth_config>
-//	inline auto async_accept(
-//		AsyncStream& sock, AuthConfig& auth_cfg, socks5::handshake_info& handsk_info,
-//		AcceptToken&& token = asio::default_token_type<AsyncStream>())
-//	{
-//		return asio::async_initiate<AcceptToken, void(asio::error_code)>(
-//			asio::experimental::co_composed<void(asio::error_code)>(
-//				detail::async_accept_op{}, sock),
-//			token, std::ref(sock), std::ref(auth_cfg), std::ref(handsk_info));
-//	}
-//}
+#ifdef ASIO_STANDALONE
+namespace asio::socks5::detail
+#else
+namespace boost::asio::socks5::detail
+#endif
+{
+	struct async_accept_op
+	{
+		auto operator()(auto state, auto sock_ref, auto auth_cfg_ref, auto handsk_info_ref) -> void
+		{
+			auto& sock = sock_ref.get();
+			auto& auth_cfg = auth_cfg_ref.get();
+			auto& handsk_info = handsk_info_ref.get();
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
+
+			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+
+			auto [e1] = co_await asio::async_call_coroutine(sock.get_executor(),
+				socks5::accept(sock, auth_cfg, handsk_info), asio::use_nothrow_deferred);
+
+			co_return{ e1 };
+		}
+	};
+}
+
+#ifdef ASIO_STANDALONE
+namespace asio::socks5
+#else
+namespace boost::asio::socks5
+#endif
+{
+	/**
+	 * @brief Perform the socks5 handshake asynchronously in the server role.
+	 * @param socket - The read/write stream object reference.
+	 * @param auth_cfg - The socks5 auth option reference.
+	 * @param token - The completion handler to invoke when the operation completes.
+	 *	  The equivalent function signature of the handler must be:
+	 *    @code
+	 *    void handler(const asio::error_code& ec);
+	 */
+	template<
+		typename AsyncStream,
+		typename AuthConfig,
+		typename AcceptToken = asio::default_token_type<AsyncStream>>
+	requires std::derived_from<std::remove_cvref_t<AuthConfig>, socks5::auth_config>
+	inline auto async_accept(
+		AsyncStream& sock, AuthConfig& auth_cfg, socks5::handshake_info& handsk_info,
+		AcceptToken&& token = asio::default_token_type<AsyncStream>())
+	{
+		return asio::async_initiate<AcceptToken, void(asio::error_code)>(
+			asio::experimental::co_composed<void(asio::error_code)>(
+				detail::async_accept_op{}, sock),
+			token, std::ref(sock), std::ref(auth_cfg), std::ref(handsk_info));
+	}
+}
