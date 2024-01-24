@@ -36,7 +36,16 @@ net::awaitable<void> tcp_connect(socks5::option sock5_opt)
 
 	auto [e2] = co_await socks5::async_handshake(client, sock5_opt);
 	if (e2)
+	{
+		fmt::print("handshake failure: {}\n", e2.message());
 		co_return;
+	}
+	else
+	{
+		fmt::print("handshake success: {} {}\n",
+			client.local_endpoint().address().to_string(),
+			client.local_endpoint().port());
+	}
 
 	auto [e5, n5] = co_await net::async_write(client, net::buffer("<abc0123456789def>"));
 	if (e5)
@@ -90,7 +99,16 @@ net::awaitable<void> udp_connect(socks5::option sock5_opt)
 		co_return; // timed out
 	auto [e2] = std::get<0>(std::move(result2));
 	if (e2)
+	{
+		fmt::print("handshake failure: {}\n", e2.message());
 		co_return;
+	}
+	else
+	{
+		fmt::print("handshake success: {} {}\n",
+			client.local_endpoint().address().to_string(),
+			client.local_endpoint().port());
+	}
 
 	net::ip::udp::endpoint remote_endp{ ep1.address(), sock5_opt.bound_port };
 	net::ip::udp::endpoint sender_endp;
@@ -132,13 +150,13 @@ int main()
 		.method = {socks5::auth_method::anonymous},
 		.username = "admin",
 		.password = "123456",
-		.dest_address = "127.0.0.1",
-		.dest_port = 8035,
+		.dest_address = "www.baidu.com",
+		.dest_port = 80,
 		.cmd = socks5::command::udp_associate,
 	};
 
-	//net::co_spawn(ctx, tcp_connect(std::move(sock5_opt)), net::detached);
-	net::co_spawn(ctx, udp_connect(std::move(sock5_opt)), net::detached);
+	net::co_spawn(ctx, tcp_connect(std::move(sock5_opt)), net::detached);
+	//net::co_spawn(ctx, udp_connect(std::move(sock5_opt)), net::detached);
 
 	net::signal_set signals(ctx, SIGINT, SIGTERM);
 	signals.async_wait([&](auto, auto)

@@ -189,38 +189,38 @@ namespace boost::beast::http::detail
 
 			beast::flat_buffer buffer{};
 
-		#if defined(ASIO3_ENABLE_SSL) || defined(ASIO3_USE_SSL)
-			// https://en.cppreference.com/w/cpp/memory/unique_ptr
-			std::unique_ptr<asio::ssl::context, void(*)(asio::ssl::context*)> psslctx
-			{
-				nullptr,
-				[](asio::ssl::context*) {}
-			};
-			if (opt.sslctx.has_value())
-			{
-				std::unique_ptr<asio::ssl::context, void(*)(asio::ssl::context*)> psslctx2
-				{
-					std::addressof(opt.sslctx.value().get()),
-					[](asio::ssl::context*) {}
-				};
-				psslctx = std::move(psslctx2);
-			}
-			else
-			{
-				std::unique_ptr<asio::ssl::context, void(*)(asio::ssl::context*)> psslctx2
-				{
-					new asio::ssl::context(asio::ssl::context::tlsv12_client),
-					[](asio::ssl::context* p) { delete p; }
-				};
-				asio::load_root_certificates(*psslctx2);
-				//psslctx2->set_verify_mode(asio::ssl::verify_peer);
-				psslctx = std::move(psslctx2);
-			}
-
-			std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket&>> stream;
 			if (asio::iequals(url.get_schema(), "https"))
 			{
-				stream = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket&>>(sock, *psslctx);
+			#if defined(ASIO3_ENABLE_SSL) || defined(ASIO3_USE_SSL)
+				// https://en.cppreference.com/w/cpp/memory/unique_ptr
+				std::unique_ptr<asio::ssl::context, void(*)(asio::ssl::context*)> psslctx
+				{
+					nullptr,
+					[](asio::ssl::context*) {}
+				};
+				if (opt.sslctx.has_value())
+				{
+					std::unique_ptr<asio::ssl::context, void(*)(asio::ssl::context*)> psslctx2
+					{
+						std::addressof(opt.sslctx.value().get()),
+						[](asio::ssl::context*) {}
+					};
+					psslctx = std::move(psslctx2);
+				}
+				else
+				{
+					std::unique_ptr<asio::ssl::context, void(*)(asio::ssl::context*)> psslctx2
+					{
+						new asio::ssl::context(asio::ssl::context::tlsv12_client),
+						[](asio::ssl::context* p) { delete p; }
+					};
+					asio::load_root_certificates(*psslctx2);
+					//psslctx2->set_verify_mode(asio::ssl::verify_peer);
+					psslctx = std::move(psslctx2);
+				}
+
+				std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket&>> stream =
+					std::make_unique<asio::ssl::stream<asio::ip::tcp::socket&>>(sock, *psslctx);
 
 				// Set SNI Hostname (many hosts need this to handshake successfully)
 				// https://github.com/djarek/certify
@@ -234,10 +234,7 @@ namespace boost::beast::http::detail
 					asio::ssl::stream_base::handshake_type::client, asio::use_nothrow_deferred);
 				if (e3)
 					co_return{ e3, std::move(resp) };
-			}
 
-			if (stream)
-			{
 				auto [e4, n4] = co_await http::async_send_file(
 					*stream, opt.local_file.value(), std::move(req), asio::use_nothrow_deferred);
 				if (e4)
@@ -261,9 +258,11 @@ namespace boost::beast::http::detail
 				}
 
 				co_await stream->async_shutdown(asio::use_nothrow_deferred);
+			#else
+				co_return{ asio::error::operation_not_supported, std::move(resp) };
+			#endif
 			}
 			else
-		#endif
 			{
 				auto [e4, n4] = co_await http::async_send_file(
 					sock, opt.local_file.value(), std::move(req), asio::use_nothrow_deferred);
