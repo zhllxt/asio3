@@ -66,7 +66,7 @@ namespace boost::asio::detail
 
 		auto native_fd = socket.native_handle();
 
-		detail::ignore_unused(onoff, idle, interval, count, native_fd);
+		asio::ignore_unused(onoff, idle, interval, count, native_fd);
 
 	#if ASIO3_OS_LINUX
 		// For *n*x systems
@@ -150,7 +150,7 @@ namespace boost::asio::detail
 		unsigned int count = 3
 	) noexcept
 	{
-		detail::ignore_unused(socket, onoff, idle, interval, count);
+		asio::ignore_unused(socket, onoff, idle, interval, count);
 
 		return true;
 	}

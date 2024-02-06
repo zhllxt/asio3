@@ -16,6 +16,7 @@
 
 add_subdirectory (icmp         )
 add_subdirectory (http         )
+add_subdirectory (rpc          )
 add_subdirectory (tcp          )
 add_subdirectory (udp          )
 add_subdirectory (socks5       )
