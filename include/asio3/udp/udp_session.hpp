@@ -95,7 +95,7 @@ namespace boost::asio
 		 */
 		inline const auto& get_executor() noexcept
 		{
-			return socket.get_executor();
+			return asio::detail::get_lowest_executor(socket);
 		}
 
 		/**
@@ -165,7 +165,7 @@ namespace boost::asio
 
 		std::chrono::system_clock::time_point alive_time{ std::chrono::system_clock::now() };
 
-		asio::timer           watchdog_timer{ socket.get_executor() };
+		asio::timer           watchdog_timer{ asio::detail::get_lowest_executor(socket) };
 	};
 
 	using udp_session = basic_udp_session<asio::udp_socket>;

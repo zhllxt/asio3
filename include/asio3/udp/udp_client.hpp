@@ -118,7 +118,7 @@ namespace boost::asio
 		 */
 		inline const auto& get_executor() noexcept
 		{
-			return socket.get_executor();
+			return asio::detail::get_lowest_executor(socket);
 		}
 
 		/**

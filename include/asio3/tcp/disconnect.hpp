@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio3/core/timer.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/tcp/core.hpp>
 
 #ifdef ASIO_STANDALONE
@@ -27,7 +28,7 @@ namespace boost::asio::detail
 
 			auto& sock = sock_ref.get();
 
-			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
 
 			if (!sock.is_open())
 				co_return asio::error::operation_aborted;
@@ -60,7 +61,7 @@ namespace boost::asio::detail
 				if (!ec)
 				{
 					[[maybe_unused]] detail::call_func_when_timeout wt(
-						sock.get_executor(), disconnect_timeout,
+						asio::detail::get_lowest_executor(sock), disconnect_timeout,
 						[&sock]() mutable
 						{
 							error_code ec{};

@@ -28,12 +28,12 @@ namespace boost::asio::detail
 		{
 			auto& ssl_stream = stream_ref.get();
 
-			co_await asio::dispatch(ssl_stream.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(ssl_stream), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			[[maybe_unused]] detail::call_func_when_timeout wt(
-				ssl_stream.get_executor(), handsk_timeout,
+				asio::detail::get_lowest_executor(ssl_stream), handsk_timeout,
 				[&ssl_stream]() mutable
 				{
 					error_code ec{};
@@ -53,7 +53,7 @@ namespace boost::asio::detail
 		{
 			auto& ssl_stream = stream_ref.get();
 
-			co_await asio::dispatch(ssl_stream.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(ssl_stream), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -62,7 +62,7 @@ namespace boost::asio::detail
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ ssl_stream };
 
 			[[maybe_unused]] detail::call_func_when_timeout wt(
-				ssl_stream.get_executor(), shutdown_timeout,
+				asio::detail::get_lowest_executor(ssl_stream), shutdown_timeout,
 				[&ssl_stream]() mutable
 				{
 					error_code ec{};

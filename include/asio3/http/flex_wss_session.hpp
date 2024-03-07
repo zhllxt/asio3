@@ -13,6 +13,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/beast.hpp>
 #include <asio3/core/stdutil.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/http/https_session.hpp>
 
 #ifdef ASIO_STANDALONE
@@ -112,7 +113,7 @@ namespace boost::asio
 		 */
 		inline const auto& get_executor() noexcept
 		{
-			return socket.get_executor();
+			return asio::detail::get_lowest_executor(socket);
 		}
 
 		/**

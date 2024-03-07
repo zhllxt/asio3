@@ -67,7 +67,8 @@ namespace boost::asio
 
 						state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-						co_await asio::dispatch(server.socket.get_executor(), use_nothrow_deferred);
+						co_await asio::dispatch(
+							asio::detail::get_lowest_executor(server.socket), use_nothrow_deferred);
 
 						error_code ec{};
 						server.socket.shutdown(asio::socket_base::shutdown_both, ec);
@@ -111,7 +112,7 @@ namespace boost::asio
 		 */
 		inline const auto& get_executor() noexcept
 		{
-			return socket.get_executor();
+			return asio::detail::get_lowest_executor(socket);
 		}
 
 		/**

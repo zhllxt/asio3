@@ -14,6 +14,7 @@
 #include <asio3/core/beast.hpp>
 #include <asio3/core/stdutil.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
 
 #ifdef ASIO3_HEADER_ONLY
@@ -39,7 +40,7 @@ namespace boost::beast::http::detail
 
 			auto header_callback = std::forward_like<decltype(transform)>(transform);
 
-			co_await asio::dispatch(input.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(input), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -212,7 +213,7 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 
 	auto header_callback = std::forward_like<decltype(transform)>(transform);
 
-	co_await asio::dispatch(input.get_executor());
+	co_await asio::dispatch(asio::detail::get_lowest_executor(input));
 
 	std::size_t readed_bytes = 0, written_bytes = 0;
 	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));
@@ -311,7 +312,7 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 {
 	http::parser<isRequest, Body>& p = parser;
 
-	co_await asio::dispatch(input.get_executor());
+	co_await asio::dispatch(asio::detail::get_lowest_executor(input));
 
 	std::size_t readed_bytes = 0, written_bytes = 0;
 	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));

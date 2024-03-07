@@ -15,6 +15,7 @@
 #include <asio3/core/strutil.hpp>
 #include <asio3/core/timer.hpp>
 #include <asio3/core/resolve.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/udp/core.hpp>
 
 #ifdef ASIO_STANDALONE
@@ -42,7 +43,7 @@ namespace boost::asio::detail
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			resolver_type resolver(sock.get_executor());
+			resolver_type resolver(asio::detail::get_lowest_executor(sock));
 
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 			auto [e1, eps] = co_await asio::async_resolve(

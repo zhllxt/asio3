@@ -16,6 +16,7 @@
 #include <asio3/core/error.hpp>
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/resolve.hpp>
+#include <asio3/core/with_lock.hpp>
 
 #include <asio3/proxy/core.hpp>
 #include <asio3/proxy/error.hpp>
@@ -396,7 +397,7 @@ namespace boost::asio::socks5
 		{
 			using connect_socket_t = typename std::remove_cvref_t<AuthConfig>::connect_bound_socket_type;
 
-			asio::ip::tcp::resolver resolver(sock.get_executor());
+			asio::ip::tcp::resolver resolver(asio::detail::get_lowest_executor(sock));
 			asio::ip::tcp::resolver::results_type eps{};
 			auto er = co_await asio::resolve(
 				resolver, dst_addr, dst_port, eps, asio::ip::resolver_base::flags());
@@ -407,7 +408,7 @@ namespace boost::asio::socks5
 			}
 			else
 			{
-				connect_socket_t bnd_socket(sock.get_executor());
+				connect_socket_t bnd_socket(asio::detail::get_lowest_executor(sock));
 				auto [ed, ep] = co_await asio::async_connect(
 					bnd_socket, eps, asio::default_tcp_connect_condition{}, use_nothrow_awaitable);
 
@@ -447,7 +448,7 @@ namespace boost::asio::socks5
 			// if the dest id domain, bind local protocol as the same with the domain
 			else if (atyp == socks5::address_type::domain)
 			{
-				asio::ip::udp::resolver resolver(sock.get_executor());
+				asio::ip::udp::resolver resolver(asio::detail::get_lowest_executor(sock));
 				asio::ip::udp::resolver::results_type eps{};
 				auto er = co_await asio::resolve(
 					resolver, dst_addr, dst_port, eps, asio::ip::resolver_base::flags());
@@ -473,7 +474,8 @@ namespace boost::asio::socks5
 			try
 			{
 				// port equal to 0 is means use a random port.
-				udpass_socket_t bnd_socket(sock.get_executor(), asio::ip::udp::endpoint(bnd_protocol, 0));
+				udpass_socket_t bnd_socket(asio::detail::get_lowest_executor(sock),
+					asio::ip::udp::endpoint(bnd_protocol, 0));
 				bnd_port = bnd_socket.local_endpoint().port();
 				handsk_info.bound_socket = std::move(bnd_socket);
 			}
@@ -553,9 +555,9 @@ namespace boost::asio::socks5::detail
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
 
-			auto [e1] = co_await asio::async_call_coroutine(sock.get_executor(),
+			auto [e1] = co_await asio::async_call_coroutine(asio::detail::get_lowest_executor(sock),
 				socks5::accept(sock, auth_cfg, handsk_info), asio::use_nothrow_deferred);
 
 			co_return{ e1 };

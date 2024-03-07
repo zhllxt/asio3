@@ -15,6 +15,7 @@
 #include <asio3/core/strutil.hpp>
 #include <asio3/core/timer.hpp>
 #include <asio3/core/resolve.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/tcp/core.hpp>
 
 #ifdef ASIO_STANDALONE
@@ -42,7 +43,7 @@ namespace boost::asio
 		using endpoint_type = typename sock_type::protocol_type::endpoint;
 		using resolver_type = typename sock_type::protocol_type::resolver;
 
-		resolver_type resolver(sock.get_executor());
+		resolver_type resolver(asio::detail::get_lowest_executor(sock));
 
 		// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 		auto [e1, eps] = co_await resolver.async_resolve(
@@ -109,13 +110,14 @@ namespace boost::asio::detail
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			detail::call_func_when_timeout wt(sock.get_executor(), connect_timeout, [&sock]() mutable
-			{
-				error_code ec{};
-				sock.close(ec);
-			});
+			detail::call_func_when_timeout wt(
+				asio::detail::get_lowest_executor(sock), connect_timeout, [&sock]() mutable
+				{
+					error_code ec{};
+					sock.close(ec);
+				});
 
-			resolver_type resolver(sock.get_executor());
+			resolver_type resolver(asio::detail::get_lowest_executor(sock));
 
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 			auto [e1, eps] = co_await asio::async_resolve(

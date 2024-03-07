@@ -12,6 +12,7 @@
 
 #include <asio3/core/asio.hpp>
 #include <asio3/core/netconcepts.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/udp/core.hpp>
 #include <asio3/udp/read.hpp>
@@ -33,7 +34,7 @@ namespace boost::asio::socks5::detail
 			auto& bound = bound_ref.get();
 			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
-			co_await asio::dispatch(bound.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(bound), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -69,7 +70,7 @@ namespace boost::asio::socks5::detail
 			auto& front = front_ref.get();
 			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
-			co_await asio::dispatch(front.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(front), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -96,7 +97,7 @@ namespace boost::asio::socks5::detail
 			auto& bound = bound_ref.get();
 			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
-			co_await asio::dispatch(bound.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(bound), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 

@@ -14,6 +14,7 @@
 #include <asio3/core/beast.hpp>
 #include <asio3/core/stdutil.hpp>
 #include <asio3/core/netutil.hpp>
+#include <asio3/core/with_lock.hpp>
 #include <asio3/core/asio_buffer_specialization.hpp>
 #include <asio3/core/data_persist.hpp>
 #include <asio3/core/file.hpp>
@@ -33,7 +34,7 @@ namespace boost::asio::detail
 
 			auto msg = std::forward_like<decltype(data)>(data);
 
-			co_await asio::dispatch(ws_stream.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(ws_stream), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -69,7 +70,7 @@ namespace boost::beast::http::detail
 
 			auto chunk_callback = std::forward_like<decltype(body_chunk_callback)>(body_chunk_callback);
 
-			co_await asio::dispatch(sock.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
