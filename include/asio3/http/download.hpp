@@ -183,6 +183,15 @@ namespace boost::beast::http::detail
 
 			if (!opt.saved_file.has_value())
 			{
+				try
+				{
+					std::filesystem::create_directories(opt.saved_filepath.value().parent_path());
+				}
+				catch (std::filesystem::filesystem_error const& e)
+				{
+					co_return{ e.code() };
+				}
+				
 				asio::stream_file file(ex);
 				file.open(opt.saved_filepath.value().string(),
 					asio::file_base::write_only | asio::file_base::create | asio::file_base::truncate, ec);
