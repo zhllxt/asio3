@@ -90,7 +90,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the executor associated with the object.
 		 */
-		inline const auto& get_executor() noexcept
+		inline auto get_executor() noexcept
 		{
 			return asio::detail::get_lowest_executor(socket);
 		}

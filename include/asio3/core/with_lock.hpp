@@ -213,7 +213,7 @@ namespace boost::asio::detail
 	}
 
 	template<typename AsyncStream>
-	inline decltype(auto) get_lowest_executor(AsyncStream& s)
+	inline auto get_lowest_executor(AsyncStream& s)
 	{
 		if constexpr (has_member_variable_lock<std::remove_cvref_t<AsyncStream>>)
 		{
