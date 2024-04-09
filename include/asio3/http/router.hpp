@@ -597,6 +597,11 @@ namespace boost::beast::http
 			co_return false;
 		}
 
+		inline cache_type& get_cache()
+		{
+			return this->cache_;
+		}
+
 	protected:
 		std::unordered_map<std::string, std::shared_ptr<function_type>> strictly_routers_;
 

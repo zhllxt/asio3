@@ -136,6 +136,7 @@ namespace boost::asio::detail
 	concept has_member_variable_lock = requires(AsyncStream & s)
 	{
 		s.get_executor().lock->ch.try_send();
+		s.get_executor().base();
 	};
 
 	template<typename AsyncStream>

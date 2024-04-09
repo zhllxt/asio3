@@ -155,7 +155,7 @@ namespace boost::beast::http
 		/**
 		 * @brief Set the max number of elements in the container.
 		 */
-		inline void set_cache_max_count(std::size_t count) noexcept
+		inline void set_max_count(std::size_t count) noexcept
 		{
 			this->cache_max_count_ = count;
 		}
@@ -163,7 +163,7 @@ namespace boost::beast::http
 		/**
 		 * @brief Get the max number of elements in the container.
 		 */
-		inline std::size_t get_cache_max_count() const noexcept
+		inline std::size_t get_max_count() const noexcept
 		{
 			return this->cache_max_count_;
 		}
@@ -171,7 +171,7 @@ namespace boost::beast::http
 		/**
 		 * @brief Get the current number of elements in the container.
 		 */
-		inline std::size_t get_cache_count() const noexcept
+		inline std::size_t get_count() const noexcept
 		{
 			std::shared_lock guard(this->cache_mutex_);
 

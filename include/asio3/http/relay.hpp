@@ -213,7 +213,7 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 
 	auto header_callback = std::forward_like<decltype(transform)>(transform);
 
-	co_await asio::dispatch(asio::detail::get_lowest_executor(input));
+	co_await asio::dispatch(asio::detail::get_lowest_executor(input), asio::use_nothrow_awaitable);
 
 	std::size_t readed_bytes = 0, written_bytes = 0;
 	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));
@@ -312,7 +312,7 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 {
 	http::parser<isRequest, Body>& p = parser;
 
-	co_await asio::dispatch(asio::detail::get_lowest_executor(input));
+	co_await asio::dispatch(asio::detail::get_lowest_executor(input), asio::use_nothrow_awaitable);
 
 	std::size_t readed_bytes = 0, written_bytes = 0;
 	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));
