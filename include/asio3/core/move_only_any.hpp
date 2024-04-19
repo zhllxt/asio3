@@ -157,7 +157,7 @@ namespace std::experimental
 	class move_only_any final
 	{
 	private:
-		enum class any_representation : uint8_t { none, trivial, big, small };
+		enum class any_representation : uint8_t { none, trivial, big, smally };
 
 	public:
 		constexpr move_only_any() noexcept
@@ -214,7 +214,7 @@ namespace std::experimental
 		{
 			switch (storage.type)
 			{
-			case any_representation::small:
+			case any_representation::smally:
 				storage.small_storage.rtti->destroy(&storage.small_storage.data);
 				break;
 			case any_representation::big:
@@ -241,7 +241,7 @@ namespace std::experimental
 		{
 			switch (storage.type)
 			{
-			case any_representation::small:
+			case any_representation::smally:
 				return storage.small_storage.rtti->type();
 			case any_representation::big:
 				return storage.big_storage.rtti->type();
@@ -295,7 +295,7 @@ namespace std::experimental
 			other.storage.type = any_representation::none;
 			switch (storage.type)
 			{
-			case any_representation::small:
+			case any_representation::smally:
 				storage.small_storage.rtti = other.storage.small_storage.rtti;
 				storage.small_storage.rtti->move(&storage.small_storage.data, &other.storage.small_storage.data);
 				break;
@@ -334,7 +334,7 @@ namespace std::experimental
 				auto& obj = reinterpret_cast<T&>(storage.small_storage.data);
 				detail::construct_in_place(obj, std::forward<Args>(args)...);
 				storage.small_storage.rtti = &detail::small_rtti_obj<T>;
-				storage.type = any_representation::small;
+				storage.type = any_representation::smally;
 				return obj;
 			}
 			else

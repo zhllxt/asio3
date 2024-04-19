@@ -239,10 +239,10 @@ namespace std
             /// values in the range [0, N].
             template <size_t N>
             using smallest_size_t
-                = conditional_t<(N < numeric_limits<uint8_t>::max()),  uint8_t,
-                  conditional_t<(N < numeric_limits<uint16_t>::max()), uint16_t,
-                  conditional_t<(N < numeric_limits<uint32_t>::max()), uint32_t,
-                  conditional_t<(N < numeric_limits<uint64_t>::max()), uint64_t,
+                = conditional_t<(N < (numeric_limits<uint8_t >::max)()),  uint8_t,
+                  conditional_t<(N < (numeric_limits<uint16_t>::max)()), uint16_t,
+                  conditional_t<(N < (numeric_limits<uint32_t>::max)()), uint32_t,
+                  conditional_t<(N < (numeric_limits<uint64_t>::max)()), uint64_t,
                                  size_t>>>>;
             // clang-format on
 
