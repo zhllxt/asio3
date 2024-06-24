@@ -553,9 +553,9 @@ namespace boost::asio::socks5::detail
 			auto& auth_cfg = auth_cfg_ref.get();
 			auto& handsk_info = handsk_info_ref.get();
 
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			auto [e1] = co_await asio::async_call_coroutine(asio::detail::get_lowest_executor(sock),
 				socks5::accept(sock, auth_cfg, handsk_info), asio::use_nothrow_deferred);

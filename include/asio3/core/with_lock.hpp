@@ -26,9 +26,15 @@ public:
 	detail::socket_type sock{ detail::invalid_socket };
   #endif
 
+	std::thread::id     thread_id{};
+
 	template <typename Ex>
 	lock_info(const Ex& ex) : ch(ex, 1)
 	{
+		asio::dispatch(ex, [this]() mutable
+		{
+			this->thread_id = std::this_thread::get_id();
+		});
 	}
   };
 
@@ -85,6 +91,22 @@ public:
 	inline const InnerExecutor& base() const
 	{
 		return static_cast<const InnerExecutor&>(*this);
+	}
+
+	/**
+	 * @brief return the thread id of the current io_context running in.
+	 */
+	inline std::thread::id get_thread_id() const noexcept
+	{
+		return this->lock->thread_id;
+	}
+
+	/**
+	 * @brief Determine whether the current io_context is running in the current thread.
+	 */
+	inline bool running_in_this_thread() const noexcept
+	{
+		return std::this_thread::get_id() == this->lock->thread_id;
 	}
 
     std::shared_ptr<lock_info> lock;

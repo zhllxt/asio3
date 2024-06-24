@@ -35,12 +35,12 @@ namespace boost::asio::detail
 			using endpoint_type = typename acceptor_type::protocol_type::endpoint;
 			using resolver_type = typename acceptor_type::protocol_type::resolver;
 
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			std::string addr = asio::to_string(std::forward_like<decltype(listen_address)>(listen_address));
 			std::string port = asio::to_string(std::forward_like<decltype(listen_port)>(listen_port));
 
 			co_await asio::dispatch(acceptor.get_executor(), use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			resolver_type resolver(acceptor.get_executor());
 

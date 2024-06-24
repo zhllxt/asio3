@@ -28,13 +28,15 @@ namespace boost::asio::detail
 	{
 		auto operator()(auto state, auto sock_ref, auto&& data, auto&& host, auto&& port) -> void
 		{
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			auto& sock = sock_ref.get();
 			auto msg = std::forward_like<decltype(data)>(data);
 
 			std::string h = asio::to_string(std::forward_like<decltype(host)>(host));
 			std::string p = asio::to_string(std::forward_like<decltype(port)>(port));
+
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			asio::ip::udp::resolver resolver(asio::detail::get_lowest_executor(sock));
 
@@ -61,11 +63,13 @@ namespace boost::asio::detail
 	{
 		auto operator()(auto state, auto sock_ref, auto&& data, auto&& endpoint) -> void
 		{
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			auto& sock = sock_ref.get();
 			auto msg = std::forward_like<decltype(data)>(data);
 			auto endp = std::forward_like<decltype(endpoint)>(endpoint);
+
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
 

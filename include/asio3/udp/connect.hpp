@@ -41,6 +41,8 @@ namespace boost::asio::detail
 			using endpoint_type = typename stream_type::protocol_type::endpoint;
 			using resolver_type = typename stream_type::protocol_type::resolver;
 
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			resolver_type resolver(asio::detail::get_lowest_executor(sock));

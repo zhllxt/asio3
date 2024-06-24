@@ -24,11 +24,11 @@ namespace boost::asio::detail
 	{
 		auto operator()(auto state, auto sock_ref) -> void
 		{
-			state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 			auto& sock = sock_ref.get();
 
 			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+
+			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			if (!sock.is_open())
 				co_return asio::error::operation_aborted;

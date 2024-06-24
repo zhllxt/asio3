@@ -60,9 +60,9 @@ namespace boost::asio::detail
 
 		//	using resolver_type = std::remove_cvref_t<decltype(resolver)>;
 
-		//	state.reset_cancellation_state(asio::enable_terminal_cancellation());
-
 		//	co_await asio::dispatch(resolver.get_executor(), use_nothrow_deferred);
+
+		//	state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 		//	std::string_view addr_sv = addr;
 		//	std::string_view port_sv = port;

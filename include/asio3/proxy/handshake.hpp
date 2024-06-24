@@ -44,13 +44,14 @@ namespace boost::asio::socks5::detail
 			using boost::asio::write;
 		#endif
 
+			auto& sock = sock_ref.get();
+			option& sock5_opt = sock5_opt_ref.get();
+
+			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			asio::error_code ec{};
-
-			auto& sock = sock_ref.get();
-
-			option& sock5_opt = sock5_opt_ref.get();
 
 			std::string  & dst_addr = sock5_opt.dest_address;
 			std::uint16_t& dst_port = sock5_opt.dest_port;
