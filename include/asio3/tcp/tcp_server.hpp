@@ -72,6 +72,7 @@ namespace boost::asio
 
 						error_code ec{};
 						self.acceptor.close(ec);
+						asio::reset_lock(self.acceptor);
 
 						co_await self.session_map.async_disconnect_all(use_nothrow_deferred);
 

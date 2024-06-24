@@ -253,6 +253,20 @@ namespace boost::asio
 			token, std::ref(s));
 	}
 
+	/**
+	 * @brief Reset the lock state.
+	 */
+	template<typename AsyncStream>
+	inline void reset_lock([[maybe_unused]] AsyncStream& s) noexcept
+	{
+	#ifndef NDEBUG
+		if constexpr (detail::has_member_variable_lock<std::remove_cvref_t<AsyncStream>>)
+		{
+			s.get_executor().lock->sock = detail::invalid_socket;
+		}
+	#endif
+	}
+
 	template<typename AsyncStream>
 	struct defer_unlock
 	{

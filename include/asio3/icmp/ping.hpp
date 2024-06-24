@@ -16,6 +16,7 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/timer.hpp>
 #include <asio3/core/resolve.hpp>
+#include <asio3/core/with_lock.hpp>
 
 #include <asio3/icmp/detail/icmp_header.hpp>
 #include <asio3/icmp/detail/ipv4_header.hpp>
@@ -129,6 +130,7 @@ namespace boost::asio
 		{
 			asio::error_code ec{};
 			sock.close(ec);
+			asio::reset_lock(sock);
 		});
 		
 		std::chrono::steady_clock::time_point time_sent = std::chrono::steady_clock::now();
@@ -150,6 +152,7 @@ namespace boost::asio
 			if (ec)
 			{
 				sock.close(e1);
+				asio::reset_lock(sock);
 				co_return std::tuple{ ec, std::move(resp) };
 			}
 		}
@@ -158,10 +161,12 @@ namespace boost::asio
 			if (sock.local_endpoint(ec).protocol() != dest.protocol())
 			{
 				sock.close(ec);
+				asio::reset_lock(sock);
 				sock.open(dest.protocol(), ec);
 				if (ec)
 				{
 					sock.close(e1);
+					asio::reset_lock(sock);
 					co_return std::tuple{ ec, std::move(resp) };
 				}
 			}
@@ -191,6 +196,7 @@ namespace boost::asio
 		if (e4)
 		{
 			sock.close(ec);
+			asio::reset_lock(sock);
 			co_return std::tuple{ e4, std::move(resp) };
 		}
 
@@ -212,6 +218,7 @@ namespace boost::asio
 		if (e6)
 		{
 			sock.close(ec);
+			asio::reset_lock(sock);
 			co_return std::tuple{ e6, std::move(resp) };
 		}
 

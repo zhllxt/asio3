@@ -121,6 +121,7 @@ namespace boost::beast::http
 		{
 			asio::error_code ec{};
 			sock.close(ec);
+			asio::reset_lock(sock);
 		});
 
 		if (!sock.is_open())
@@ -149,6 +150,7 @@ namespace boost::beast::http
 			if (e2)
 			{
 				sock.close(ec);
+				asio::reset_lock(sock);
 				co_return std::tuple{ e2, std::move(resp) };
 			}
 
@@ -169,6 +171,7 @@ namespace boost::beast::http
 				if (e3)
 				{
 					sock.close(ec);
+					asio::reset_lock(sock);
 					co_return std::tuple{ e3, std::move(resp) };
 				}
 			}
@@ -283,6 +286,7 @@ namespace boost::beast::http
 			if (e3)
 			{
 				sock.close(ec);
+				asio::reset_lock(sock);
 				co_return std::tuple{ e3, std::move(resp) };
 			}
 
@@ -291,6 +295,7 @@ namespace boost::beast::http
 			{
 				co_await stream.async_shutdown(asio::use_nothrow_deferred);
 				sock.close(ec);
+				asio::reset_lock(sock);
 				co_return std::tuple{ e4, std::move(resp) };
 			}
 
@@ -300,6 +305,7 @@ namespace boost::beast::http
 			{
 				co_await stream.async_shutdown(asio::use_nothrow_deferred);
 				sock.close(ec);
+				asio::reset_lock(sock);
 				co_return std::tuple{ e6, std::move(resp) };
 			}
 		#else
@@ -312,6 +318,7 @@ namespace boost::beast::http
 			if (e4)
 			{
 				sock.close(ec);
+				asio::reset_lock(sock);
 				co_return std::tuple{ e4, std::move(resp) };
 			}
 
@@ -320,6 +327,7 @@ namespace boost::beast::http
 			if (e6)
 			{
 				sock.close(ec);
+				asio::reset_lock(sock);
 				co_return std::tuple{ e6, std::move(resp) };
 			}
 		}
@@ -361,12 +369,14 @@ namespace boost::beast::http::detail
 				asio::error_code ec{};
 				sock.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
 				sock.close(ec);
+				asio::reset_lock(sock);
 			};
 
 			asio::detail::call_func_when_timeout wt(ex, opt.timeout, [&sock]() mutable
 			{
 				asio::error_code ec{};
 				sock.close(ec);
+				asio::reset_lock(sock);
 			});
 
 			asio::ip::tcp::resolver resolver(ex);

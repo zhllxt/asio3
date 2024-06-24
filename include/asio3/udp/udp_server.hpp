@@ -73,6 +73,7 @@ namespace boost::asio
 						error_code ec{};
 						server.socket.shutdown(asio::socket_base::shutdown_both, ec);
 						server.socket.close(ec);
+						asio::reset_lock(server.socket);
 
 						co_await server.session_map.async_disconnect_all(use_nothrow_deferred);
 

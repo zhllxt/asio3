@@ -66,6 +66,7 @@ namespace boost::asio::detail
 						{
 							error_code ec{};
 							sock.close(ec);
+							asio::reset_lock(sock);
 						});
 
 					// https://github.com/chriskohlhoff/asio/issues/715
@@ -79,17 +80,20 @@ namespace boost::asio::detail
 					co_await sock.async_wait(asio::socket_base::wait_error, use_nothrow_deferred);
 
 					sock.close(ec);
+					asio::reset_lock(sock);
 				}
 				else
 				{
 					sock.shutdown(asio::socket_base::shutdown_receive, ec);
 					sock.close(ec);
+					asio::reset_lock(sock);
 				}
 			}
 			else
 			{
 				sock.shutdown(asio::socket_base::shutdown_both, ec);
 				sock.close(ec);
+				asio::reset_lock(sock);
 			}
 
 			co_return ec;

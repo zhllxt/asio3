@@ -93,6 +93,7 @@ namespace boost::asio
 			asio::error_code ec{};
 			socket.shutdown(asio::socket_base::shutdown_both, ec);
 			socket.close(ec);
+			asio::reset_lock(socket);
 		}
 
 		/**

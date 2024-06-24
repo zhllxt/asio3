@@ -40,6 +40,7 @@ namespace boost::asio::detail
 			asio::error_code ec{};
 			sock.shutdown(asio::socket_base::shutdown_both, ec);
 			sock.close(ec);
+			asio::reset_lock(sock);
 
 			co_return ec;
 		}

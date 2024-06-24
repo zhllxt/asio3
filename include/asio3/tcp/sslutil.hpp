@@ -38,6 +38,7 @@ namespace boost::asio::detail
 				{
 					error_code ec{};
 					ssl_stream.next_layer().close(ec);
+					asio::reset_lock(ssl_stream.next_layer());
 				});
 
 			auto [e1] = co_await ssl_stream.async_handshake(handsk_type, asio::use_nothrow_deferred);
@@ -67,6 +68,7 @@ namespace boost::asio::detail
 				{
 					error_code ec{};
 					ssl_stream.next_layer().close(ec);
+					asio::reset_lock(ssl_stream.next_layer());
 				});
 
 			auto [e1] = co_await ssl_stream.async_shutdown(asio::use_nothrow_deferred);

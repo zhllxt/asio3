@@ -115,6 +115,7 @@ namespace boost::asio::detail
 				{
 					error_code ec{};
 					sock.close(ec);
+					asio::reset_lock(sock);
 				});
 
 			resolver_type resolver(asio::detail::get_lowest_executor(sock));

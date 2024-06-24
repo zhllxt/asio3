@@ -89,6 +89,7 @@ namespace boost::beast::http::detail
 				asio::error_code ec{};
 				sock.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
 				sock.close(ec);
+				asio::reset_lock(sock);
 			};
 
 			asio::ip::tcp::resolver resolver(ex);
