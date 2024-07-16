@@ -20,6 +20,7 @@ add_subdirectory (rpc          )
 add_subdirectory (tcp          )
 add_subdirectory (udp          )
 add_subdirectory (socks5       )
+add_subdirectory (serial_port  )
 add_subdirectory (websocket    )
 add_subdirectory (http_and_websocket_server)
 
