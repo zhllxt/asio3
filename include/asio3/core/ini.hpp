@@ -43,6 +43,7 @@
 #include <chrono>
 #include <filesystem>
 #include <concepts>
+#include <iomanip>
 
 #if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
 	defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
