@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <bit>
-
 #include <asio3/core/netutil.hpp>
 
 /*
@@ -115,8 +113,7 @@ struct length_payload_match_condition
 				// use little endian
 				if constexpr (std::endian::native == std::endian::big)
 				{
-					swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(
-						std::addressof(payload_size)));
+					payload_size = ::std::byteswap(payload_size);
 				}
 
 				// illegal data
@@ -145,8 +142,7 @@ struct length_payload_match_condition
 				// use little endian
 				if constexpr (std::endian::native == std::endian::big)
 				{
-					swap_bytes<sizeof(std::int64_t)>(reinterpret_cast<std::uint8_t*>(
-						std::addressof(payload_size)));
+					payload_size = ::std::byteswap(payload_size);
 				}
 
 				// illegal data
@@ -209,12 +205,12 @@ struct length_payload_match_condition
 			head.resize(3);
 			head[0] = static_cast<std::string::value_type>(254);
 			std::uint16_t size = static_cast<std::uint16_t>(buffer.size());
-			std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint16_t));
 			// use little endian
 			if constexpr (std::endian::native == std::endian::big)
 			{
-				swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(&head[1]));
+				size = ::std::byteswap(size);
 			}
+			std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint16_t));
 		}
 		else
 		{
@@ -222,12 +218,12 @@ struct length_payload_match_condition
 			head.resize(9);
 			head[0] = static_cast<std::uint8_t>(255);
 			std::uint64_t size = buffer.size();
-			std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint64_t));
 			// use little endian
 			if constexpr (std::endian::native == std::endian::big)
 			{
-				swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(&head[1]));
+				size = ::std::byteswap(size);
 			}
+			std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint64_t));
 		}
 
 		return head;

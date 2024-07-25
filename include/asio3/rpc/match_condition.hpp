@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <bit>
-
 #include <asio3/core/netutil.hpp>
 
 /*
@@ -115,8 +113,7 @@ struct length_payload_match_condition
 				// use little endian
 				if constexpr (std::endian::native == std::endian::big)
 				{
-					swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(
-						std::addressof(payload_size)));
+					payload_size = ::std::byteswap(payload_size);
 				}
 
 				// illegal data
@@ -145,8 +142,7 @@ struct length_payload_match_condition
 				// use little endian
 				if constexpr (std::endian::native == std::endian::big)
 				{
-					swap_bytes<sizeof(std::int64_t)>(reinterpret_cast<std::uint8_t*>(
-						std::addressof(payload_size)));
+					payload_size = ::std::byteswap(payload_size);
 				}
 
 				// illegal data

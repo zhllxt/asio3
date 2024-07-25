@@ -208,29 +208,6 @@ namespace boost::asio
 	}
 
 	/**
-	 * Swaps the order of bytes for some chunk of memory
-	 * @param data - The data as a uint8_t pointer
-	 * @tparam DataSize - The true size of the data
-	 */
-	template <::std::size_t DataSize>
-	inline void swap_bytes(::std::uint8_t* data) noexcept
-	{
-		for (::std::size_t i = 0, end = DataSize / 2; i < end; ++i)
-			::std::swap(data[i], data[DataSize - i - 1]);
-	}
-
-	/**
-	 * Swaps the order of bytes for some chunk of memory
-	 * @param v - The variable reference.
-	 */
-	template <class T>
-	inline void swap_bytes(T& v) noexcept
-	{
-		::std::uint8_t* p = reinterpret_cast<::std::uint8_t*>(::std::addressof(v));
-		swap_bytes<sizeof(T)>(p);
-	}
-
-	/**
 	 * converts the value from host to TCP/IP network byte order (which is big-endian).
 	 * @param v - The variable reference.
 	 */
@@ -239,11 +216,12 @@ namespace boost::asio
 	{
 		if constexpr (::std::endian::native == ::std::endian::little)
 		{
-			::std::uint8_t* p = reinterpret_cast<::std::uint8_t*>(::std::addressof(v));
-			swap_bytes<sizeof(T)>(p);
+			return ::std::byteswap(v);
 		}
-
-		return v;
+		else
+		{
+			return v;
+		}
 	}
 
 	/**
@@ -255,11 +233,12 @@ namespace boost::asio
 	{
 		if constexpr (::std::endian::native == ::std::endian::little)
 		{
-			::std::uint8_t* p = reinterpret_cast<::std::uint8_t*>(::std::addressof(v));
-			swap_bytes<sizeof(T)>(p);
+			return ::std::byteswap(v);
 		}
-
-		return v;
+		else
+		{
+			return v;
+		}
 	}
 
 	template<class T, class Pointer>
@@ -271,7 +250,7 @@ namespace boost::asio
 			// ** This mean the network byte order is big-endian **
 			if constexpr (::std::endian::native == ::std::endian::little)
 			{
-				swap_bytes<sizeof(T)>(reinterpret_cast<::std::uint8_t *>(::std::addressof(v)));
+				v = ::std::byteswap(v);
 			}
 
 			::std::memcpy((void*)p, (const void*)&v, sizeof(T));
@@ -299,7 +278,7 @@ namespace boost::asio
 			// ** This mean the network byte order is big-endian **
 			if constexpr (::std::endian::native == ::std::endian::little)
 			{
-				swap_bytes<sizeof(T)>(reinterpret_cast<::std::uint8_t *>(::std::addressof(v)));
+				v = ::std::byteswap(v);
 			}
 		}
 		else
