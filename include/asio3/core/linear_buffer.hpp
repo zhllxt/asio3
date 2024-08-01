@@ -51,25 +51,25 @@ namespace boost::asio
 		basic_linear_buffer& operator=(basic_linear_buffer const& other) = default;
 
 		/// Returns the size of the input sequence.
-		inline size_type size() const noexcept
+		[[nodiscard]] inline size_type size() const noexcept
 		{
 			return (wpos_ - rpos_);
 		}
 
 		/// Return the maximum sum of the input and output sequence sizes.
-		inline size_type max_size() const noexcept
+		[[nodiscard]] inline size_type max_size() const noexcept
 		{
 			return max_;
 		}
 
 		/// Return the maximum sum of input and output sizes that can be held without an allocation.
-		inline size_type capacity() const noexcept
+		[[nodiscard]] inline size_type capacity() const noexcept
 		{
 			return Container::capacity();
 		}
 
 		/// Get a list of buffers that represent the input sequence.
-		inline const_buffers_type data() const noexcept
+		[[nodiscard]] inline const_buffers_type data() const noexcept
 		{
 			return { Container::data() + rpos_, wpos_ - rpos_ };
 		}

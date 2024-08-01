@@ -62,7 +62,7 @@ public:
  * @param c The character to test
  * @return true if c is a valid base64 character
  */
-inline bool is_base64(unsigned char c) noexcept {
+[[nodiscard]] inline bool is_base64(unsigned char c) noexcept {
     return (c == 43 || // +
            (c >= 47 && c <= 57) || // /-9
            (c >= 65 && c <= 90) || // A-Z
@@ -75,7 +75,7 @@ inline bool is_base64(unsigned char c) noexcept {
  * @param len The length of input in bytes
  * @return A base64 encoded string representing input
  */
-inline std::string encode(unsigned char const * input, size_t len) {
+[[nodiscard]] inline std::string encode(unsigned char const * input, size_t len) {
     std::string ret;
     int i = 0;
     int j = 0;
@@ -128,7 +128,7 @@ inline std::string encode(unsigned char const * input, size_t len) {
  * @param input The input data
  * @return A base64 encoded string representing input
  */
-inline std::string encode(std::string_view const & input) {
+[[nodiscard]] inline std::string encode(std::string_view const & input) {
     return encode(
         reinterpret_cast<const unsigned char *>(input.data()),
         input.size()
@@ -140,7 +140,7 @@ inline std::string encode(std::string_view const & input) {
  * @param input The base64 encoded input data
  * @return A string representing the decoded raw bytes
  */
-inline std::string decode(std::string_view const & input) {
+[[nodiscard]] inline std::string decode(std::string_view const & input) {
     size_t in_len = input.size();
     int i = 0;
     int j = 0;
@@ -191,7 +191,7 @@ inline std::string decode(std::string_view const & input) {
  * @param c The character to test
  * @return true if c is a valid base64 character
  */
-inline bool is_base64(unsigned char c) noexcept
+[[nodiscard]] inline bool is_base64(unsigned char c) noexcept
 {
 	return base64().is_base64(c);
 }
@@ -202,7 +202,7 @@ inline bool is_base64(unsigned char c) noexcept
  * @param len The length of input in bytes
  * @return A base64 encoded string representing input
  */
-inline std::string base64_encode(unsigned char const * input, size_t len)
+[[nodiscard]] inline std::string base64_encode(unsigned char const * input, size_t len)
 {
 	return base64().encode(input, len);
 }
@@ -212,7 +212,7 @@ inline std::string base64_encode(unsigned char const * input, size_t len)
  * @param input The input data
  * @return A base64 encoded string representing input
  */
-inline std::string base64_encode(std::string_view const & input)
+[[nodiscard]] inline std::string base64_encode(std::string_view const & input)
 {
 	return base64().encode(input);
 }
@@ -222,7 +222,7 @@ inline std::string base64_encode(std::string_view const & input)
  * @param input The base64 encoded input data
  * @return A string representing the decoded raw bytes
  */
-inline std::string base64_decode(std::string_view const & input)
+[[nodiscard]] inline std::string base64_decode(std::string_view const & input)
 {
 	return base64().decode(input);
 }

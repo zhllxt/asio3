@@ -25,7 +25,7 @@ namespace boost::asio::detail
 	 * BKDR Hash Function
 	 */
 	template<typename = void>
-	inline std::size_t bkdr_hash(const unsigned char * const p, std::size_t size) noexcept
+	[[nodiscard]] inline std::size_t bkdr_hash(const unsigned char * const p, std::size_t size) noexcept
 	{
 		std::size_t v = 0;
 		for (std::size_t i = 0; i < size; ++i)
@@ -40,7 +40,7 @@ namespace boost::asio::detail
 	 * Reference from Visual c++ implementation, see vc++ std::hash
 	 */
 	template<typename T>
-	inline T fnv1a_hash(const unsigned char * const p, const T size) noexcept
+	[[nodiscard]] inline T fnv1a_hash(const unsigned char * const p, const T size) noexcept
 	{
 		static_assert(sizeof(T) == 4 || sizeof(T) == 8, "Must be 32 or 64 digits");
 		T v;
@@ -60,7 +60,7 @@ namespace boost::asio::detail
 	}
 
 	template<typename T>
-	inline T fnv1a_hash(T v, const unsigned char * const p, const T size) noexcept
+	[[nodiscard]] inline T fnv1a_hash(T v, const unsigned char * const p, const T size) noexcept
 	{
 		static_assert(sizeof(T) == 4 || sizeof(T) == 8, "Must be 32 or 64 digits");
 		for (T i = 0; i < size; ++i)

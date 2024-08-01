@@ -162,7 +162,7 @@ struct length_payload_match_condition
 		return std::pair(begin, false);
 	}
 
-	inline static std::string_view get_payload(std::string_view buffer)
+	[[nodiscard]] inline static std::string_view get_payload(std::string_view buffer)
 	{
 		if (buffer.empty())
 		{
@@ -183,7 +183,7 @@ struct length_payload_match_condition
 		}
 	}
 
-	inline static std::string_view get_payload(const auto* p, auto size)
+	[[nodiscard]] inline static std::string_view get_payload(const auto* p, auto size)
 	{
 		return get_payload(std::string_view{
 			reinterpret_cast<std::string_view::const_pointer>(p),
@@ -191,7 +191,7 @@ struct length_payload_match_condition
 			});
 	}
 
-	inline static std::string generate_length(asio::const_buffer buffer)
+	[[nodiscard]] inline static std::string generate_length(asio::const_buffer buffer)
 	{
 		std::string head;
 

@@ -52,7 +52,7 @@ namespace boost::asio
 	 * @return Converted value as std::basic_string.
 	 */
 	template<typename T>
-	inline auto to_basic_string(T&& v)
+	[[nodiscard]] inline auto to_basic_string(T&& v)
 	{
 		using type  = typename std::remove_cvref_t<T>;
 		using CharT = typename asio::char_type<type>::type;
@@ -115,7 +115,7 @@ namespace boost::asio
 	 * @return Converted value as std::basic_string_view.
 	 */
 	template<typename T>
-	inline auto to_basic_string_view(const T& v)
+	[[nodiscard]] inline auto to_basic_string_view(const T& v)
 	{
 		using type  = typename std::remove_cvref_t<T>;
 		using CharT = typename asio::char_type<type>::type;
@@ -153,7 +153,7 @@ namespace boost::asio
 	 * @return Converted value as std::string.
 	 */
 	template<typename T>
-	inline std::string to_string(T&& v)
+	[[nodiscard]] inline std::string to_string(T&& v)
 	{
 		using type = std::remove_cvref_t<T>;
 
@@ -199,7 +199,7 @@ namespace boost::asio
 	 * @return Converted value as std::string_view.
 	 */
 	template<typename T>
-	inline std::string_view to_string_view(const T& v)
+	[[nodiscard]] inline std::string_view to_string_view(const T& v)
 	{
 		using type = std::remove_cvref_t<T>;
 
@@ -236,7 +236,7 @@ namespace boost::asio
 	 * @return Converted value as std::string_view.
 	 */
 	template<typename Iterator>
-	inline std::string_view to_string_view(const Iterator& first, const Iterator& last)
+	[[nodiscard]] inline std::string_view to_string_view(const Iterator& first, const Iterator& last)
 	{
 		using iter_type = typename std::remove_cvref_t<Iterator>;
 		using diff_type = typename std::iterator_traits<iter_type>::difference_type;
@@ -265,7 +265,7 @@ namespace boost::asio
 	 * @return Converted value as numeric.
 	 */
 	template<typename IntegerType, typename T>
-	inline IntegerType to_numeric(T&& v) noexcept
+	[[nodiscard]] inline IntegerType to_numeric(T&& v) noexcept
 	{
 		using type = std::remove_cvref_t<T>;
 
@@ -295,7 +295,7 @@ namespace boost::asio
 	 * @return Variable of datatype T.
 	 */
 	template<typename T>
-	inline T string_to(const std::string& str)
+	[[nodiscard]] inline T string_to(const std::string& str)
 	{
 		T result{};
 		std::istringstream(str) >> result;
@@ -310,7 +310,7 @@ namespace boost::asio
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
-	inline bool iequals(
+	[[nodiscard]] inline bool iequals(
 		std::basic_string_view<CharT, Traits> str1,
 		std::basic_string_view<CharT, Traits> str2) noexcept
 	{
@@ -344,7 +344,7 @@ namespace boost::asio
 	 * @brief Returns `true` if two strings are equal, using a case-insensitive comparison.
 	 */
 	template<class String1, class String2>
-	inline bool iequals(const String1& str1, const String2& str2) noexcept
+	[[nodiscard]] inline bool iequals(const String1& str1, const String2& str2) noexcept
 	{
 		return asio::iequals(asio::to_basic_string_view(str1), asio::to_basic_string_view(str2));
 	}
@@ -356,7 +356,7 @@ namespace boost::asio
 	 * @return True if str1 and str2 are equal, false otherwise.
 	 */
 	template<class String1, class String2>
-	inline bool compare_ignore_case(const String1& str1, const String2& str2)
+	[[nodiscard]] inline bool compare_ignore_case(const String1& str1, const String2& str2)
 	{
 		return asio::iequals(str1, str2);
 	}
@@ -537,7 +537,7 @@ namespace boost::asio
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
-	inline bool contains(std::basic_string_view<CharT, Traits> str, std::basic_string_view<CharT, Traits> substring)
+	[[nodiscard]] inline bool contains(std::basic_string_view<CharT, Traits> str, std::basic_string_view<CharT, Traits> substring)
 	{
 		return str.find(substring) != std::string_view::npos;
 	}
@@ -549,7 +549,7 @@ namespace boost::asio
 	 * @return True if substring was found in str, false otherwise.
 	 */
 	template<class String1, class String2>
-	inline bool contains(const String1& str, const String2& substring)
+	[[nodiscard]] inline bool contains(const String1& str, const String2& substring)
 	{
 		return asio::contains(asio::to_basic_string_view(str), asio::to_basic_string_view(substring));
 	}
@@ -760,7 +760,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::basic_string<CharT, Traits, Allocator> trim_left_copy(std::basic_string<CharT, Traits, Allocator> str)
+	[[nodiscard]] inline std::basic_string<CharT, Traits, Allocator> trim_left_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
 		return asio::trim_left(std::move(str));
 	}
@@ -775,7 +775,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::basic_string<CharT, Traits, Allocator> ltrim_copy(std::basic_string<CharT, Traits, Allocator> str)
+	[[nodiscard]] inline std::basic_string<CharT, Traits, Allocator> ltrim_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
 		return asio::trim_left(std::move(str));
 	}
@@ -790,7 +790,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::basic_string<CharT, Traits, Allocator> trim_right_copy(std::basic_string<CharT, Traits, Allocator> str)
+	[[nodiscard]] inline std::basic_string<CharT, Traits, Allocator> trim_right_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
 		return asio::trim_right(std::move(str));
 	}
@@ -805,7 +805,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::basic_string<CharT, Traits, Allocator> rtrim_copy(std::basic_string<CharT, Traits, Allocator> str)
+	[[nodiscard]] inline std::basic_string<CharT, Traits, Allocator> rtrim_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
 		return asio::trim_right(std::move(str));
 	}
@@ -820,7 +820,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::basic_string<CharT, Traits, Allocator> trim_copy(std::basic_string<CharT, Traits, Allocator> str)
+	[[nodiscard]] inline std::basic_string<CharT, Traits, Allocator> trim_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
 		return asio::trim(std::move(str));
 	}
@@ -1271,7 +1271,7 @@ namespace boost::asio
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
-	inline bool ends_with(
+	[[nodiscard]] inline bool ends_with(
 		std::basic_string_view<CharT, Traits> str,
 		std::basic_string_view<CharT, Traits> suffix)
 	{
@@ -1287,7 +1287,7 @@ namespace boost::asio
 	 * @return True if suffix was found, false otherwise.
 	 */
 	template<class String1, class String2>
-	inline bool ends_with(const String1& str1, const String2& str2)
+	[[nodiscard]] inline bool ends_with(const String1& str1, const String2& str2)
 	{
 		return asio::ends_with(asio::to_basic_string_view(str1), asio::to_basic_string_view(str2));
 	}
@@ -1302,7 +1302,7 @@ namespace boost::asio
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
-	inline bool starts_with(
+	[[nodiscard]] inline bool starts_with(
 		std::basic_string_view<CharT, Traits> str,
 		std::basic_string_view<CharT, Traits> prefix)
 	{
@@ -1316,7 +1316,7 @@ namespace boost::asio
 	 * @return True if prefix was found, false otherwise.
 	 */
 	template<class String1, class String2>
-	inline bool starts_with(const String1& str1, const String2& str2)
+	[[nodiscard]] inline bool starts_with(const String1& str1, const String2& str2)
 	{
 		return asio::starts_with(asio::to_basic_string_view(str1), asio::to_basic_string_view(str2));
 	}
@@ -1333,7 +1333,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::vector<std::basic_string<CharT, Traits, Allocator>> split(
+	[[nodiscard]] inline std::vector<std::basic_string<CharT, Traits, Allocator>> split(
 		const std::basic_string<CharT, Traits, Allocator>& str,
 		const String1& delim)
 	{
@@ -1365,7 +1365,7 @@ namespace boost::asio
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
-	inline std::vector<std::basic_string_view<CharT, Traits>> split(
+	[[nodiscard]] inline std::vector<std::basic_string_view<CharT, Traits>> split(
 		const std::basic_string_view<CharT, Traits>& str,
 		const String1& delim)
 	{
@@ -1393,7 +1393,7 @@ namespace boost::asio
 	 * @return std::vector<string> that contains all splitted tokens.
 	 */
 	template<class String1, class String2>
-	inline auto split(const String1& str, const String2& delim)
+	[[nodiscard]] inline auto split(const String1& str, const String2& delim)
 	{
 		using CharT = typename asio::char_type<String1>::type;
 
@@ -1422,7 +1422,7 @@ namespace boost::asio
 	 * @return vector of resulting tokens.
 	 */
 	template<class String1, class String2>
-	inline auto regex_split(const String1& src, const String2& rgx_str)
+	[[nodiscard]] inline auto regex_split(const String1& src, const String2& rgx_str)
 	{
 		using CharT = typename asio::char_type<String1>::type;
 
@@ -1451,7 +1451,7 @@ namespace boost::asio
 	 * @return True if the parsing is successfully done.
 	 */
 	template<class String1, class String2>
-	inline auto regex_split_map(const String1& src, const String2& rgx_str)
+	[[nodiscard]] inline auto regex_split_map(const String1& src, const String2& rgx_str)
 	{
 		using CharT = typename asio::char_type<String1>::type;
 
@@ -1488,7 +1488,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::vector<std::basic_string<CharT, Traits, Allocator>> split_any(
+	[[nodiscard]] inline std::vector<std::basic_string<CharT, Traits, Allocator>> split_any(
 		const std::basic_string<CharT, Traits, Allocator>& str,
 		const String1& delims)
 	{
@@ -1523,7 +1523,7 @@ namespace boost::asio
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
-	inline std::vector<std::basic_string_view<CharT, Traits>> split_any(
+	[[nodiscard]] inline std::vector<std::basic_string_view<CharT, Traits>> split_any(
 		const std::basic_string_view<CharT, Traits>& str,
 		const String1& delims)
 	{
@@ -1554,7 +1554,7 @@ namespace boost::asio
 	 * @return vector of resulting tokens.
 	 */
 	template<class String1, class String2>
-	inline auto split_any(const String1& str, const String2& delims)
+	[[nodiscard]] inline auto split_any(const String1& str, const String2& delims)
 	{
 		using CharT = typename asio::char_type<String1>::type;
 
@@ -1591,7 +1591,7 @@ namespace boost::asio
 		class T,
 		class String1
 	>
-	inline auto join(const std::vector<T>& tokens, const String1& delim)
+	[[nodiscard]] inline auto join(const std::vector<T>& tokens, const String1& delim)
 	{
 		using CharT = typename asio::char_type<String1>::type;
 
@@ -1635,7 +1635,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::vector<std::basic_string<CharT, Traits, Allocator>> drop_empty_copy(
+	[[nodiscard]] inline std::vector<std::basic_string<CharT, Traits, Allocator>> drop_empty_copy(
 		std::vector<std::basic_string<CharT, Traits, Allocator>> tokens)
 	{
 		drop_empty(tokens);
@@ -1671,7 +1671,7 @@ namespace boost::asio
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-	inline std::vector<std::basic_string<CharT, Traits, Allocator>> drop_duplicate_copy(
+	[[nodiscard]] inline std::vector<std::basic_string<CharT, Traits, Allocator>> drop_duplicate_copy(
 		std::vector<std::basic_string<CharT, Traits, Allocator>> tokens)
 	{
 		std::sort(tokens.begin(), tokens.end());
@@ -1687,7 +1687,7 @@ namespace boost::asio
 	 * @return string with repeated substring str.
 	 */
 	template<class String1>
-	inline auto repeat(const String1& str, unsigned n)
+	[[nodiscard]] inline auto repeat(const String1& str, unsigned n)
 	{
 		using CharT = typename asio::char_type<String1>::type;
 
@@ -1708,7 +1708,7 @@ namespace boost::asio
 	 * @return True if regex matches str, false otherwise.
 	 */
 	template<class String1>
-	inline bool matches(const String1& str, const std::basic_regex<typename asio::char_type<String1>::type>& regex)
+	[[nodiscard]] inline bool matches(const String1& str, const std::basic_regex<typename asio::char_type<String1>::type>& regex)
 	{
 		return std::regex_match(str, regex);
 	}
@@ -1759,7 +1759,7 @@ namespace boost::asio
 	 * @return The finded index, or std::string::npos if not found.
 	 */
 	template<class String1, class String2>
-	inline std::size_t ifind(const String1& src, const String2& dest, std::string::size_type pos = 0) noexcept
+	[[nodiscard]] inline std::size_t ifind(const String1& src, const String2& dest, std::string::size_type pos = 0) noexcept
 	{
 		auto s = asio::to_basic_string_view(src);
 		auto d = asio::to_basic_string_view(dest);

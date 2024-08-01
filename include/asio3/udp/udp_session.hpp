@@ -85,7 +85,7 @@ namespace boost::asio
 		/**
 		 * @brief Get this object hash key, used for session map
 		 */
-		inline key_type hash_key() noexcept
+		[[nodiscard]] inline key_type hash_key() noexcept
 		{
 			return remote_endpoint;
 		}
@@ -101,7 +101,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address() noexcept
+		[[nodiscard]] inline std::string get_local_address() noexcept
 		{
 			return asio::get_local_address(socket);
 		}
@@ -109,7 +109,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port() noexcept
+		[[nodiscard]] inline ip::port_type get_local_port() noexcept
 		{
 			return asio::get_local_port(socket);
 		}
@@ -117,7 +117,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address() noexcept
+		[[nodiscard]] inline std::string get_remote_address() noexcept
 		{
 			error_code ec{};
 			return remote_endpoint.address().to_string(ec);
@@ -126,7 +126,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port() noexcept
+		[[nodiscard]] inline ip::port_type get_remote_port() noexcept
 		{
 			return remote_endpoint.port();
 		}
@@ -153,7 +153,7 @@ namespace boost::asio
 			alive_time = std::chrono::system_clock::now();
 		}
 
-		static auto create(socket_type& sock, ip::udp::endpoint& remote_endpoint)
+		[[nodiscard]] static auto create(socket_type& sock, ip::udp::endpoint& remote_endpoint)
 		{
 			return std::make_shared<basic_udp_session>(sock, remote_endpoint);
 		};

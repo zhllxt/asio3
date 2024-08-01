@@ -135,7 +135,7 @@ namespace boost::asio
 	variant_overloaded(Ts...) -> variant_overloaded<Ts...>;
 
 	template<typename = void>
-	bool is_subpath_of(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
+	[[nodiscard]] bool is_subpath_of(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
 	{
 		assert(std::filesystem::is_directory(base));
 
@@ -158,7 +158,7 @@ namespace boost::asio
 	}
 
 	template<typename = void>
-	std::filesystem::path make_filepath(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
+	[[nodiscard]] std::filesystem::path make_filepath(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
 	{
 		std::error_code ec{};
 		std::filesystem::path b = std::filesystem::canonical(base, ec);
@@ -183,7 +183,7 @@ namespace boost::asio
 	}
 
 	template<typename = void>
-	std::filesystem::path make_filepath(const std::filesystem::path& base, ::std::string_view s) noexcept
+	[[nodiscard]] std::filesystem::path make_filepath(const std::filesystem::path& base, ::std::string_view s) noexcept
 	{
 		std::filesystem::path p{ s };
 		return make_filepath(base, p);

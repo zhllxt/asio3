@@ -150,7 +150,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread pool with no lock
 		 */
-		inline std::size_t thread_count() noexcept
+		[[nodiscard]] inline std::size_t thread_count() noexcept
 		{
 			return this->workers_.size();
 		}
@@ -158,7 +158,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread pool with lock
 		 */
-		inline std::size_t get_thread_count() noexcept
+		[[nodiscard]] inline std::size_t get_thread_count() noexcept
 		{
 			std::unique_lock<std::mutex> lock(this->mtx_);
 
@@ -168,7 +168,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread pool with no lock, same as thread_count()
 		 */
-		inline std::size_t pool_size() noexcept
+		[[nodiscard]] inline std::size_t pool_size() noexcept
 		{
 			return this->workers_.size();
 		}
@@ -176,7 +176,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread pool with lock, same as get_thread_count()
 		 */
-		inline std::size_t get_pool_size() noexcept
+		[[nodiscard]] inline std::size_t get_pool_size() noexcept
 		{
 			// is std container.size() thread safety ?
 			// @see: the size() function in file: /asio3/core/session_mgr.hpp
@@ -189,7 +189,7 @@ namespace boost::asio
 		/**
 		 * @brief get remain task size with no lock
 		 */
-		inline std::size_t task_size() noexcept
+		[[nodiscard]] inline std::size_t task_size() noexcept
 		{
 			return this->tasks_.size();
 		}
@@ -197,7 +197,7 @@ namespace boost::asio
 		/**
 		 * @brief get remain task size with lock
 		 */
-		inline std::size_t get_task_size() noexcept
+		[[nodiscard]] inline std::size_t get_task_size() noexcept
 		{
 			std::unique_lock<std::mutex> lock(this->mtx_);
 
@@ -207,7 +207,7 @@ namespace boost::asio
 		/**
 		 * @brief Determine whether current code is running in the pool's threads.
 		 */
-		inline bool running_in_threads() noexcept
+		[[nodiscard]] inline bool running_in_threads() noexcept
 		{
 			std::unique_lock<std::mutex> lock(this->mtx_);
 
@@ -224,7 +224,7 @@ namespace boost::asio
 		/**
 		 * @brief Determine whether current code is running in the thread by index
 		 */
-		inline bool running_in_thread(std::size_t index) noexcept
+		[[nodiscard]] inline bool running_in_thread(std::size_t index) noexcept
 		{
 			std::unique_lock<std::mutex> lock(this->mtx_);
 
@@ -237,7 +237,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the thread id of the specified thread index with no lock.
 		 */
-		inline std::thread::id thread_id(std::size_t index) noexcept
+		[[nodiscard]] inline std::thread::id thread_id(std::size_t index) noexcept
 		{
 			return this->workers_[index % this->workers_.size()].get_id();
 		}
@@ -245,7 +245,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the thread id of the specified thread index with lock.
 		 */
-		inline std::thread::id get_thread_id(std::size_t index) noexcept
+		[[nodiscard]] inline std::thread::id get_thread_id(std::size_t index) noexcept
 		{
 			std::unique_lock<std::mutex> lock(this->mtx_);
 			return this->workers_[index % this->workers_.size()].get_id();
@@ -364,7 +364,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread group with no lock
 		 */
-		inline std::size_t thread_count() noexcept
+		[[nodiscard]] inline std::size_t thread_count() noexcept
 		{
 			return this->workers_.size();
 		}
@@ -372,7 +372,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread group with lock
 		 */
-		inline std::size_t get_thread_count() noexcept
+		[[nodiscard]] inline std::size_t get_thread_count() noexcept
 		{
 			return this->workers_.size();
 		}
@@ -380,7 +380,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread group with no lock, same as thread_count()
 		 */
-		inline std::size_t pool_size() noexcept
+		[[nodiscard]] inline std::size_t pool_size() noexcept
 		{
 			return this->workers_.size();
 		}
@@ -388,7 +388,7 @@ namespace boost::asio
 		/**
 		 * @brief get thread count of the thread group with lock, same as get_thread_count()
 		 */
-		inline std::size_t get_pool_size() noexcept
+		[[nodiscard]] inline std::size_t get_pool_size() noexcept
 		{
 			return this->workers_.size();
 		}
@@ -396,7 +396,7 @@ namespace boost::asio
 		/**
 		 * @brief get remain task size with no lock
 		 */
-		inline std::size_t task_size() noexcept
+		[[nodiscard]] inline std::size_t task_size() noexcept
 		{
 			std::size_t count = 0;
 
@@ -411,7 +411,7 @@ namespace boost::asio
 		/**
 		 * @brief get remain task size with lock
 		 */
-		inline std::size_t get_task_size() noexcept
+		[[nodiscard]] inline std::size_t get_task_size() noexcept
 		{
 			std::size_t count = 0;
 
@@ -426,7 +426,7 @@ namespace boost::asio
 		/**
 		 * @brief get remain task size of the specified thread with no lock
 		 */
-		inline std::size_t task_size(std::size_t thread_index) noexcept
+		[[nodiscard]] inline std::size_t task_size(std::size_t thread_index) noexcept
 		{
 			return this->workers_[thread_index % this->workers_.size()]->task_size();
 		}
@@ -434,7 +434,7 @@ namespace boost::asio
 		/**
 		 * @brief get remain task size of the specified thread with lock
 		 */
-		inline std::size_t get_task_size(std::size_t thread_index) noexcept
+		[[nodiscard]] inline std::size_t get_task_size(std::size_t thread_index) noexcept
 		{
 			return this->workers_[thread_index % this->workers_.size()]->get_task_size();
 		}
@@ -442,7 +442,7 @@ namespace boost::asio
 		/**
 		 * @brief Determine whether current code is running in the group's threads.
 		 */
-		inline bool running_in_threads() noexcept
+		[[nodiscard]] inline bool running_in_threads() noexcept
 		{
 			for (worker_t* p : this->workers_)
 			{
@@ -456,7 +456,7 @@ namespace boost::asio
 		/**
 		 * @brief Determine whether current code is running in the thread by index
 		 */
-		inline bool running_in_thread(std::size_t index) noexcept
+		[[nodiscard]] inline bool running_in_thread(std::size_t index) noexcept
 		{
 			if (!(index < this->workers_.size()))
 				return false;
@@ -467,7 +467,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the thread id of the specified thread index with no lock.
 		 */
-		inline std::thread::id thread_id(std::size_t index) noexcept
+		[[nodiscard]] inline std::thread::id thread_id(std::size_t index) noexcept
 		{
 			return this->workers_[index % this->workers_.size()]->thread_id(0);
 		}
@@ -475,7 +475,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the thread id of the specified thread index with lock.
 		 */
-		inline std::thread::id get_thread_id(std::size_t index) noexcept
+		[[nodiscard]] inline std::thread::id get_thread_id(std::size_t index) noexcept
 		{
 			return this->workers_[index % this->workers_.size()]->get_thread_id(0);
 		}

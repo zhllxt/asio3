@@ -52,7 +52,7 @@ namespace boost::asio
 		}
 
 		template<typename T>
-		inline void to_handle(T&& id)
+		[[nodiscard]] inline void to_handle(T&& id)
 		{
 			using type = std::remove_cv_t<std::remove_reference_t<T>>;
 			using rtype = std::remove_pointer_t<std::remove_all_extents_t<type>>;
@@ -361,7 +361,7 @@ namespace boost::asio
 		/**
 		 * @brief Returns true if the specified timer exists
 		 */
-		inline bool contains(const auto& timer_id)
+		[[nodiscard]] inline bool contains(const auto& timer_id)
 		{
 			return this->map.contains(timer_id);
 		}
@@ -369,7 +369,7 @@ namespace boost::asio
 		/**
 		 * @brief Finds an element with key equivalent to key.
 		 */
-		inline auto find(const auto& timer_id)
+		[[nodiscard]] inline auto find(const auto& timer_id)
 		{
 			return this->map.find(timer_id);
 		}
@@ -377,7 +377,7 @@ namespace boost::asio
 		/**
 		 * @brief get timer count
 		 */
-		inline std::size_t size() noexcept
+		[[nodiscard]] inline std::size_t size() noexcept
 		{
 			return map.size();
 		}
@@ -385,7 +385,7 @@ namespace boost::asio
 		/**
 		 * @brief get timer count
 		 */
-		inline std::size_t count() noexcept
+		[[nodiscard]] inline std::size_t count() noexcept
 		{
 			return map.size();
 		}
@@ -393,7 +393,7 @@ namespace boost::asio
 		/**
 		 * @brief Checks if the timer container has no elements
 		 */
-		inline bool empty() noexcept
+		[[nodiscard]] inline bool empty() noexcept
 		{
 			return map.empty();
 		}

@@ -110,7 +110,7 @@ namespace boost::asio
 		/**
 		 * @brief convert the uuid bytes to std::string
 		 */
-		inline std::string str(bool upper = false, bool group = true) noexcept
+		[[nodiscard]] inline std::string str(bool upper = false, bool group = true) noexcept
 		{
 			std::string result;
 
@@ -159,7 +159,7 @@ namespace boost::asio
 		}
 
 		// This is equivalent to boost::hash_range(u.begin(), u.end());
-		inline std::size_t hash() noexcept
+		[[nodiscard]] inline std::size_t hash() noexcept
 		{
 			std::size_t seed = 0;
 			for (std::size_t i = 0; i < sizeof(data); ++i)
@@ -178,7 +178,7 @@ namespace boost::asio
 			future     // future definition
 		};
 
-		inline variant_type variant() const noexcept
+		[[nodiscard]] inline variant_type variant() const noexcept
 		{
 			// variant is stored in octet 7
 			// which is index 8, since indexes count backwards
@@ -216,7 +216,7 @@ namespace boost::asio
 			name_based_sha1     = 5	 // The name-based version specified in RFS 4122 with SHA1 hashing
 		};
 
-		inline version_type version() const noexcept
+		[[nodiscard]] inline version_type version() const noexcept
 		{
 			// version is stored in octet 9
 			// which is index 6, since indexes count backwards
@@ -248,7 +248,7 @@ namespace boost::asio
 			}
 		}
 
-		inline std::string short_uuid(int bytes)
+		[[nodiscard]] inline std::string short_uuid(int bytes)
 		{
 			// use base64 chars as the short uuid chars
 			static std::string const base64_chars =
@@ -271,7 +271,7 @@ namespace boost::asio
 		}
 
 		template <typename CharT>
-		constexpr inline unsigned char hex2char(CharT const ch)
+		[[nodiscard]] constexpr inline unsigned char hex2char(CharT const ch)
 		{
 			if (ch >= static_cast<CharT>('0') && ch <= static_cast<CharT>('9'))
 				return static_cast<unsigned char>(ch - static_cast<CharT>('0'));
@@ -283,7 +283,7 @@ namespace boost::asio
 		}
 
 		template <typename CharT>
-		constexpr inline bool is_hex(CharT const ch)
+		[[nodiscard]] constexpr inline bool is_hex(CharT const ch)
 		{
 			return
 				(ch >= static_cast<CharT>('0') && ch <= static_cast<CharT>('9')) ||
@@ -292,7 +292,7 @@ namespace boost::asio
 		}
 
 	protected:
-		inline char to_char(int i, bool upper) noexcept
+		[[nodiscard]] inline char to_char(int i, bool upper) noexcept
 		{
 			if (i <= 9)
 			{

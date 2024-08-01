@@ -210,7 +210,7 @@ namespace boost::asio
 		/**
 		 * @brief get session count
 		 */
-		inline std::size_t size() noexcept
+		[[nodiscard]] inline std::size_t size() noexcept
 		{
 			return map.size();
 		}
@@ -218,7 +218,7 @@ namespace boost::asio
 		/**
 		 * @brief get session count
 		 */
-		inline std::size_t count() noexcept
+		[[nodiscard]] inline std::size_t count() noexcept
 		{
 			return map.size();
 		}
@@ -226,7 +226,7 @@ namespace boost::asio
 		/**
 		 * @brief Checks if the session container has no elements
 		 */
-		inline bool empty() noexcept
+		[[nodiscard]] inline bool empty() noexcept
 		{
 			return map.empty();
 		}

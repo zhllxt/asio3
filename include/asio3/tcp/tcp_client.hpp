@@ -108,7 +108,7 @@ namespace boost::asio
 		/**
 		 * @brief Check whether the client is aborted or not.
 		 */
-		inline bool is_aborted() noexcept
+		[[nodiscard]] inline bool is_aborted() noexcept
 		{
 			return aborted.test();
 		}
@@ -124,7 +124,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the local address.
 		 */
-		inline std::string get_local_address() noexcept
+		[[nodiscard]] inline std::string get_local_address() noexcept
 		{
 			return asio::get_local_address(socket);
 		}
@@ -132,7 +132,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the local port number.
 		 */
-		inline ip::port_type get_local_port() noexcept
+		[[nodiscard]] inline ip::port_type get_local_port() noexcept
 		{
 			return asio::get_local_port(socket);
 		}
@@ -140,7 +140,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the remote address.
 		 */
-		inline std::string get_remote_address() noexcept
+		[[nodiscard]] inline std::string get_remote_address() noexcept
 		{
 			return asio::get_remote_address(socket);
 		}
@@ -148,7 +148,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the remote port number.
 		 */
-		inline ip::port_type get_remote_port() noexcept
+		[[nodiscard]] inline ip::port_type get_remote_port() noexcept
 		{
 			return asio::get_remote_port(socket);
 		}

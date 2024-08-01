@@ -105,7 +105,7 @@ namespace boost::asio::detail::iniutil
 		 * @brief Returns `true` if two strings are equal, using a case-insensitive comparison.
 		 */
 		template<typename = void>
-		inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept
+		[[nodiscard]] inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept
 		{
 			auto n = lhs.size();
 			if (rhs.size() != n)
@@ -138,7 +138,7 @@ namespace boost::asio::detail::iniutil
 			class Traits = std::char_traits<CharT>,
 			class Allocator = std::allocator<CharT>
 		>
-		inline static bool stov(std::basic_string<CharT, Traits, Allocator>& val)
+		[[nodiscard]] inline static bool stov(std::basic_string<CharT, Traits, Allocator>& val)
 		{
 			if (iequals(val, "true"))
 				return true;
@@ -152,7 +152,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<char>
 	{
 		template<class ...Args>
-		inline static char stov(Args&&... args)
+		[[nodiscard]] inline static char stov(Args&&... args)
 		{ return static_cast<char>(std::stoi(std::forward<Args>(args)...)); }
 	};
 
@@ -160,7 +160,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<signed char>
 	{
 		template<class ...Args>
-		inline static signed char stov(Args&&... args)
+		[[nodiscard]] inline static signed char stov(Args&&... args)
 		{ return static_cast<signed char>(std::stoi(std::forward<Args>(args)...)); }
 	};
 
@@ -168,7 +168,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<unsigned char>
 	{
 		template<class ...Args>
-		inline static unsigned char stov(Args&&... args)
+		[[nodiscard]] inline static unsigned char stov(Args&&... args)
 		{ return static_cast<unsigned char>(std::stoul(std::forward<Args>(args)...)); }
 	};
 
@@ -176,7 +176,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<short>
 	{
 		template<class ...Args>
-		inline static short stov(Args&&... args)
+		[[nodiscard]] inline static short stov(Args&&... args)
 		{ return static_cast<short>(std::stoi(std::forward<Args>(args)...)); }
 	};
 
@@ -184,7 +184,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<unsigned short>
 	{
 		template<class ...Args>
-		inline static unsigned short stov(Args&&... args)
+		[[nodiscard]] inline static unsigned short stov(Args&&... args)
 		{ return static_cast<unsigned short>(std::stoul(std::forward<Args>(args)...)); }
 	};
 
@@ -192,7 +192,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<int>
 	{
 		template<class ...Args>
-		inline static int stov(Args&&... args)
+		[[nodiscard]] inline static int stov(Args&&... args)
 		{ return std::stoi(std::forward<Args>(args)...); }
 	};
 
@@ -200,7 +200,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<unsigned int>
 	{
 		template<class ...Args>
-		inline static unsigned int stov(Args&&... args)
+		[[nodiscard]] inline static unsigned int stov(Args&&... args)
 		{ return static_cast<unsigned int>(std::stoul(std::forward<Args>(args)...)); }
 	};
 
@@ -208,7 +208,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<long>
 	{
 		template<class ...Args>
-		inline static long stov(Args&&... args)
+		[[nodiscard]] inline static long stov(Args&&... args)
 		{ return std::stol(std::forward<Args>(args)...); }
 	};
 
@@ -216,7 +216,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<unsigned long>
 	{
 		template<class ...Args>
-		inline static unsigned long stov(Args&&... args)
+		[[nodiscard]] inline static unsigned long stov(Args&&... args)
 		{ return std::stoul(std::forward<Args>(args)...); }
 	};
 
@@ -224,7 +224,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<long long>
 	{
 		template<class ...Args>
-		inline static long long stov(Args&&... args)
+		[[nodiscard]] inline static long long stov(Args&&... args)
 		{ return std::stoll(std::forward<Args>(args)...); }
 	};
 
@@ -232,7 +232,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<unsigned long long>
 	{
 		template<class ...Args>
-		inline static unsigned long long stov(Args&&... args)
+		[[nodiscard]] inline static unsigned long long stov(Args&&... args)
 		{ return std::stoull(std::forward<Args>(args)...); }
 	};
 
@@ -240,7 +240,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<float>
 	{
 		template<class ...Args>
-		inline static float stov(Args&&... args)
+		[[nodiscard]] inline static float stov(Args&&... args)
 		{ return std::stof(std::forward<Args>(args)...); }
 	};
 
@@ -248,7 +248,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<double>
 	{
 		template<class ...Args>
-		inline static double stov(Args&&... args)
+		[[nodiscard]] inline static double stov(Args&&... args)
 		{ return std::stod(std::forward<Args>(args)...); }
 	};
 
@@ -256,7 +256,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<long double>
 	{
 		template<class ...Args>
-		inline static long double stov(Args&&... args)
+		[[nodiscard]] inline static long double stov(Args&&... args)
 		{ return std::stold(std::forward<Args>(args)...); }
 	};
 
@@ -264,7 +264,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<std::basic_string<CharT, Traits, Allocator>>
 	{
 		template<class ...Args>
-		inline static std::basic_string<CharT, Traits, Allocator> stov(Args&&... args)
+		[[nodiscard]] inline static std::basic_string<CharT, Traits, Allocator> stov(Args&&... args)
 		{ return std::basic_string<CharT, Traits, Allocator>(std::forward<Args>(args)...); }
 	};
 
@@ -272,7 +272,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<std::basic_string_view<CharT, Traits>>
 	{
 		template<class ...Args>
-		inline static std::basic_string_view<CharT, Traits> stov(Args&&... args)
+		[[nodiscard]] inline static std::basic_string_view<CharT, Traits> stov(Args&&... args)
 		{ return std::basic_string_view<CharT, Traits>(std::forward<Args>(args)...); }
 	};
 
@@ -286,7 +286,7 @@ namespace boost::asio::detail::iniutil
 		// 2.10:36:45         - 2 days 10 hours 36 minutes 45 seconds
 		// 2.00:00:00.0000036 - 
 		template<class S>
-		inline static std::chrono::duration<Rep, Period> stov(S&& s)
+		[[nodiscard]] inline static std::chrono::duration<Rep, Period> stov(S&& s)
 		{
 			std::size_t n1 = s.find(':');
 
@@ -334,7 +334,7 @@ namespace boost::asio::detail::iniutil
 	struct convert<std::chrono::time_point<Clock, Duration>>
 	{
 		template<class S>
-		inline static std::chrono::time_point<Clock, Duration> stov(S&& s)
+		[[nodiscard]] inline static std::chrono::time_point<Clock, Duration> stov(S&& s)
 		{
 			std::stringstream ss;
 			ss << std::forward<S>(s);
@@ -638,7 +638,7 @@ namespace boost::asio
 		 */
 		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>,
 			class Allocator = std::allocator<char_type>>
-		inline typename detail::iniutil::return_type<R>::type
+		[[nodiscard]] inline typename detail::iniutil::return_type<R>::type
 			get(const Sec& sec, const Key& key, R default_val = R())
 		{
 			using return_t = typename detail::iniutil::return_type<R>::type;
@@ -952,7 +952,7 @@ namespace boost::asio
 
 	protected:
 		template<class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
-		bool _get_impl(
+		[[nodiscard]] bool _get_impl(
 			std::basic_string_view<char_type, Traits> sec,
 			std::basic_string_view<char_type, Traits> key,
 			std::basic_string<char_type, Traits, Allocator>& val)
@@ -1020,7 +1020,7 @@ namespace boost::asio
 		}
 
 		template<class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
-		detail::iniutil::line_type _getline(
+		[[nodiscard]] detail::iniutil::line_type _getline(
 			std::basic_string<char_type, Traits, Allocator> & line,
 			std::basic_string<char_type, Traits, Allocator> & sec,
 			std::basic_string<char_type, Traits, Allocator> & key,

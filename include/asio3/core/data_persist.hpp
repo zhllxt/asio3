@@ -20,7 +20,7 @@ namespace boost::asio::detail
 #endif
 {
 	template<class T>
-	inline auto data_persist(T&& data)
+	[[nodiscard]] inline auto data_persist(T&& data)
 	{
 		using data_type = std::remove_cvref_t<T>;
 
@@ -63,7 +63,7 @@ namespace boost::asio::detail
 	}
 
 	template<class CharT, class SizeT>
-	inline auto data_persist(CharT * s, SizeT count)
+	[[nodiscard]] inline auto data_persist(CharT * s, SizeT count)
 	{
 		using value_type = typename std::remove_cvref_t<CharT>;
 			
@@ -76,75 +76,75 @@ namespace boost::asio::detail
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::const_buffer&& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::const_buffer&& data) noexcept
 	{
 		// "data" is rvalue reference, should use std::move()
 		return std::move(data);
 	}
 
 	template<typename = void>
-	inline auto data_persist(const asio::const_buffer& data) noexcept
+	[[nodiscard]] inline auto data_persist(const asio::const_buffer& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::const_buffer& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::const_buffer& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::mutable_buffer&& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::mutable_buffer&& data) noexcept
 	{
 		return data_persist(asio::const_buffer(std::move(data)));
 	}
 
 	template<typename = void>
-	inline auto data_persist(const asio::mutable_buffer& data) noexcept
+	[[nodiscard]] inline auto data_persist(const asio::mutable_buffer& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::mutable_buffer& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::mutable_buffer& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 #if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
 	template<typename = void>
-	inline auto data_persist(asio::const_buffers_1&& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::const_buffers_1&& data) noexcept
 	{
 		return data_persist(asio::const_buffer(std::move(data)));
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::const_buffers_1& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::const_buffers_1& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 	template<typename = void>
-	inline auto data_persist(const asio::const_buffers_1& data) noexcept
+	[[nodiscard]] inline auto data_persist(const asio::const_buffers_1& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::mutable_buffers_1&& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::mutable_buffers_1&& data) noexcept
 	{
 		return data_persist(asio::const_buffer(std::move(data)));
 	}
 
 	template<typename = void>
-	inline auto data_persist(asio::mutable_buffers_1& data) noexcept
+	[[nodiscard]] inline auto data_persist(asio::mutable_buffers_1& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}
 
 	template<typename = void>
-	inline auto data_persist(const asio::mutable_buffers_1& data) noexcept
+	[[nodiscard]] inline auto data_persist(const asio::mutable_buffers_1& data) noexcept
 	{
 		return data_persist(asio::const_buffer(data));
 	}

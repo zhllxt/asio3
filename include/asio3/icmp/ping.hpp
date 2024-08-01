@@ -30,7 +30,7 @@ namespace boost::asio
 {
 	namespace detail
 	{
-		inline unsigned short icmp_decode(const unsigned char* buffer, int a, int b)
+		[[nodiscard]] inline unsigned short icmp_decode(const unsigned char* buffer, int a, int b)
 		{
 			return (unsigned short)((buffer[a] << 8) + buffer[b]);
 		}
@@ -55,36 +55,36 @@ namespace boost::asio
 
 		detail::icmp_header& base() noexcept { return static_cast<detail::icmp_header&>(*this); }
 
-		inline unsigned char  version()         const { return (buffer[0] >> 4) & 0xF; }
-		inline unsigned short identification()  const { return detail::icmp_decode(buffer, 4, 5); }
-		inline unsigned char  next_header()     const { return buffer[6]; }
-		inline unsigned char  hop_limit()       const { return buffer[7]; }
-		inline unsigned short header_length()   const { return (unsigned short)((buffer[0] & 0xF) * 4); }
-		inline unsigned char  type_of_service() const { return buffer[1]; }
-		inline unsigned short total_length()    const { return detail::icmp_decode(buffer, 2, 3); }
-		inline bool           dont_fragment()   const { return (buffer[6] & 0x40) != 0; }
-		inline bool           more_fragments()  const { return (buffer[6] & 0x20) != 0; }
-		inline unsigned short fragment_offset() const { return detail::icmp_decode(buffer, 6, 7) & 0x1FFF; }
-		inline unsigned int   time_to_live()    const { return buffer[8]; }
-		inline unsigned char  protocol()        const { return buffer[9]; }
-		inline unsigned short header_checksum() const { return detail::icmp_decode(buffer, 10, 11); }
+		[[nodiscard]] inline unsigned char  version()         const { return (buffer[0] >> 4) & 0xF; }
+		[[nodiscard]] inline unsigned short identification()  const { return detail::icmp_decode(buffer, 4, 5); }
+		[[nodiscard]] inline unsigned char  next_header()     const { return buffer[6]; }
+		[[nodiscard]] inline unsigned char  hop_limit()       const { return buffer[7]; }
+		[[nodiscard]] inline unsigned short header_length()   const { return (unsigned short)((buffer[0] & 0xF) * 4); }
+		[[nodiscard]] inline unsigned char  type_of_service() const { return buffer[1]; }
+		[[nodiscard]] inline unsigned short total_length()    const { return detail::icmp_decode(buffer, 2, 3); }
+		[[nodiscard]] inline bool           dont_fragment()   const { return (buffer[6] & 0x40) != 0; }
+		[[nodiscard]] inline bool           more_fragments()  const { return (buffer[6] & 0x20) != 0; }
+		[[nodiscard]] inline unsigned short fragment_offset() const { return detail::icmp_decode(buffer, 6, 7) & 0x1FFF; }
+		[[nodiscard]] inline unsigned int   time_to_live()    const { return buffer[8]; }
+		[[nodiscard]] inline unsigned char  protocol()        const { return buffer[9]; }
+		[[nodiscard]] inline unsigned short header_checksum() const { return detail::icmp_decode(buffer, 10, 11); }
 
-		inline bool is_v4() const noexcept { return version() == 4; }
-		inline bool is_v6() const noexcept { return version() == 6; }
+		[[nodiscard]] inline bool is_v4() const noexcept { return version() == 4; }
+		[[nodiscard]] inline bool is_v6() const noexcept { return version() == 6; }
 
 		inline detail::ipv4_header& to_v4() const noexcept { return *((detail::ipv4_header*)(buffer)); }
 		inline detail::ipv6_header& to_v6() const noexcept { return *((detail::ipv6_header*)(buffer)); }
 
-		inline asio::ip::address source_address() const
+		[[nodiscard]] inline asio::ip::address source_address() const
 		{
 			return is_v4() ?
 				asio::ip::address(to_v4().source_address()) :
 				asio::ip::address(to_v6().source_address());
 		}
 
-		inline bool is_timeout() const noexcept { return (this->lag.count() == -1); }
+		[[nodiscard]] inline bool is_timeout() const noexcept { return (this->lag.count() == -1); }
 
-		inline auto milliseconds() const noexcept
+		[[nodiscard]] inline auto milliseconds() const noexcept
 		{
 			return this->lag.count() == -1 ? -1 :
 				std::chrono::duration_cast<std::chrono::milliseconds>(this->lag).count();

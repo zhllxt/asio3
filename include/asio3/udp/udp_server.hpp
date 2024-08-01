@@ -103,7 +103,7 @@ namespace boost::asio
 		/**
 		 * @brief Check whether the socket is stopped or not.
 		 */
-		inline bool is_aborted() noexcept
+		[[nodiscard]] inline bool is_aborted() noexcept
 		{
 			return !socket.is_open();
 		}
@@ -119,7 +119,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the listen address.
 		 */
-		inline std::string get_listen_address() noexcept
+		[[nodiscard]] inline std::string get_listen_address() noexcept
 		{
 			return asio::get_local_address(socket);
 		}
@@ -127,7 +127,7 @@ namespace boost::asio
 		/**
 		 * @brief Get the listen port number.
 		 */
-		inline ip::port_type get_listen_port() noexcept
+		[[nodiscard]] inline ip::port_type get_listen_port() noexcept
 		{
 			return asio::get_local_port(socket);
 		}
