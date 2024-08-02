@@ -95,7 +95,7 @@ net::awaitable<void> connect(net::http_client& client)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	net::http_client client(ctx.get_executor());
 

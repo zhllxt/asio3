@@ -31,7 +31,7 @@ net::awaitable<void> do_ping(std::string host)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	net::co_spawn(ctx.get_executor(), do_ping("www.baidu.com"), net::detached);
 

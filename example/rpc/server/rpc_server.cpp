@@ -139,7 +139,7 @@ net::awaitable<void> start_server(
 
 int main()
 {
-	net::io_context listen_ctx;
+	net::io_context listen_ctx{ 1 };
 	std::vector<net::io_context_thread> session_ctxs{ std::thread::hardware_concurrency() * 2 };
 
 	net::rpc_server server(listen_ctx.get_executor());

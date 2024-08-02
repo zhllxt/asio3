@@ -280,7 +280,7 @@ net::awaitable<void> do_broadcast(net::udp_socket& sock)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	net::udp_socket sock(ctx.get_executor());
 

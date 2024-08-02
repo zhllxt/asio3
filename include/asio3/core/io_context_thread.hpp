@@ -57,7 +57,7 @@ namespace boost::asio
 	public:
 		::std::thread        thread{};
 
-		asio::io_context     context;
+		asio::io_context     context{ 1 };
 
 		asio::executor_guard guard{ context.get_executor() };
 	};

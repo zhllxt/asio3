@@ -52,7 +52,7 @@ net::awaitable<void> connect(net::udp_client& client)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	net::udp_client client(ctx.get_executor());
 

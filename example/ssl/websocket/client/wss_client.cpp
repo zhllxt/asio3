@@ -96,7 +96,7 @@ net::awaitable<void> connect(net::wss_client& client)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	net::ssl::context sslctx(net::ssl::context::sslv23);
 	net::load_cert_from_string(sslctx, net::ssl::verify_peer, ca_crt, client_crt, client_key, "123456");

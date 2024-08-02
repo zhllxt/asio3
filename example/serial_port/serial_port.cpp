@@ -90,7 +90,7 @@ net::awaitable<void> do_init(co_serial_port& sp, std::string device)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	co_serial_port sp{ ctx.get_executor() };
 

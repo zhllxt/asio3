@@ -91,7 +91,7 @@ net::awaitable<void> do_upload(net::ssl::context& sslctx)
 
 int main()
 {
-	net::io_context ctx;
+	net::io_context ctx{ 1 };
 
 	// The SSL context is required, and holds certificates
 	net::ssl::context sslctx(net::ssl::context::tlsv12_client);
