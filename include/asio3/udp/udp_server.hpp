@@ -65,8 +65,7 @@ namespace boost::asio
 					{
 						auto& server = server_ref.get();
 
-						co_await asio::dispatch(
-							asio::detail::get_lowest_executor(server.socket), use_nothrow_deferred);
+						co_await asio::dispatch(asio::use_deferred_executor(server.socket));
 
 						state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -75,7 +74,8 @@ namespace boost::asio
 						server.socket.close(ec);
 						asio::reset_lock(server.socket);
 
-						co_await server.session_map.async_disconnect_all(use_nothrow_deferred);
+						co_await server.session_map.async_disconnect_all(
+							asio::use_deferred_executor(server.socket));
 
 						co_return ec;
 					}, socket),

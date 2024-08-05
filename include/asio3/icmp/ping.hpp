@@ -95,7 +95,7 @@ namespace boost::asio
 	{
 		const auto& ex = co_await asio::this_coro::executor;
 
-		co_await asio::dispatch(ex, asio::use_nothrow_awaitable);
+		co_await asio::dispatch(asio::use_awaitable_executor(ex));
 
 		asio::error_code ec{};
 		icmp_response resp{};
@@ -192,7 +192,8 @@ namespace boost::asio
 		// Encode the request packet.
 		os << echo_request << opt.payload;
 
-		auto [e4, n4] = co_await sock.async_send_to(request_buffer.data(), dest, asio::use_nothrow_awaitable);
+		auto [e4, n4] = co_await sock.async_send_to(
+			request_buffer.data(), dest, asio::use_awaitable_executor(sock));
 		if (e4)
 		{
 			sock.close(ec);
@@ -214,7 +215,8 @@ namespace boost::asio
 		}
 
 		// Wait for a reply. We prepare the buffer to receive up to 64KB.
-		auto [e6, n6] = co_await sock.async_receive(reply_buffer.prepare(length), asio::use_nothrow_awaitable);
+		auto [e6, n6] = co_await sock.async_receive(
+			reply_buffer.prepare(length), asio::use_awaitable_executor(sock));
 		if (e6)
 		{
 			sock.close(ec);

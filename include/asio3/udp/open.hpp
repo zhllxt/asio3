@@ -40,7 +40,7 @@ namespace boost::asio::detail
 			using endpoint_type = typename stream_type::protocol_type::endpoint;
 			using resolver_type = typename stream_type::protocol_type::resolver;
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -48,7 +48,7 @@ namespace boost::asio::detail
 
 			auto [e1, eps] = co_await asio::async_resolve(
 				resolver, std::move(addr), std::move(port),
-				asio::ip::resolver_base::passive, asio::use_nothrow_deferred);
+				asio::ip::resolver_base::passive, asio::use_deferred_executor(resolver));
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 

@@ -31,15 +31,16 @@ namespace boost::asio::detail
 
 			auto msg = std::forward_like<decltype(data)>(data);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
-			auto [e1, n1] = co_await asio::async_write(sock, asio::to_buffer(msg), asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await asio::async_write(
+				sock, asio::to_buffer(msg), asio::use_deferred_executor(sock));
 
 			co_return{ e1, n1 };
 		}

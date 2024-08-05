@@ -34,15 +34,16 @@ namespace boost::asio::detail
 
 			auto msg = std::forward_like<decltype(data)>(data);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(ws_stream), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ws_stream));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::async_lock(ws_stream, asio::use_nothrow_deferred);
+			co_await asio::async_lock(ws_stream, asio::use_deferred_executor(ws_stream));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ ws_stream };
 
-			auto [e1, n1] = co_await ws_stream.async_write(asio::to_buffer(msg), asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await ws_stream.async_write(
+				asio::to_buffer(msg), asio::use_deferred_executor(ws_stream));
 
 			co_return{ e1, n1 };
 		}
@@ -70,7 +71,7 @@ namespace boost::beast::http::detail
 
 			auto chunk_callback = std::forward_like<decltype(body_chunk_callback)>(body_chunk_callback);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -84,11 +85,11 @@ namespace boost::beast::http::detail
 
 			http::serializer<isRequest, http::buffer_body> sr{ msg };
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
-			auto [e2, n2] = co_await http::async_write_header(sock, sr, asio::use_nothrow_deferred);
+			auto [e2, n2] = co_await http::async_write_header(sock, sr, asio::use_deferred_executor(sock));
 			if (e2)
 			{
 				co_return{ e2, sent_bytes };
@@ -103,7 +104,7 @@ namespace boost::beast::http::detail
 					co_return{ asio::error::operation_aborted, sent_bytes };
 
 				auto [e3, n3] = co_await file.async_read_some(
-					asio::buffer(buffer), asio::use_nothrow_deferred);
+					asio::buffer(buffer), asio::use_deferred_executor(file));
 				if (e3 == asio::error::eof)
 				{
 					e3 = {};
@@ -138,7 +139,7 @@ namespace boost::beast::http::detail
 				}
 
 				// Write everything in the body buffer
-				auto [e4, n4] = co_await http::async_write(sock, sr, asio::use_nothrow_deferred);
+				auto [e4, n4] = co_await http::async_write(sock, sr, asio::use_deferred_executor(sock));
 
 				sent_bytes += n4;
 

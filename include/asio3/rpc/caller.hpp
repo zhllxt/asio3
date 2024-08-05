@@ -53,7 +53,7 @@ namespace boost::asio::rpc
 			auto id = opt.requires_response ? self.id_generator.next() : self.id_generator.zero();
 			auto req = rpc::request<Args...>{ id, std::move(name), std::forward<Args>(args)... };
 
-			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_awaitable);
+			co_await asio::dispatch(asio::use_awaitable_executor(self));
 
 			if (opt.requires_response)
 			{
@@ -95,12 +95,12 @@ namespace boost::asio::rpc
 					asio::buffer(head),
 					asio::buffer(data),
 				};
-				auto [e1, n1] = co_await self.async_send(buffers, asio::use_nothrow_awaitable);
+				auto [e1, n1] = co_await self.async_send(buffers, asio::use_awaitable_executor(self));
 				if (e1)
 					co_return std::tuple{ e1 };
 
 				timer.expires_after(opt.timeout);
-				auto [e0] = co_await timer.async_wait(asio::use_nothrow_awaitable);
+				auto [e0] = co_await timer.async_wait(asio::use_awaitable_executor(timer));
 
 				if (notifyed)
 					co_return std::tuple{ ec };
@@ -116,7 +116,7 @@ namespace boost::asio::rpc
 					asio::buffer(head),
 					asio::buffer(data),
 				};
-				auto [e1, n1] = co_await self.async_send(buffers, asio::use_nothrow_awaitable);
+				auto [e1, n1] = co_await self.async_send(buffers, asio::use_awaitable_executor(self));
 				co_return std::tuple{ e1 };
 			}
 		}
@@ -131,7 +131,7 @@ namespace boost::asio::rpc
 			auto id = opt.requires_response ? self.id_generator.next() : self.id_generator.zero();
 			auto req = rpc::request<Args...>{ id, std::move(name), std::forward<Args>(args)... };
 
-			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_awaitable);
+			co_await asio::dispatch(asio::use_awaitable_executor(self));
 
 			if (opt.requires_response)
 			{
@@ -175,12 +175,12 @@ namespace boost::asio::rpc
 					asio::buffer(head),
 					asio::buffer(data),
 				};
-				auto [e1, n1] = co_await self.async_send(buffers, asio::use_nothrow_awaitable);
+				auto [e1, n1] = co_await self.async_send(buffers, asio::use_awaitable_executor(self));
 				if (e1)
 					co_return std::tuple{ e1, std::move(result) };
 
 				timer.expires_after(opt.timeout);
-				auto [e0] = co_await timer.async_wait(asio::use_nothrow_awaitable);
+				auto [e0] = co_await timer.async_wait(asio::use_awaitable_executor(timer));
 
 				if (notifyed)
 					co_return std::tuple{ ec, std::move(result) };
@@ -196,7 +196,7 @@ namespace boost::asio::rpc
 					asio::buffer(head),
 					asio::buffer(data),
 				};
-				auto [e1, n1] = co_await self.async_send(buffers, asio::use_nothrow_awaitable);
+				auto [e1, n1] = co_await self.async_send(buffers, asio::use_awaitable_executor(self));
 				co_return std::tuple{ e1, std::move(result) };
 			}
 		}

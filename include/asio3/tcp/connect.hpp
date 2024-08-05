@@ -43,11 +43,13 @@ namespace boost::asio
 		using endpoint_type = typename sock_type::protocol_type::endpoint;
 		using resolver_type = typename sock_type::protocol_type::resolver;
 
+		co_await asio::dispatch(asio::use_awaitable_executor(sock));
+
 		resolver_type resolver(asio::detail::get_lowest_executor(sock));
 
 		// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 		auto [e1, eps] = co_await resolver.async_resolve(
-			addr, port, asio::ip::resolver_base::flags(), asio::use_nothrow_awaitable);
+			addr, port, asio::ip::resolver_base::flags(), asio::use_awaitable_executor(resolver));
 		if (e1)
 			co_return e1;
 
@@ -55,7 +57,7 @@ namespace boost::asio
 		{
 			for (const auto& ep : eps)
 			{
-				auto [e2] = co_await sock.async_connect(ep, use_nothrow_awaitable);
+				auto [e2] = co_await sock.async_connect(ep, asio::use_awaitable_executor(sock));
 				if (!e2)
 					co_return e2;
 			}
@@ -72,7 +74,7 @@ namespace boost::asio
 				if (ec)
 					continue;
 
-				auto [e2] = co_await tmp.async_connect(ep, use_nothrow_awaitable);
+				auto [e2] = co_await tmp.async_connect(ep, asio::use_awaitable_executor(tmp));
 				if (!e2)
 				{
 					sock = std::move(tmp);
@@ -108,7 +110,7 @@ namespace boost::asio::detail
 			using endpoint_type = typename sock_type::protocol_type::endpoint;
 			using resolver_type = typename sock_type::protocol_type::resolver;
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -125,7 +127,7 @@ namespace boost::asio::detail
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 			auto [e1, eps] = co_await asio::async_resolve(
 				resolver, std::move(addr), std::move(port),
-				asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
+				asio::ip::resolver_base::flags(), asio::use_deferred_executor(resolver));
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 
@@ -136,7 +138,7 @@ namespace boost::asio::detail
 			{
 				for (const auto& ep : eps)
 				{
-					auto [e2] = co_await sock.async_connect(ep, use_nothrow_deferred);
+					auto [e2] = co_await sock.async_connect(ep, asio::use_deferred_executor(sock));
 					if (!e2)
 						co_return{ e2, ep.endpoint() };
 
@@ -159,7 +161,7 @@ namespace boost::asio::detail
 					// you can use the option callback to set the bind address and port
 					fn_set_option(tmp);
 
-					auto [e2] = co_await tmp.async_connect(ep, use_nothrow_deferred);
+					auto [e2] = co_await tmp.async_connect(ep, asio::use_deferred_executor(tmp));
 					if (!e2)
 					{
 						sock = std::move(tmp);

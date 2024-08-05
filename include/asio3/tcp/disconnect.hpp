@@ -26,14 +26,14 @@ namespace boost::asio::detail
 		{
 			auto& sock = sock_ref.get();
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			if (!sock.is_open())
 				co_return asio::error::operation_aborted;
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			// release lock immediately, otherwise, the following situation maybe occur:
 			// 1. the async wait is called(see below), and wait for timeout.
@@ -73,11 +73,11 @@ namespace boost::asio::detail
 					// when use wait_error like below:
 					// auto result = co_await
 					// (
-					// 	async_check_error(sock, use_nothrow_awaitable) ||
-					// 	async_check_idle(sock, alive_time, idle_timeout, use_nothrow_awaitable)
+					// 	async_check_error(sock, asio::use_awaitable_executor(sock)) ||
+					// 	async_check_idle(sock, alive_time, idle_timeout, asio::use_awaitable_executor(sock))
 					// );
 					// even if the async_check_idle is returned, the async_check_error won't returned.
-					co_await sock.async_wait(asio::socket_base::wait_error, use_nothrow_deferred);
+					co_await sock.async_wait(asio::socket_base::wait_error, asio::use_deferred_executor(sock));
 
 					sock.close(ec);
 					asio::reset_lock(sock);

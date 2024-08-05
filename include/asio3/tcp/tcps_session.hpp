@@ -55,12 +55,12 @@ namespace boost::asio
 					{
 						auto& self = self_ref.get();
 
-						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
+						co_await asio::dispatch(asio::use_deferred_executor(self));
 
-						co_await asio::async_shutdown(self.ssl_stream,
-							self.ssl_shutdown_timeout, use_nothrow_deferred);
+						co_await asio::async_shutdown(self.ssl_stream, self.ssl_shutdown_timeout,
+							asio::use_deferred_executor(self));
 
-						co_await self.base().async_disconnect(use_nothrow_deferred);
+						co_await self.base().async_disconnect(asio::use_deferred_executor(self));
 
 						if (self.ssl_stream.native_handle())
 							SSL_clear(self.ssl_stream.native_handle());

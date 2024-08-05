@@ -61,6 +61,8 @@ namespace boost::asio::socks5
 
 		asio::ip::tcp::endpoint dst_endpoint{};
 
+		co_await asio::dispatch(asio::use_awaitable_executor(sock));
+
 		handsk_info.client_endpoint = sock.remote_endpoint(ec);
 
 		std::string  & dst_addr = handsk_info.dest_address;
@@ -78,7 +80,7 @@ namespace boost::asio::socks5
 		strbuf.consume(strbuf.size());
 
 		auto [e1, n1] = co_await asio::async_read(
-			sock, strbuf, asio::transfer_exactly(1 + 1), use_nothrow_awaitable);
+			sock, strbuf, asio::transfer_exactly(1 + 1), asio::use_awaitable_executor(sock));
 		if (e1)
 			co_return e1;
 
@@ -100,7 +102,7 @@ namespace boost::asio::socks5
 		strbuf.consume(strbuf.size());
 
 		auto [e2, n2] = co_await asio::async_read(
-			sock, strbuf, asio::transfer_exactly(nmethods), use_nothrow_awaitable);
+			sock, strbuf, asio::transfer_exactly(nmethods), asio::use_awaitable_executor(sock));
 		if (e2)
 			co_return e2;
 
@@ -142,7 +144,7 @@ namespace boost::asio::socks5
 		strbuf.commit(bytes);
 
 		auto [e3, n3] = co_await asio::async_write(
-			sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_awaitable);
+			sock, strbuf, asio::transfer_exactly(bytes), asio::use_awaitable_executor(sock));
 		if (e3)
 			co_return e3;
 
@@ -166,7 +168,7 @@ namespace boost::asio::socks5
 			strbuf.consume(strbuf.size());
 
 			auto [e4, n4] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(1 + 1), use_nothrow_awaitable);
+				sock, strbuf, asio::transfer_exactly(1 + 1), asio::use_awaitable_executor(sock));
 			if (e4)
 				co_return e4;
 
@@ -189,7 +191,7 @@ namespace boost::asio::socks5
 			strbuf.consume(strbuf.size());
 
 			auto [e5, n5] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(ulen), use_nothrow_awaitable);
+				sock, strbuf, asio::transfer_exactly(ulen), asio::use_awaitable_executor(sock));
 			if (e5)
 				co_return e5;
 
@@ -201,7 +203,7 @@ namespace boost::asio::socks5
 			strbuf.consume(strbuf.size());
 
 			auto [e6, n6] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(1), use_nothrow_awaitable);
+				sock, strbuf, asio::transfer_exactly(1), asio::use_awaitable_executor(sock));
 			if (e6)
 				co_return e6;
 
@@ -217,7 +219,7 @@ namespace boost::asio::socks5
 			strbuf.consume(strbuf.size());
 
 			auto [e7, n7] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(plen), use_nothrow_awaitable);
+				sock, strbuf, asio::transfer_exactly(plen), asio::use_awaitable_executor(sock));
 			if (e7)
 				co_return e7;
 
@@ -243,7 +245,7 @@ namespace boost::asio::socks5
 				strbuf.commit(bytes);
 
 				auto [e8, n8] = co_await asio::async_write(
-					sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_awaitable);
+					sock, strbuf, asio::transfer_exactly(bytes), asio::use_awaitable_executor(sock));
 
 				ec = socks5::make_error_code(socks5::error::authentication_failed);
 				co_return ec;
@@ -262,7 +264,7 @@ namespace boost::asio::socks5
 				strbuf.commit(bytes);
 
 				auto [e9, n9] = co_await asio::async_write(
-					sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_awaitable);
+					sock, strbuf, asio::transfer_exactly(bytes), asio::use_awaitable_executor(sock));
 				if (e9)
 					co_return e9;
 			}
@@ -278,7 +280,7 @@ namespace boost::asio::socks5
 
 		// 1. read the first 5 bytes : VER REP RSV ATYP [LEN]
 		auto [ea, na] = co_await asio::async_read(
-			sock, strbuf, asio::transfer_exactly(5), use_nothrow_awaitable);
+			sock, strbuf, asio::transfer_exactly(5), asio::use_awaitable_executor(sock));
 		if (ea)
 			co_return ea;
 
@@ -320,7 +322,7 @@ namespace boost::asio::socks5
 		strbuf.consume(strbuf.size());
 
 		auto [eb, nb] = co_await asio::async_read(
-			sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_awaitable);
+			sock, strbuf, asio::transfer_exactly(bytes), asio::use_awaitable_executor(sock));
 		if (eb)
 			co_return eb;
 
@@ -410,7 +412,7 @@ namespace boost::asio::socks5
 			{
 				connect_socket_t bnd_socket(asio::detail::get_lowest_executor(sock));
 				auto [ed, ep] = co_await asio::async_connect(
-					bnd_socket, eps, asio::default_tcp_connect_condition{}, use_nothrow_awaitable);
+					bnd_socket, eps, asio::default_tcp_connect_condition{}, asio::use_awaitable_executor(sock));
 
 				if (!ed)
 				{
@@ -534,7 +536,7 @@ namespace boost::asio::socks5
 		strbuf.commit(bytes);
 
 		auto [ef, nf] = co_await asio::async_write(
-			sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_awaitable);
+			sock, strbuf, asio::transfer_exactly(bytes), asio::use_awaitable_executor(sock));
 		co_return ef ? ef : ec;
 	}
 }
@@ -553,12 +555,12 @@ namespace boost::asio::socks5::detail
 			auto& auth_cfg = auth_cfg_ref.get();
 			auto& handsk_info = handsk_info_ref.get();
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			auto [e1] = co_await asio::async_call_coroutine(asio::detail::get_lowest_executor(sock),
-				socks5::accept(sock, auth_cfg, handsk_info), asio::use_nothrow_deferred);
+				socks5::accept(sock, auth_cfg, handsk_info), asio::use_deferred_executor(sock));
 
 			co_return{ e1 };
 		}

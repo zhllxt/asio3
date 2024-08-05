@@ -57,7 +57,7 @@ namespace boost::beast::http::detail
 
 			auto chunk_callback = std::forward_like<decltype(body_chunk_callback)>(body_chunk_callback);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -158,7 +158,8 @@ namespace boost::beast::http::detail
 
 					// Read as much as we can. When we reach the end of the chunk, the chunk
 					// body callback will make the read return with the end_of_chunk error.
-					auto [e1, n1] = co_await http::async_read(sock, buffer, parser, asio::use_nothrow_deferred);
+					auto [e1, n1] = co_await http::async_read(
+						sock, buffer, parser, asio::use_deferred_executor(sock));
 					if (e1 == http::error::end_of_chunk)
 					{
 						e1 = {};
@@ -171,7 +172,7 @@ namespace boost::beast::http::detail
 					recvd_bytes += n1;
 
 					auto [e2, n2] = co_await asio::async_write(
-						file, asio::buffer(content), asio::use_nothrow_deferred);
+						file, asio::buffer(content), asio::use_deferred_executor(file));
 					if (e2)
 					{
 						co_return{ e2, recvd_bytes };
@@ -191,7 +192,8 @@ namespace boost::beast::http::detail
 					parser.get().body().data = buf.data();
 					parser.get().body().size = buf.size();
 
-					auto [e1, n1] = co_await http::async_read(sock, buffer, parser, asio::use_nothrow_deferred);
+					auto [e1, n1] = co_await http::async_read(
+						sock, buffer, parser, asio::use_deferred_executor(sock));
 					if (e1 == http::error::need_buffer)
 					{
 						e1 = {};
@@ -210,7 +212,7 @@ namespace boost::beast::http::detail
 					}
 
 					auto [e2, n2] = co_await asio::async_write(
-						file, asio::buffer(buf.data(), n1), asio::use_nothrow_deferred);
+						file, asio::buffer(buf.data(), n1), asio::use_deferred_executor(file));
 					if (e2)
 					{
 						co_return{ e2, recvd_bytes };

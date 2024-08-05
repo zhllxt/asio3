@@ -34,7 +34,7 @@ namespace boost::asio::detail
 			std::string h = asio::to_string(std::forward_like<decltype(host)>(host));
 			std::string p = asio::to_string(std::forward_like<decltype(port)>(port));
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -42,19 +42,19 @@ namespace boost::asio::detail
 
 			auto [e1, eps] = co_await asio::async_resolve(
 				resolver, std::move(h), std::move(p),
-				asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
+				asio::ip::resolver_base::flags(), asio::use_deferred_executor(resolver));
 			if (e1)
 				co_return{ e1, 0 };
 
 			if (!!state.cancelled())
 				co_return{ asio::error::operation_aborted, 0 };
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
 			auto [e2, n2] = co_await sock.async_send_to(
-				asio::to_buffer(msg), (*eps).endpoint(), use_nothrow_deferred);
+				asio::to_buffer(msg), (*eps).endpoint(), asio::use_deferred_executor(sock));
 			co_return{ e2, n2 };
 		}
 	};
@@ -67,16 +67,16 @@ namespace boost::asio::detail
 			auto msg = std::forward_like<decltype(data)>(data);
 			auto endp = std::forward_like<decltype(endpoint)>(endpoint);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
 			auto [e2, n2] = co_await sock.async_send_to(
-				asio::to_buffer(msg), endp, use_nothrow_deferred);
+				asio::to_buffer(msg), endp, asio::use_deferred_executor(sock));
 			co_return{ e2, n2 };
 		}
 	};
@@ -89,16 +89,16 @@ namespace boost::asio::detail
 
 			auto msg = std::forward_like<decltype(data)>(data);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 
 			auto [e1, n1] = co_await sock.async_send(
-				asio::to_buffer(msg), asio::use_nothrow_deferred);
+				asio::to_buffer(msg), asio::use_deferred_executor(sock));
 
 			co_return{ e1, n1 };
 		}

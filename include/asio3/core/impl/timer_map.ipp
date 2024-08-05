@@ -38,11 +38,11 @@ namespace boost::asio
 			auto handle = std::move(id);
 			auto callback = std::forward_like<decltype(fun)>(fun);
 
-			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(self));
 
 			if (!self.lock.try_send())
 			{
-				co_await self.lock.async_send(asio::deferred);
+				co_await self.lock.async_send(asio::use_deferred_executor(self.lock));
 			}
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
@@ -90,11 +90,11 @@ namespace boost::asio
 
 			auto handle = std::move(id);
 
-			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(self));
 
 			if (!self.lock.try_send())
 			{
-				co_await self.lock.async_send(asio::deferred);
+				co_await self.lock.async_send(asio::use_deferred_executor(self.lock));
 			}
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
@@ -126,11 +126,11 @@ namespace boost::asio
 		{
 			auto& self = self_ref.get();
 
-			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(self));
 
 			if (!self.lock.try_send())
 			{
-				co_await self.lock.async_send(asio::deferred);
+				co_await self.lock.async_send(asio::use_deferred_executor(self.lock));
 			}
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };
@@ -163,11 +163,11 @@ namespace boost::asio
 
 			auto handle = std::move(id);
 
-			co_await asio::dispatch(self.get_executor(), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(self));
 
 			if (!self.lock.try_send())
 			{
-				co_await self.lock.async_send(asio::deferred);
+				co_await self.lock.async_send(asio::use_deferred_executor(self.lock));
 			}
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ self.lock };

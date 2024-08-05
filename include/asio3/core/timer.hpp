@@ -15,6 +15,7 @@
 #include <asio3/core/asio.hpp>
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/defer.hpp>
+#include <asio3/core/with_lock.hpp>
 
 #ifdef ASIO_STANDALONE
 namespace asio
@@ -156,7 +157,7 @@ namespace boost::asio::detail
 		{
 			auto ex = ::std::forward_like<decltype(executor)>(executor);
 
-			co_await asio::dispatch(ex, use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -164,7 +165,7 @@ namespace boost::asio::detail
 
 			t.expires_after(duration);
 
-			auto [ec] = co_await t.async_wait(use_nothrow_deferred);
+			auto [ec] = co_await t.async_wait(asio::use_deferred_executor(t));
 
 			co_return ec;
 		}
@@ -270,7 +271,8 @@ namespace boost::asio
 	template<typename = void>
 	asio::awaitable<asio::error_code> async_sleep(asio::timer::duration duration)
 	{
-		auto [ec] = co_await async_sleep(co_await asio::this_coro::executor, duration, use_nothrow_awaitable);
+		auto ex = co_await asio::this_coro::executor;
+		auto [ec] = co_await async_sleep(ex, duration, asio::use_awaitable_executor(ex));
 		co_return ec;
 	}
 
@@ -309,7 +311,7 @@ namespace boost::asio
 		{
 			watchdog_timer.expires_at(deadline);
 
-			auto [ec] = co_await watchdog_timer.async_wait(use_nothrow_awaitable);
+			auto [ec] = co_await watchdog_timer.async_wait(asio::use_awaitable_executor(watchdog_timer));
 			if (ec)
 				co_return ec;
 
@@ -335,7 +337,7 @@ namespace boost::asio
 		{
 			watchdog_timer.expires_after(idle_timeout - idled_duration);
 
-			auto [ec] = co_await watchdog_timer.async_wait(use_nothrow_awaitable);
+			auto [ec] = co_await watchdog_timer.async_wait(asio::use_awaitable_executor(watchdog_timer));
 			if (ec)
 				co_return ec;
 			if (watchdog_timer.canceled())
@@ -391,7 +393,7 @@ namespace boost::asio
 			{
 				t->expires_after(interval);
 
-				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				auto [ec] = co_await t->async_wait(asio::use_awaitable_executor(*t));
 				if (ec)
 					co_return ec;
 				if (t->canceled())
@@ -425,7 +427,7 @@ namespace boost::asio
 
 			for (;;)
 			{
-				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				auto [ec] = co_await t->async_wait(asio::use_awaitable_executor(*t));
 				if (ec)
 					co_return ec;
 				if (t->canceled())
@@ -461,7 +463,7 @@ namespace boost::asio
 
 			for (decltype(repeat_times) i = 0; i < repeat_times; ++i)
 			{
-				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				auto [ec] = co_await t->async_wait(asio::use_awaitable_executor(*t));
 				if (ec)
 					co_return ec;
 				if (t->canceled())
@@ -503,7 +505,7 @@ namespace boost::asio
 
 			for (decltype(repeat_times) i = 0; i < repeat_times; ++i)
 			{
-				auto [ec] = co_await t->async_wait(use_nothrow_awaitable);
+				auto [ec] = co_await t->async_wait(asio::use_awaitable_executor(*t));
 				if (ec)
 					co_return ec;
 				if (t->canceled())

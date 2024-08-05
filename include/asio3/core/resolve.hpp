@@ -30,10 +30,10 @@ namespace boost::asio
 		std::string_view addr_sv = addr;
 		std::string_view port_sv = port;
 
-		co_await asio::dispatch(resolver.get_executor(), use_nothrow_awaitable);
+		co_await asio::dispatch(asio::use_awaitable_executor(resolver));
 
 		auto [e1, eps] = co_await resolver.async_resolve(
-			addr_sv, port_sv, resolve_flags, use_nothrow_awaitable);
+			addr_sv, port_sv, resolve_flags, asio::use_awaitable_executor(resolver));
 
 		results = std::move(eps);
 
@@ -60,7 +60,7 @@ namespace boost::asio::detail
 
 		//	using resolver_type = std::remove_cvref_t<decltype(resolver)>;
 
-		//	co_await asio::dispatch(resolver.get_executor(), use_nothrow_deferred);
+		//	co_await asio::dispatch(asio::use_deferred_executor(resolver));
 
 		//	state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -75,7 +75,7 @@ namespace boost::asio::detail
 		//	// cause crash.
 		//	// 
 		//	//auto [e1, eps] = co_await resolver.async_resolve(
-		//	//	addr_sv, port_sv, asio::ip::resolver_base::passive, use_nothrow_deferred);
+		//	//	addr_sv, port_sv, asio::ip::resolver_base::passive, asio::use_deferred_executor(resolver));
 
 		//	//resolver.async_resolve(
 		//	//	addr_sv, port_sv, resolve_flags,
@@ -88,7 +88,7 @@ namespace boost::asio::detail
 		//	asio::error_code e1{};
 		//	auto eps = resolver.resolve(addr_sv, port_sv, resolve_flags, e1);
 
-		//	//auto [e1] = co_await ch.async_receive(use_nothrow_deferred);
+		//	//auto [e1] = co_await ch.async_receive(asio::use_deferred_executor(ch));
 
 		//	co_return{ e1, std::move(eps) };
 		//}
@@ -110,7 +110,7 @@ namespace boost::asio::detail
 					std::forward_like<decltype(service)>(service),
 					eps,
 					resolve_flags
-				), asio::use_nothrow_deferred);
+				), asio::use_deferred_executor(resolver));
 
 			co_return{ e1, std::move(eps) };
 		}

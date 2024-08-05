@@ -167,6 +167,12 @@ namespace boost::asio::detail
 		s.next_layer();
 	};
 
+	template<typename AsyncStream>
+	concept has_member_get_executor = requires(AsyncStream & s)
+	{
+		s.get_executor();
+	};
+
 	struct async_lock_channel_op
 	{
 		template<typename AsyncStream>
@@ -241,9 +247,13 @@ namespace boost::asio::detail
 		{
 			return s.get_executor().base();
 		}
-		else
+		else if constexpr (has_member_get_executor<std::remove_cvref_t<AsyncStream>>)
 		{
 			return s.get_executor();
+		}
+		else
+		{
+			return s;
 		}
 	}
 }
@@ -256,6 +266,8 @@ namespace boost::asio
 {
 	/**
 	 * @brief Start an asynchronous operation to lock the channcel of the stream.
+	 *    This function is not thread safety, you must ensure that this function 
+	 *    is called in the executor thread of the AsyncStream's by youself.
 	 * @param s - The stream to which be locked.
 	 * @param token - The completion handler to invoke when the operation completes. 
 	 *	  The equivalent function signature of the handler must be:
@@ -305,6 +317,21 @@ namespace boost::asio
 
 	template<typename AsyncStream>
 	defer_unlock(AsyncStream&) -> defer_unlock<AsyncStream>;
+
+	// asio How to change the executor inside an awaitable
+	// https://stackoverflow.com/questions/74071288/switch-context-in-coroutine-with-boostasiopost
+	// https://stackoverflow.com/questions/71987021/asio-how-to-change-the-executor-inside-an-awaitable/71991876#71991876
+	template<typename AsyncStream>
+	inline auto use_deferred_executor(AsyncStream& s)
+	{
+		return asio::bind_executor(asio::detail::get_lowest_executor(s), asio::use_nothrow_deferred);
+	}
+
+	template<typename AsyncStream>
+	inline auto use_awaitable_executor(AsyncStream& s)
+	{
+		return asio::bind_executor(asio::detail::get_lowest_executor(s), asio::use_nothrow_awaitable);
+	}
 }
 
 #include <asio3/core/detail/pop_options.hpp>

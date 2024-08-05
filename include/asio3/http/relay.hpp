@@ -40,7 +40,7 @@ namespace boost::beast::http::detail
 
 			auto header_callback = std::forward_like<decltype(transform)>(transform);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(input), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(input));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -60,7 +60,8 @@ namespace boost::beast::http::detail
 			http::serializer<isRequest, http::buffer_body, http::fields> sr{p.get()};
 
 			// Read just the header from the input
-			auto [e1, n1] = co_await http::async_read_header(input, buffer, p, asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await http::async_read_header(
+				input, buffer, p, asio::use_deferred_executor(input));
 			readed_bytes += n1;
 			if (e1)
 				co_return{ e1, pin, readed_bytes, written_bytes };
@@ -71,7 +72,8 @@ namespace boost::beast::http::detail
 				co_return{ e1, pnull, readed_bytes, written_bytes };
 
 			// Send the transformed message to the output
-			auto [e2, n2] = co_await http::async_write_header(output, sr, asio::use_nothrow_deferred);
+			auto [e2, n2] = co_await http::async_write_header(
+				output, sr, asio::use_deferred_executor(output));
 			written_bytes += n2;
 			if(e2)
 				co_return{ e2, pout, readed_bytes, written_bytes };
@@ -89,7 +91,8 @@ namespace boost::beast::http::detail
 					p.get().body().size = buf.size();
 
 					// Read as much as we can
-					auto [e3, n3] = co_await http::async_read(input, buffer, p, asio::use_nothrow_deferred);
+					auto [e3, n3] = co_await http::async_read(
+						input, buffer, p, asio::use_deferred_executor(input));
 
 					readed_bytes += n3;
 
@@ -114,7 +117,8 @@ namespace boost::beast::http::detail
 				}
 
 				// Write everything in the buffer (which might be empty)
-				auto [e4, n4] = co_await http::async_write(output, sr, asio::use_nothrow_deferred);
+				auto [e4, n4] = co_await http::async_write(
+					output, sr, asio::use_deferred_executor(output));
 
 				written_bytes += n4;
 
@@ -213,7 +217,7 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 
 	auto header_callback = std::forward_like<decltype(transform)>(transform);
 
-	co_await asio::dispatch(asio::detail::get_lowest_executor(input), asio::use_nothrow_awaitable);
+	co_await asio::dispatch(asio::use_awaitable_executor(input));
 
 	std::size_t readed_bytes = 0, written_bytes = 0;
 	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));
@@ -231,7 +235,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 	http::serializer<isRequest, http::buffer_body, http::fields> sr{p.get()};
 
 	// Read just the header from the input
-	auto [e1, n1] = co_await http::async_read_header(input, buffer, p);
+	auto [e1, n1] = co_await http::async_read_header(
+		input, buffer, p, asio::use_awaitable_executor(input));
 	readed_bytes += n1;
 	if (e1)
 		co_return std::tuple{ e1, pin, readed_bytes, written_bytes };
@@ -242,7 +247,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 		co_return std::tuple{ e1, pnull, readed_bytes, written_bytes };
 
 	// Send the transformed message to the output
-	auto [e2, n2] = co_await http::async_write_header(output, sr);
+	auto [e2, n2] = co_await http::async_write_header(
+		output, sr, asio::use_awaitable_executor(output));
 	written_bytes += n2;
 	if(e2)
 		co_return std::tuple{ e2, pout, readed_bytes, written_bytes };
@@ -257,7 +263,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 			p.get().body().size = buf.size();
 
 			// Read as much as we can
-			auto [e3, n3] = co_await http::async_read(input, buffer, p);
+			auto [e3, n3] = co_await http::async_read(
+				input, buffer, p, asio::use_awaitable_executor(input));
 
 			readed_bytes += n3;
 
@@ -282,7 +289,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 		}
 
 		// Write everything in the buffer (which might be empty)
-		auto [e4, n4] = co_await http::async_write(output, sr);
+		auto [e4, n4] = co_await http::async_write(
+			output, sr, asio::use_awaitable_executor(output));
 
 		written_bytes += n4;
 
@@ -312,7 +320,7 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 {
 	http::parser<isRequest, Body>& p = parser;
 
-	co_await asio::dispatch(asio::detail::get_lowest_executor(input), asio::use_nothrow_awaitable);
+	co_await asio::dispatch(asio::use_awaitable_executor(input));
 
 	std::size_t readed_bytes = 0, written_bytes = 0;
 	std::uintptr_t pin = reinterpret_cast<std::uintptr_t>(std::addressof(input));
@@ -330,7 +338,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 	http::serializer<isRequest, http::buffer_body, http::fields> sr{p.get()};
 
 	// Send the transformed message to the output
-	auto [e2, n2] = co_await http::async_write_header(output, sr);
+	auto [e2, n2] = co_await http::async_write_header(
+		output, sr, asio::use_awaitable_executor(output));
 	written_bytes += n2;
 	if(e2)
 		co_return std::tuple{ e2, pout, readed_bytes, written_bytes };
@@ -345,7 +354,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 			p.get().body().size = buf.size();
 
 			// Read as much as we can
-			auto [e3, n3] = co_await http::async_read(input, buffer, p);
+			auto [e3, n3] = co_await http::async_read(
+				input, buffer, p, asio::use_awaitable_executor(input));
 
 			readed_bytes += n3;
 
@@ -370,7 +380,8 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 		}
 
 		// Write everything in the buffer (which might be empty)
-		auto [e4, n4] = co_await http::async_write(output, sr);
+		auto [e4, n4] = co_await http::async_write(
+			output, sr, asio::use_awaitable_executor(output));
 
 		written_bytes += n4;
 

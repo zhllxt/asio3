@@ -28,7 +28,7 @@ namespace boost::asio::detail
 		{
 			auto& ssl_stream = stream_ref.get();
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(ssl_stream), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ssl_stream));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -41,7 +41,7 @@ namespace boost::asio::detail
 					asio::reset_lock(ssl_stream.next_layer());
 				});
 
-			auto [e1] = co_await ssl_stream.async_handshake(handsk_type, asio::use_nothrow_deferred);
+			auto [e1] = co_await ssl_stream.async_handshake(handsk_type, asio::use_deferred_executor(ssl_stream));
 
 			co_return e1;
 		}
@@ -54,11 +54,11 @@ namespace boost::asio::detail
 		{
 			auto& ssl_stream = stream_ref.get();
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(ssl_stream), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ssl_stream));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
-			co_await asio::async_lock(ssl_stream, asio::use_nothrow_deferred);
+			co_await asio::async_lock(ssl_stream, asio::use_deferred_executor(ssl_stream));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ ssl_stream };
 
@@ -71,7 +71,7 @@ namespace boost::asio::detail
 					asio::reset_lock(ssl_stream.next_layer());
 				});
 
-			auto [e1] = co_await ssl_stream.async_shutdown(asio::use_nothrow_deferred);
+			auto [e1] = co_await ssl_stream.async_shutdown(asio::use_deferred_executor(ssl_stream));
 
 			co_return e1;
 		}

@@ -34,7 +34,7 @@ namespace boost::asio::socks5::detail
 			auto& bound = bound_ref.get();
 			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(bound), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(bound));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -44,13 +44,13 @@ namespace boost::asio::socks5::detail
 				if (domain.empty())
 				{
 					auto [e1, n1] = co_await bound.async_send_to(
-						asio::buffer(data), ep, asio::use_nothrow_deferred);
+						asio::buffer(data), ep, asio::use_deferred_executor(bound));
 					co_return{ e1, n1 };
 				}
 				else
 				{
 					auto [e1, n1] = co_await asio::async_send_to(
-						bound, asio::buffer(data), std::move(domain), ep.port(), asio::use_nothrow_deferred);
+						bound, asio::buffer(data), std::move(domain), ep.port(), asio::use_deferred_executor(bound));
 					co_return{ e1, n1 };
 				}
 			}
@@ -70,7 +70,7 @@ namespace boost::asio::socks5::detail
 			auto& front = front_ref.get();
 			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(front), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(front));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -82,7 +82,7 @@ namespace boost::asio::socks5::detail
 				asio::const_buffer{buffer},
 			};
 
-			auto [e1, n1] = co_await asio::async_write(front, buffers, asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await asio::async_write(front, buffers, asio::use_deferred_executor(front));
 			co_return{ e1, n1 };
 		}
 	};
@@ -97,7 +97,7 @@ namespace boost::asio::socks5::detail
 			auto& bound = bound_ref.get();
 			auto  buffer = std::forward_like<decltype(buf)>(buf);
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(bound), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(bound));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -110,7 +110,7 @@ namespace boost::asio::socks5::detail
 			};
 
 			auto [e1, n1] = co_await bound.async_send_to(
-				buffers, frontend_endpoint, asio::use_nothrow_deferred);
+				buffers, frontend_endpoint, asio::use_deferred_executor(bound));
 			co_return{ e1, n1 };
 		}
 	};

@@ -60,7 +60,7 @@ namespace boost::beast::http
 	{
 		const auto& ex = co_await asio::this_coro::executor;
 
-		co_await asio::dispatch(ex, asio::use_nothrow_deferred);
+		co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 		asio::error_code ec{};
 		http::response<http::string_body> resp{ http::status::unknown, 11 };
@@ -146,7 +146,7 @@ namespace boost::beast::http
 				co_return std::tuple{ e1, std::move(resp) };
 
 			auto [e2, ep] = co_await asio::async_connect(
-				sock, eps, asio::default_tcp_connect_condition{}, asio::use_nothrow_deferred);
+				sock, eps, asio::default_tcp_connect_condition{}, asio::use_deferred_executor(sock));
 			if (e2)
 			{
 				sock.close(ec);
@@ -167,7 +167,7 @@ namespace boost::beast::http
 				if (std::to_underlying(s5opt.cmd) == 0)
 					s5opt.cmd = socks5::command::connect;
 
-				auto [e3] = co_await socks5::async_handshake(sock, s5opt, asio::use_nothrow_deferred);
+				auto [e3] = co_await socks5::async_handshake(sock, s5opt, asio::use_deferred_executor(sock));
 				if (e3)
 				{
 					sock.close(ec);
@@ -282,7 +282,7 @@ namespace boost::beast::http
 			}
 
 			auto [e3] = co_await stream.async_handshake(
-				asio::ssl::stream_base::handshake_type::client, asio::use_nothrow_deferred);
+				asio::ssl::stream_base::handshake_type::client, asio::use_deferred_executor(sock));
 			if (e3)
 			{
 				sock.close(ec);
@@ -290,20 +290,20 @@ namespace boost::beast::http
 				co_return std::tuple{ e3, std::move(resp) };
 			}
 
-			auto [e4, n4] = co_await http::async_write(stream, req, asio::use_nothrow_deferred);
+			auto [e4, n4] = co_await http::async_write(stream, req, asio::use_deferred_executor(sock));
 			if (e4)
 			{
-				co_await stream.async_shutdown(asio::use_nothrow_deferred);
+				co_await stream.async_shutdown(asio::use_deferred_executor(sock));
 				sock.close(ec);
 				asio::reset_lock(sock);
 				co_return std::tuple{ e4, std::move(resp) };
 			}
 
 			beast::flat_buffer buffer{};
-			auto [e6, n6] = co_await http::async_read(stream, buffer, resp, asio::use_nothrow_deferred);
+			auto [e6, n6] = co_await http::async_read(stream, buffer, resp, asio::use_deferred_executor(sock));
 			if (e6)
 			{
-				co_await stream.async_shutdown(asio::use_nothrow_deferred);
+				co_await stream.async_shutdown(asio::use_deferred_executor(sock));
 				sock.close(ec);
 				asio::reset_lock(sock);
 				co_return std::tuple{ e6, std::move(resp) };
@@ -314,7 +314,7 @@ namespace boost::beast::http
 		}
 		else
 		{
-			auto [e4, n4] = co_await http::async_write(sock, req, asio::use_nothrow_deferred);
+			auto [e4, n4] = co_await http::async_write(sock, req, asio::use_deferred_executor(sock));
 			if (e4)
 			{
 				sock.close(ec);
@@ -323,7 +323,7 @@ namespace boost::beast::http
 			}
 
 			beast::flat_buffer buffer{};
-			auto [e6, n6] = co_await http::async_read(sock, buffer, resp, asio::use_nothrow_deferred);
+			auto [e6, n6] = co_await http::async_read(sock, buffer, resp, asio::use_deferred_executor(sock));
 			if (e6)
 			{
 				sock.close(ec);
@@ -350,7 +350,7 @@ namespace boost::beast::http::detail
 		{
 			const auto& ex = ex_ref.get();
 
-			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -394,7 +394,7 @@ namespace boost::beast::http::detail
 			// A successful resolve operation is guaranteed to pass a non-empty range to the handler.
 			auto [e1, eps] = co_await asio::async_resolve(
 				resolver, std::move(addr), std::move(port),
-				asio::ip::resolver_base::flags(), asio::use_nothrow_deferred);
+				asio::ip::resolver_base::flags(), asio::use_deferred_executor(resolver));
 			if (e1)
 				co_return{ e1, std::move(resp) };
 
@@ -402,7 +402,7 @@ namespace boost::beast::http::detail
 				co_return{ asio::error::operation_aborted, std::move(resp) };
 
 			auto [e2, ep] = co_await asio::async_connect(
-				sock, eps, asio::default_tcp_connect_condition{}, asio::use_nothrow_deferred);
+				sock, eps, asio::default_tcp_connect_condition{}, asio::use_deferred_executor(sock));
 			if (e2)
 				co_return{ e2, std::move(resp) };
 
@@ -422,7 +422,7 @@ namespace boost::beast::http::detail
 				if (std::to_underlying(s5opt.cmd) == 0)
 					s5opt.cmd = socks5::command::connect;
 
-				auto [e3] = co_await socks5::async_handshake(sock, s5opt, asio::use_nothrow_deferred);
+				auto [e3] = co_await socks5::async_handshake(sock, s5opt, asio::use_deferred_executor(sock));
 				if (e3)
 					co_return{ e3, std::move(resp) };
 			}
@@ -510,39 +510,39 @@ namespace boost::beast::http::detail
 				}
 
 				auto [e3] = co_await stream->async_handshake(
-					asio::ssl::stream_base::handshake_type::client, asio::use_nothrow_deferred);
+					asio::ssl::stream_base::handshake_type::client, asio::use_deferred_executor(sock));
 				if (e3)
 					co_return{ e3, std::move(resp) };
 
-				auto [e4, n4] = co_await http::async_write(*stream, req, asio::use_nothrow_deferred);
+				auto [e4, n4] = co_await http::async_write(*stream, req, asio::use_deferred_executor(sock));
 				if (e4)
 				{
-					co_await stream->async_shutdown(asio::use_nothrow_deferred);
+					co_await stream->async_shutdown(asio::use_deferred_executor(sock));
 					co_return{ e4, std::move(resp) };
 				}
 
 				if (!!state.cancelled())
 				{
-					co_await stream->async_shutdown(asio::use_nothrow_deferred);
+					co_await stream->async_shutdown(asio::use_deferred_executor(sock));
 					co_return{ asio::error::operation_aborted, std::move(resp) };
 				}
 
 				beast::flat_buffer buffer{};
-				auto [e6, n6] = co_await http::async_read(*stream, buffer, resp, asio::use_nothrow_deferred);
+				auto [e6, n6] = co_await http::async_read(*stream, buffer, resp, asio::use_deferred_executor(sock));
 				if (e6)
 				{
-					co_await stream->async_shutdown(asio::use_nothrow_deferred);
+					co_await stream->async_shutdown(asio::use_deferred_executor(sock));
 					co_return{ e6, std::move(resp) };
 				}
 
-				co_await stream->async_shutdown(asio::use_nothrow_deferred);
+				co_await stream->async_shutdown(asio::use_deferred_executor(sock));
 			#else
 				co_return{ asio::error::operation_not_supported, std::move(resp) };
 			#endif
 			}
 			else
 			{
-				auto [e4, n4] = co_await http::async_write(sock, req, asio::use_nothrow_deferred);
+				auto [e4, n4] = co_await http::async_write(sock, req, asio::use_deferred_executor(sock));
 				if (e4)
 					co_return{ e4, std::move(resp) };
 
@@ -550,7 +550,7 @@ namespace boost::beast::http::detail
 					co_return{ asio::error::operation_aborted, std::move(resp) };
 
 				beast::flat_buffer buffer{};
-				auto [e6, n6] = co_await http::async_read(sock, buffer, resp, asio::use_nothrow_deferred);
+				auto [e6, n6] = co_await http::async_read(sock, buffer, resp, asio::use_deferred_executor(sock));
 				if (e6)
 					co_return{ e6, std::move(resp) };
 			}

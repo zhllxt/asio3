@@ -13,6 +13,7 @@
 #include <bit>
 
 #include <asio3/core/netconcepts.hpp>
+#include <asio3/core/with_lock.hpp>
 
 #if (defined(ASIO_NO_EXCEPTIONS) || defined(BOOST_ASIO_NO_EXCEPTIONS)) && !defined(ASIO3_NO_EXCEPTIONS_IMPL)
 #include <cassert>
@@ -356,7 +357,9 @@ namespace boost::asio::detail
 			{
 				co_await ::std::forward_like<decltype(awaiter)>(awaiter);
 
-				auto [ec] = co_await ch.async_send(error_code{}, error_code{}, asio::use_nothrow_awaitable);
+				co_await asio::dispatch(asio::use_awaitable_executor(ch));
+
+				auto [ec] = co_await ch.async_send(error_code{}, error_code{}, asio::use_awaitable_executor(ch));
 
 				co_return ec;
 			}
@@ -364,7 +367,9 @@ namespace boost::asio::detail
 			{
 				auto result = co_await ::std::forward_like<decltype(awaiter)>(awaiter);
 
-				auto [ec] = co_await ch.async_send(error_code{}, ::std::move(result), asio::use_nothrow_awaitable);
+				co_await asio::dispatch(asio::use_awaitable_executor(ch));
+
+				auto [ec] = co_await ch.async_send(error_code{}, ::std::move(result), asio::use_awaitable_executor(ch));
 
 				co_return ec;
 			}
@@ -379,7 +384,7 @@ namespace boost::asio::detail
 			auto ex = ::std::forward_like<decltype(executor)>(executor);
 			auto aw = ::std::forward_like<decltype(awaiter)>(awaiter);
 
-			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -387,7 +392,7 @@ namespace boost::asio::detail
 
 			asio::co_spawn(ex, call_coroutine(::std::move(aw), ch), asio::detached);
 
-			auto [ec, result] = co_await ch.async_receive(use_nothrow_deferred);
+			auto [ec, result] = co_await ch.async_receive(asio::use_deferred_executor(ch));
 
 			co_return result;
 		}

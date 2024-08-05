@@ -50,14 +50,14 @@ namespace boost::asio
 					{
 						auto& self = self_ref.get();
 
-						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
+						co_await asio::dispatch(asio::use_deferred_executor(self));
 
-						co_await self.base().async_disconnect(use_nothrow_deferred);
+						co_await self.base().async_disconnect(asio::use_deferred_executor(self));
 
 						if /**/ (auto* p1 = self.get_backend_tcp_socket(); p1)
-							co_await asio::async_disconnect(*p1, use_nothrow_deferred);
+							co_await asio::async_disconnect(*p1, asio::use_deferred_executor(self));
 						else if (auto* p2 = self.get_backend_udp_socket(); p2)
-							co_await asio::async_disconnect(*p2, use_nothrow_deferred);
+							co_await asio::async_disconnect(*p2, asio::use_deferred_executor(self));
 
 						co_return error_code{};
 					}, this->socket), token, std::ref(*this));

@@ -47,7 +47,7 @@ namespace boost::asio::socks5::detail
 			auto& sock = sock_ref.get();
 			option& sock5_opt = sock5_opt_ref.get();
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -88,7 +88,7 @@ namespace boost::asio::socks5::detail
 			strbuf.commit(bytes);
 
 			auto [e1, n1] = co_await asio::async_write(
-				sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
+				sock, strbuf, asio::transfer_exactly(bytes), asio::use_deferred_executor(sock));
 			if (e1)
 				co_return{ e1 };
 
@@ -104,7 +104,7 @@ namespace boost::asio::socks5::detail
 			strbuf.consume(strbuf.size());
 
 			auto [e2, n2] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(1 + 1), use_nothrow_deferred);
+				sock, strbuf, asio::transfer_exactly(1 + 1), asio::use_deferred_executor(sock));
 			if (e2)
 				co_return{ e2 };
 
@@ -229,7 +229,7 @@ namespace boost::asio::socks5::detail
 
 				// send username and password to server
 				auto [e3, n3] = co_await asio::async_write(
-					sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
+					sock, strbuf, asio::transfer_exactly(bytes), asio::use_deferred_executor(sock));
 				if (e3)
 					co_return{ e3 };
 
@@ -250,7 +250,7 @@ namespace boost::asio::socks5::detail
 				strbuf.consume(strbuf.size());
 
 				auto [e4, n4] = co_await asio::async_read(
-					sock, strbuf, asio::transfer_exactly(1 + 1), use_nothrow_deferred);
+					sock, strbuf, asio::transfer_exactly(1 + 1), asio::use_deferred_executor(sock));
 				if (e4)
 					co_return{ e4 };
 
@@ -358,7 +358,7 @@ namespace boost::asio::socks5::detail
 			strbuf.commit(bytes);
 
 			auto [e5, n5] = co_await asio::async_write(
-				sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
+				sock, strbuf, asio::transfer_exactly(bytes), asio::use_deferred_executor(sock));
 			if (e5)
 				co_return{ e5 };
 
@@ -394,7 +394,7 @@ namespace boost::asio::socks5::detail
 
 			// 1. read the first 5 bytes : VER REP RSV ATYP [LEN]
 			auto [e6, n6] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(5), use_nothrow_deferred);
+				sock, strbuf, asio::transfer_exactly(5), asio::use_deferred_executor(sock));
 			if (e6)
 				co_return{ e6 };
 
@@ -448,7 +448,7 @@ namespace boost::asio::socks5::detail
 			strbuf.consume(strbuf.size());
 
 			auto [e7, n7] = co_await asio::async_read(
-				sock, strbuf, asio::transfer_exactly(bytes), use_nothrow_deferred);
+				sock, strbuf, asio::transfer_exactly(bytes), asio::use_deferred_executor(sock));
 			if (e7)
 				co_return{ e7 };
 

@@ -38,7 +38,7 @@ namespace boost::asio::detail
 			std::string addr = asio::to_string(std::forward_like<decltype(listen_address)>(listen_address));
 			std::string port = asio::to_string(std::forward_like<decltype(listen_port)>(listen_port));
 
-			co_await asio::dispatch(acceptor.get_executor(), use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(acceptor));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -46,7 +46,7 @@ namespace boost::asio::detail
 
 			auto [e1, eps] = co_await asio::async_resolve(
 				resolver, std::move(addr), std::move(port),
-				asio::ip::resolver_base::passive, use_nothrow_deferred);
+				asio::ip::resolver_base::passive, asio::use_deferred_executor(resolver));
 			if (e1)
 				co_return{ e1, endpoint_type{} };
 

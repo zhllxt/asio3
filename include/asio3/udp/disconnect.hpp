@@ -26,14 +26,14 @@ namespace boost::asio::detail
 		{
 			auto& sock = sock_ref.get();
 
-			co_await asio::dispatch(asio::detail::get_lowest_executor(sock), asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(sock));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
 			if (!sock.is_open())
 				co_return asio::error::operation_aborted;
 
-			co_await asio::async_lock(sock, asio::use_nothrow_deferred);
+			co_await asio::async_lock(sock, asio::use_deferred_executor(sock));
 
 			[[maybe_unused]] asio::defer_unlock defered_unlock{ sock };
 

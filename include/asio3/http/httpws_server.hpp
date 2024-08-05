@@ -66,12 +66,12 @@ namespace boost::asio
 					{
 						auto& self = self_ref.get();
 
-						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
+						co_await asio::dispatch(asio::use_deferred_executor(self));
 
-						co_await self.base().async_stop(use_nothrow_deferred);
+						co_await self.base().async_stop(asio::use_deferred_executor(self));
 
-						co_await self.http_session_map.async_disconnect_all(use_nothrow_deferred);
-						co_await self.ws_session_map.async_disconnect_all(use_nothrow_deferred);
+						co_await self.http_session_map.async_disconnect_all(asio::use_deferred_executor(self));
+						co_await self.ws_session_map.async_disconnect_all(asio::use_deferred_executor(self));
 
 						co_return error_code{};
 					}, this->acceptor), token, std::ref(*this));

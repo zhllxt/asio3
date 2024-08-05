@@ -55,7 +55,7 @@ namespace boost::asio
 					{
 						auto& self = self_ref.get();
 
-						co_await asio::dispatch(self.get_executor(), use_nothrow_deferred);
+						co_await asio::dispatch(asio::use_deferred_executor(self));
 
 						asio::cancel_timer(self.watchdog_timer);
 

@@ -39,7 +39,7 @@ namespace boost::asio::detail
 		{
 			auto ex = ::std::forward_like<decltype(executor)>(executor);
 
-			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -63,7 +63,7 @@ namespace boost::asio::detail
 			}
 
 			auto [e1, n1] = co_await asio::async_read(
-				file, asio::dynamic_buffer(buffer), asio::transfer_all(), asio::use_nothrow_deferred);
+				file, asio::dynamic_buffer(buffer), asio::transfer_all(), asio::use_deferred_executor(file));
 
 			if (e1 == asio::error::eof)
 			{
@@ -83,7 +83,7 @@ namespace boost::asio::detail
 			auto ex = ::std::forward_like<decltype(executor)>(executor);
 			auto bs = ::std::forward_like<decltype(buffers)>(buffers);
 
-			co_await asio::dispatch(ex, asio::use_nothrow_deferred);
+			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
 
@@ -108,7 +108,7 @@ namespace boost::asio::detail
 				}
 			}
 
-			auto [e1, n1] = co_await asio::async_write(file, bs, asio::use_nothrow_deferred);
+			auto [e1, n1] = co_await asio::async_write(file, bs, asio::use_deferred_executor(file));
 
 			co_return{ e1, ::std::move(file), n1 };
 		}
@@ -153,8 +153,9 @@ namespace boost::asio
 	asio::awaitable<::std::tuple<asio::error_code, asio::stream_file, ::std::string>>
 		async_read_file_content(is_string auto&& filepath)
 	{
-		co_return co_await async_read_file_content(co_await asio::this_coro::executor,
-			::std::forward_like<decltype(filepath)>(filepath), asio::use_nothrow_awaitable);
+		auto ex = co_await asio::this_coro::executor;
+		co_return co_await async_read_file_content(ex,
+			::std::forward_like<decltype(filepath)>(filepath), asio::use_awaitable_executor(ex));
 	}
 
 	/**
@@ -220,7 +221,9 @@ namespace boost::asio
 		is_string auto&& filepath, const ConstBufferSequence& buffers,
 		file_base::flags open_flags = stream_file::write_only | stream_file::create | stream_file::truncate)
 	{
-		co_return co_await async_write_file(co_await asio::this_coro::executor,
-			::std::forward_like<decltype(filepath)>(filepath), buffers, open_flags, asio::use_nothrow_awaitable);
+		auto ex = co_await asio::this_coro::executor;
+		co_return co_await async_write_file(ex,
+			::std::forward_like<decltype(filepath)>(filepath), buffers, open_flags,
+			asio::use_awaitable_executor(ex));
 	}
 }
