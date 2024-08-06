@@ -55,7 +55,23 @@ net::awaitable<void> do_unicast(net::udp_socket& sock)
 net::awaitable<void> do_multicast_sender(net::udp_socket& sock)
 {
 	net::error_code ec;
-	net::ip::udp::endpoint bind_addr{ net::ip::udp::v4(), 1900 };
+
+	// after test:
+	// 
+	// 1. If the bind local port is 1900, and you joined the multicast group, then you 
+	//    can recv the data which come from other multicast_sender, this means if other
+	//    udp multicast send data at endpoint 239.255.255.250:1900, then you will recved
+	//    the data. 
+	//    But the negative effect is: the multicast_recver will recvd your multicast data 
+	//    at endpoint "you_ip:1900", and if the multicast_recver reply data to you at the
+	//    dest endpoint "you_ip:1900", you will can't recvd the reply data.
+	// 
+	// 2. If the bind local port is not 1900, eg:34515, then the multicast_recver will
+	//    recvd your multicast data at endpoint "you_ip:34515", and if the multicast_recver
+	//    reply data to you at the dest endpoint "you_ip:34515", you can recvd the reply 
+	//    data normally.
+	//
+	net::ip::udp::endpoint bind_addr{ net::ip::udp::v4(), 34515 };
 
 	sock.open(bind_addr.protocol(), ec);
 	if (ec)
@@ -65,10 +81,25 @@ net::awaitable<void> do_multicast_sender(net::udp_socket& sock)
 	}
 
 	sock.set_option(net::socket_base::reuse_address(true), ec);
+	if (ec)
+	{
+		fmt::print("set socket option 'reuse_address' failed: {}\n", ec.message());
+		co_return;
+	}
 
-	// join multicast group or not join is both ok.
-	sock.set_option(net::ip::multicast::enable_loopback(false), ec);
-	sock.set_option(net::ip::multicast::join_group(net::ip::make_address("239.255.255.250")), ec);
+	//// join multicast group or not join is both ok.
+	//sock.set_option(net::ip::multicast::enable_loopback(false), ec);
+	//if (ec)
+	//{
+	//	fmt::print("set socket option 'enable_loopback' failed: {}\n", ec.message());
+	//	co_return;
+	//}
+	//sock.set_option(net::ip::multicast::join_group(net::ip::make_address("239.255.255.250")), ec);
+	//if (ec)
+	//{
+	//	fmt::print("set socket option 'join_group' failed: {}\n", ec.message());
+	//	co_return;
+	//}
 
 	sock.bind(bind_addr, ec);
 	if (ec)
@@ -88,7 +119,12 @@ net::awaitable<void> do_multicast_sender(net::udp_socket& sock)
 
 		for (;;)
 		{
-			std::string msg = "<data come from multicast...>";
+			std::string msg = fmt::format(
+				"M-SEARCH * HTTP/1.1\r\n"
+				"HOST: 239.255.255.250:1900\r\n"
+				"MAN: \"ssdp:discover\"\r\n"
+				"MX: 3\r\n"
+				"ST: ssdp:all\r\n\r\n");
 
 			auto [e2, n2] = co_await sock.async_send_to(net::buffer(msg), multicast_endpoint);
 			if (e2)
@@ -148,11 +184,21 @@ net::awaitable<void> do_multicast_recver(net::udp_socket& sock)
 	}
 
 	sock.set_option(net::socket_base::reuse_address(true), ec);
+	if (ec)
+	{
+		fmt::print("set socket option 'reuse_address' failed: {}\n", ec.message());
+		co_return;
+	}
 
 	// client:
 	// must join multicast group to recv data...
 	//sock.set_option(net::ip::multicast::enable_loopback(false), ec);
 	sock.set_option(net::ip::multicast::join_group(net::ip::make_address("239.255.255.250")), ec);
+	if (ec)
+	{
+		fmt::print("set socket option 'join_group' failed: {}\n", ec.message());
+		co_return;
+	}
 
 	sock.bind(bind_addr, ec);
 	if (ec)
@@ -285,8 +331,8 @@ int main()
 	net::udp_socket sock(ctx.get_executor());
 
 	//net::co_spawn(ctx.get_executor(), do_unicast(sock), net::detached);
-	//net::co_spawn(ctx.get_executor(), do_multicast_sender(sock), net::detached);
-	net::co_spawn(ctx.get_executor(), do_multicast_recver(sock), net::detached);
+	net::co_spawn(ctx.get_executor(), do_multicast_sender(sock), net::detached);
+	//net::co_spawn(ctx.get_executor(), do_multicast_recver(sock), net::detached);
 	//net::co_spawn(ctx.get_executor(), do_broadcast(sock), net::detached);
 
 	net::signal_set sigset(ctx.get_executor(), SIGINT);
