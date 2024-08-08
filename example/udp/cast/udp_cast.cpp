@@ -71,6 +71,8 @@ net::awaitable<void> do_multicast_sender(net::udp_socket& sock)
 	//    reply data to you at the dest endpoint "you_ip:34515", you can recvd the reply 
 	//    data normally.
 	//
+	// https://blog.csdn.net/xqligong/article/details/106124408
+	// 
 	net::ip::udp::endpoint bind_addr{ net::ip::udp::v4(), 34515 };
 
 	sock.open(bind_addr.protocol(), ec);

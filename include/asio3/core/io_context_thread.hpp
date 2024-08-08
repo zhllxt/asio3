@@ -34,16 +34,35 @@ namespace boost::asio
 			join();
 		}
 
-
 		/**
 		 * @brief Blocks until the thread has no more outstanding work.
 		 */
 		inline void join() noexcept
 		{
-			guard.reset();
+			guard->reset();
 
 			if (thread.joinable())
 				thread.join();
+		}
+
+		/**
+		 * @brief Restart the io_context and thread.
+		 * if the thread is not finished, there will be no effect.
+		 * 
+		 */
+		inline void restart()
+		{
+			if (thread.joinable())
+				return;
+
+			context.restart();
+
+			guard = std::make_unique<asio::executor_guard>(context.get_executor());
+
+			thread = ::std::thread([this]() mutable
+			{
+				context.run();
+			});
 		}
 
 		/**
@@ -59,6 +78,7 @@ namespace boost::asio
 
 		asio::io_context     context{ 1 };
 
-		asio::executor_guard guard{ context.get_executor() };
+		std::unique_ptr<asio::executor_guard> guard{
+			std::make_unique<asio::executor_guard>(context.get_executor()) };
 	};
 }
