@@ -65,10 +65,8 @@ namespace boost::beast::http::detail
 	{
 		download_option opt;
 
-		auto operator()(auto state, auto ex_ref) -> void
+		auto operator()(auto state, auto ex) -> void
 		{
-			const auto& ex = ex_ref.get();
-
 			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
@@ -343,7 +341,7 @@ namespace boost::beast::http
  */
 template<typename SendToken = asio::default_token_type<asio::tcp_socket>>
 inline auto async_download(
-	const auto& executor,
+	auto&& executor,
 	download_option opt,
 	SendToken&& token = asio::default_token_type<asio::tcp_socket>())
 {
@@ -351,7 +349,7 @@ inline auto async_download(
 		asio::experimental::co_composed<void(asio::error_code)>(
 			detail::async_download_op{ std::move(opt) }, executor),
 		token,
-		std::cref(executor));
+		executor);
 }
 
 }

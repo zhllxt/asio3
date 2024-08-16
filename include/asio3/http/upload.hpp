@@ -63,10 +63,8 @@ namespace boost::beast::http::detail
 	{
 		upload_option opt;
 
-		auto operator()(auto state, auto ex_ref) -> void
+		auto operator()(auto state, auto ex) -> void
 		{
-			const auto& ex = ex_ref.get();
-
 			co_await asio::dispatch(asio::use_deferred_executor(ex));
 
 			state.reset_cancellation_state(asio::enable_terminal_cancellation());
@@ -300,7 +298,7 @@ namespace boost::beast::http
  */
 template<typename SendToken = asio::default_token_type<asio::tcp_socket>>
 inline auto async_upload(
-	const auto& executor,
+	auto&& executor,
 	upload_option opt,
 	SendToken&& token = asio::default_token_type<asio::tcp_socket>())
 {
@@ -308,7 +306,7 @@ inline auto async_upload(
 		asio::experimental::co_composed<void(asio::error_code, http::response<http::string_body>)>(
 			detail::async_upload_op{ std::move(opt) }, executor),
 		token,
-		std::cref(executor));
+		executor);
 }
 
 }

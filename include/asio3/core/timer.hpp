@@ -251,10 +251,9 @@ namespace boost::asio
      *    void handler(const asio::error_code& ec);
 	 */
 	template<
-		typename Executor,
 		typename SleepToken = asio::default_token_type<asio::timer>>
 	inline auto async_sleep(
-		Executor&& executor,
+		auto&& executor,
 		asio::timer::duration duration,
 		SleepToken&& token = asio::default_token_type<asio::timer>())
 	{

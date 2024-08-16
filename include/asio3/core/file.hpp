@@ -131,10 +131,9 @@ namespace boost::asio
      *    void handler(const asio::error_code& ec, asio::stream_file file, ::std::string content);
 	 */
 	template<
-		typename Executor,
 		typename ReadToken = asio::default_token_type<asio::nothrow_stream_file>>
 	inline auto async_read_file_content(
-		Executor&& ex,
+		auto&& ex,
 		is_string auto&& filepath,
 		ReadToken&& token = asio::default_token_type<asio::nothrow_stream_file>())
 	{
@@ -168,11 +167,10 @@ namespace boost::asio
      *    void handler(const asio::error_code& ec, asio::stream_file file, ::std::size_t bytes_writen);
 	 */
 	template<
-		typename Executor,
 		typename ConstBufferSequence,
 		typename ReadToken = asio::default_token_type<asio::nothrow_stream_file>>
 	inline auto async_write_file(
-		Executor&& ex,
+		auto&& ex,
 		is_string auto&& filepath,
 		const ConstBufferSequence& buffers,
 		ReadToken&& token = asio::default_token_type<asio::nothrow_stream_file>())
@@ -195,11 +193,10 @@ namespace boost::asio
      *    void handler(const asio::error_code& ec, asio::stream_file file, ::std::size_t bytes_writen);
 	 */
 	template<
-		typename Executor,
 		typename ConstBufferSequence,
 		typename ReadToken = asio::default_token_type<asio::nothrow_stream_file>>
 	inline auto async_write_file(
-		Executor&& ex,
+		auto&& ex,
 		is_string auto&& filepath,
 		const ConstBufferSequence& buffers,
 		file_base::flags open_flags,
