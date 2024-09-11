@@ -92,7 +92,11 @@ namespace boost::asio
 		 */
 		inline void close()
 		{
-			assert(socket.get_executor().running_in_this_thread());
+			if (socket.is_open())
+			{
+				assert(socket.get_executor().running_in_this_thread());
+			}
+
 			asio::error_code ec{};
 			socket.shutdown(asio::socket_base::shutdown_both, ec);
 			socket.close(ec);
