@@ -91,6 +91,7 @@ namespace boost::asio
 		}
 	};
 
+	template<typename = void>
 	asio::awaitable<std::tuple<asio::error_code, icmp_response>> co_ping(ping_option opt)
 	{
 		const auto& ex = co_await asio::this_coro::executor;
@@ -258,6 +259,7 @@ namespace boost::asio
 		co_return std::tuple{ error_code{}, std::move(resp) };
     }
 
+	template<typename = void>
 	asio::awaitable<std::tuple<asio::error_code, icmp_response>> co_ping(std::string host)
 	{
 		co_return co_await co_ping({ .host = std::move(host) });

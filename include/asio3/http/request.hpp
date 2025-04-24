@@ -56,6 +56,7 @@ namespace boost::beast::http
 	#endif
 	};
 
+	template<typename = void>
 	asio::awaitable<std::tuple<asio::error_code, http::response<http::string_body>>> co_request(request_option opt)
 	{
 		const auto& ex = co_await asio::this_coro::executor;
