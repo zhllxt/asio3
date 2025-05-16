@@ -18,9 +18,9 @@
 #include <asio3/core/netutil.hpp>
 #include <asio3/core/resolve.hpp>
 #include <asio3/core/defer.hpp>
-#include <asio3/core/root_certificates.hpp>
 
 #if defined(ASIO3_ENABLE_SSL) || defined(ASIO3_USE_SSL)
+#include <asio3/core/root_certificates.hpp>
 #include <asio3/tcp/sslutil.hpp>
 #endif
 
