@@ -129,8 +129,9 @@ int main()
 
 	std::unordered_map<net::cancellation_signal*, std::unique_ptr<net::cancellation_signal>> sigs;
 
-	std::filesystem::path root = std::filesystem::current_path(); // /asio3/bin/x64
-	root = root.parent_path().parent_path().append("example/wwwroot"); // /asio3/example/wwwroot
+	std::filesystem::path root = std::filesystem::current_path(); // /asio3/build/example/http/file_server
+	root = root.parent_path().parent_path().parent_path().parent_path();
+	root = root.append("example/wwwroot"); // /asio3/example/wwwroot
 	server.webroot = std::move(root);
 
 	server.router.add("/", [&server](http::web_request& req, http::web_response& rep, userdata data)

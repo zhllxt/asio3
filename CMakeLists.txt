@@ -1,20 +1,14 @@
 #
 # Copyright (c) 2017-2023 zhllxt
-# 
+#
 # author   : zhllxt
 # email    : 37792738@qq.com
-# 
+#
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-#
-# export CC=/usr/local/bin/gcc
-# export CXX=/usr/local/bin/g++
-#
 
-cmake_minimum_required (VERSION 2.8...3.20)
-
-
+cmake_minimum_required (VERSION 3.11)
 
 # remove last end of "/"
 string(REGEX REPLACE "/$" "" CMAKELISTS_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR})
@@ -23,14 +17,13 @@ string(REGEX REPLACE "/$" "" CMAKELISTS_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 string(REGEX REPLACE ".*/(.*)" "\\1" CMAKELISTS_DIR_NAME ${CMAKELISTS_DIR_PATH})
 
 # set root directory
-set(ASIO3_ROOT_DIR ${CMAKELISTS_DIR_PATH})
-
-message("ASIO3_ROOT_DIR = ${ASIO3_ROOT_DIR}")
-
-
+set(ASIO3_ROOT_DIR ${CMAKELISTS_DIR_PATH} CACHE PATH "asio3 root directory" FORCE)
+if(NOT ASIO3_ROOT_DIR)
+    message(FATAL_ERROR "asio3 root directory is not set!")
+endif()
+message(STATUS "ASIO3_ROOT_DIR = ${ASIO3_ROOT_DIR}")
 
 #-------------------------------------------------------------------------------
-
 function (DoGroupSources curdir rootdir foldername folder)
     file (GLOB children RELATIVE ${ASIO3_ROOT_DIR}/${curdir} ${ASIO3_ROOT_DIR}/${curdir}/*)
     foreach (child ${children})
@@ -58,232 +51,208 @@ function (GroupSources curdir folder)
 endfunction()
 
 #-------------------------------------------------------------------------------
-#
 # project
-#
 #-------------------------------------------------------------------------------
+project (asio3 VERSION 1.0 LANGUAGES CXX)
 
-project (asio3)
+include(GNUInstallDirs)
 
 set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 
-option(BUILD_EXAMPLES "Build examples" OFF)
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_EXAMPLES "asio3: Build examples" OFF)
+option(BUILD_TESTS "asio3: Build tests" OFF)
 
-# how to detect current is 32 bit or 64 bit ?
-#if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
-#endif()
-#
-#if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
-#endif()
-#
-#if(NOT CMAKE_CL_64)
-#endif()
-#
-#if(NOT ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "Win64"))
-#endif()
-#
-#if ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "Win32")
-#endif ()
+set(ASIO3_DISABLE_HEADER_ONLY OFF CACHE BOOL "asio3: Disable standalone asio (use boost::asio instead)")
+set(ASIO3_ENABLE_SSL OFF CACHE BOOL "asio3: Enable SSL/TLS support (link prebuilt OpenSSL)")
 
-#if(CMAKE_CL_64)
-#    set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/lib/x64)
-#else(CMAKE_CL_64)
-#    set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/lib/x86)
-#endif(CMAKE_CL_64)
+set(NEED_STDCPPFS "")
+set(OPENSSL_LIBS "")
+set(GENERAL_LIBS "")
+set(ASIO3_OPENSSL_LIBS_DIR "")
 
-
-# ---------------------------------------------------------------------------------------
-# Set default build to debug
-# ---------------------------------------------------------------------------------------
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
-    message("CMAKE_BUILD_TYPE is not set, Set default build to Release.")
+if(NOT CMAKE_INSTALL_INCLUDEDIR)
+    set(CMAKE_INSTALL_INCLUDEDIR "include" CACHE STRING "cmake_install_includedir" FORCE)
 endif()
-message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
-IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
-ELSE ()
-    if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-        add_definitions(-D_DEBUG)
-    endif()
-ENDIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(ASIO3_EXES_DIR ${ASIO3_ROOT_DIR}/bin/x64)
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(ASIO3_EXES_DIR ${ASIO3_ROOT_DIR}/bin/x86)
+if(NOT CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib" CACHE STRING "cmake_install_libdir" FORCE)
 endif()
- 
+
+set(ASIO3_ARCH "x64" CACHE STRING "asio3: Target architecture (x64/x86)")
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(ASIO3_ARCH "x86" FORCE)
+endif()
+message(STATUS "asio3: target architecture = ${ASIO3_ARCH}")
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0)
+    set(NEED_STDCPPFS stdc++fs)
+endif()
+
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
-	set(OPENSSL_LIBS libssl.a libcrypto.a)
-	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/3rd/openssl/prebuilt/linux/x64)
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/3rd/openssl/prebuilt/linux/x86)
-    endif()
+    set(OPENSSL_LIBS libssl.a libcrypto.a)
+    set(GENERAL_LIBS -lpthread -lrt -ldl ${NEED_STDCPPFS})
+    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/linux/${ASIO3_ARCH})
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
-	set(OPENSSL_LIBS "libssl.lib;libcrypto.lib;Crypt32.lib;")
-	set(GENERAL_LIBS "ws2_32;mswsock;")
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/3rd/openssl/prebuilt/windows/x64)
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/3rd/openssl/prebuilt/windows/x86)
-    endif()
+    set(OPENSSL_LIBS libssl.lib libcrypto.lib Crypt32.lib)
+    set(GENERAL_LIBS ws2_32 mswsock)
+    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/windows/${ASIO3_ARCH})
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-	set(OPENSSL_LIBS libssl.a libcrypto.a)
-	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
+    set(OPENSSL_LIBS libssl.a libcrypto.a)
+    set(GENERAL_LIBS -lpthread -lrt -ldl ${NEED_STDCPPFS})
+    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/freebsd/${ASIO3_ARCH})
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-	set(OPENSSL_LIBS libssl.a libcrypto.a)
-	set(GENERAL_LIBS -lpthread -ldl)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/3rd/openssl/prebuilt/mac)
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(ASIO3_LIBS_DIR ${ASIO3_ROOT_DIR}/3rd/openssl/prebuilt/mac)
-    endif()
+    set(OPENSSL_LIBS libssl.a libcrypto.a)
+    set(GENERAL_LIBS -lpthread -ldl)
+    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/mac)
 ELSE ()
-	set(OPENSSL_LIBS libssl.a libcrypto.a)
-	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
-ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    set(OPENSSL_LIBS libssl.a libcrypto.a)
+    set(GENERAL_LIBS -lpthread -lrt -ldl ${NEED_STDCPPFS})
+    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/default)
+ENDIF ()
 
-message("ASIO3_LIBS_DIR = ${ASIO3_LIBS_DIR}")
-message("ASIO3_EXES_DIR = ${ASIO3_EXES_DIR}")
-
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${ASIO3_EXES_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${ASIO3_EXES_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ASIO3_EXES_DIR})
-
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
-
+message(STATUS "ASIO3_OPENSSL_LIBS_DIR = ${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_LIBS_DIR}")
+message(STATUS "OPENSSL_LIBS = ${OPENSSL_LIBS}")
+message(STATUS "GENERAL_LIBS = ${GENERAL_LIBS}")
+message(STATUS "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}")
+message(STATUS "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}")
 
 # ---------------------------------------------------------------------------------------
-# Compiler config
+# interface config
 # ---------------------------------------------------------------------------------------
-if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 23)
-endif()
-
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(CMAKE_SYSTEM_NAME MATCHES "CYGWIN" OR CMAKE_SYSTEM_NAME MATCHES "MSYS")
-    set(CMAKE_CXX_EXTENSIONS ON)
-endif()
-
 add_library(asio3 INTERFACE)
+add_library(asio3::asio3 ALIAS asio3)
 
-target_include_directories(asio3
-  INTERFACE
-    ${ASIO3_ROOT_DIR}/3rd
-    ${ASIO3_ROOT_DIR}/3rd/openssl/include
-    ${ASIO3_ROOT_DIR}/include
+set_target_properties(asio3 PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    EXPORT_NAME asio3
 )
 
-target_link_directories(asio3
-  INTERFACE
-    ${ASIO3_LIBS_DIR}
+target_include_directories(asio3 INTERFACE
+    $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/include/>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/include/>
 )
 
-target_link_libraries(asio3
-  INTERFACE
-    ${CMAKE_THREAD_LIBS_INIT}
+if(NOT ASIO3_DISABLE_HEADER_ONLY)
+    target_include_directories(asio3 INTERFACE
+        $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/3rd/>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/3rd/>
+    )
+else()
+    target_compile_definitions(asio3 INTERFACE ASIO3_DISABLE_HEADER_ONLY)
+    message(STATUS "asio3: ASIO3_DISABLE_HEADER_ONLY macro will defined")
+    message(STATUS "asio3: standalone asio disabled (use boost::asio)")
+endif()
+
+if(ASIO3_ENABLE_SSL)
+    target_compile_definitions(asio3 INTERFACE ASIO3_ENABLE_SSL)
+    target_include_directories(asio3 INTERFACE
+        $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/3rd/openssl/include/>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/3rd/openssl/include/>
+    )
+    target_link_directories(asio3 INTERFACE
+        $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_LIBS_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/${ASIO3_OPENSSL_LIBS_DIR}>
+    )
+    target_link_libraries(asio3 INTERFACE ${OPENSSL_LIBS})
+    message(STATUS "asio3: ASIO3_ENABLE_SSL macro will defined")
+    message(STATUS "asio3: SSL/TLS support enabled (linked with prebuilt OpenSSL)")
+endif()
+
+find_package(Threads REQUIRED)
+target_link_libraries(asio3 INTERFACE
+    Threads::Threads
     ${GENERAL_LIBS}
-    ${OPENSSL_LIBS}
 )
 
+set_target_properties(asio3 PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
 target_compile_features(asio3 INTERFACE cxx_std_23)
 
-if (MSVC)
-    set (CMAKE_VERBOSE_MAKEFILE FALSE)
+#-------------------------------------------------------------------------------
+install(
+    DIRECTORY ${ASIO3_ROOT_DIR}/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/asio3
+)
 
-    add_definitions (
-        -D_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING
-        -D_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
+install(
+    DIRECTORY ${ASIO3_ROOT_DIR}/3rd
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/asio3
+)
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/asio3-config-version.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    ${ASIO3_ROOT_DIR}/cmake/asio3-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/asio3-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/asio3
+    NO_SET_AND_CHECK_MACRO
+    NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/asio3-config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/asio3-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/asio3
+)
+
+set(ASIO3_INSTALL_INCLUDES
+    ${CMAKE_INSTALL_INCLUDEDIR}/asio3/include/
+)
+
+if(NOT ASIO3_DISABLE_HEADER_ONLY)
+    list(APPEND ASIO3_INSTALL_INCLUDES
+        ${CMAKE_INSTALL_INCLUDEDIR}/asio3/3rd/
     )
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-      add_compile_options(
-          /bigobj       # large object file format
-          #/permissive-  # strict C++
-          #/wd4503      # decorated name length exceeded, name was truncated
-          /W4           # enable all warnings
-          /JMC
-          )
-  
-      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi /Ob2 /Oi /Ot /MT")
-  
-      set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis -Wthread-safety")
-    else()
-      add_compile_options(
-          /bigobj       # large object file format
-          #/permissive-  # strict C++
-          #/wd4503      # decorated name length exceeded, name was truncated
-          /W4           # enable all warnings
-          /MP           # Multi-processor compilation
-          /JMC
-          /Zc:__cplusplus
-          )
-  
-      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd /Zi")
-      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi /Ob2 /Oi /Ot /GL /MT")
-  
-      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-      set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-      set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG:incremental")
-    endif ()
-else()
-    set (THREADS_PREFER_PTHREAD_FLAG ON)
-    find_package (Threads)
-
-    set( CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=c++23 -Wall -Wextra -Wpedantic -Wno-unused-parameter -fcoroutines")
-
-    #set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb")
-
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis -Wthread-safety")
-    endif ()
 endif()
 
-
-# https://stackoverflow.com/questions/44705845/file-too-big-compiling-on-cygwin-g
-if(MINGW OR CYGWIN)
-  add_definitions(-O3)
-  add_compile_options(-Wa,-mbig-obj)
+if(ASIO3_ENABLE_SSL)
+    list(APPEND ASIO3_INSTALL_INCLUDES
+        ${CMAKE_INSTALL_INCLUDEDIR}/asio3/3rd/openssl/include/
+    )
 endif()
 
+install(
+    TARGETS asio3
+    EXPORT asio3-targets
+    INCLUDES DESTINATION ${ASIO3_INSTALL_INCLUDES}
+)
 
+install(
+    EXPORT asio3-targets
+    NAMESPACE asio3::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/asio3
+)
 
+export(
+    EXPORT asio3-targets
+    FILE ${CMAKE_CURRENT_BINARY_DIR}/asio3-targets.cmake
+    NAMESPACE asio3::
+)
+export(PACKAGE asio3)
 
 file (GLOB_RECURSE  ASIO3_FILES  ${ASIO3_ROOT_DIR}/include/asio3/*.*)
 file (GLOB_RECURSE   ASIO_FILES  ${ASIO3_ROOT_DIR}/3rd/asio/*.*)
 
 # exclude : asio/impl/src.cpp
-list(REMOVE_ITEM ASIO_FILES ${ASIO3_ROOT_DIR}/3rd/asio/impl/src.cpp)
+list (REMOVE_ITEM    ASIO_FILES  ${ASIO3_ROOT_DIR}/3rd/asio/impl/src.cpp)
 
 enable_testing()
 
-# after test, i find that it will linked failed on MINGW when use the static ssl librarys, 
-# but it will successed when use the shared ssl librarys like this:
-# https://github.com/axmolengine/buildware/releases/tag/v41
+if(BUILD_EXAMPLES)
+    add_subdirectory(example)
+endif()
 
-if (BUILD_EXAMPLES)
-  #include_directories (/usr/local/include) # for boost header file include
-  #include_directories (D:/boost)           # for boost header file include
-  
-  include_directories (${ASIO3_ROOT_DIR}/3rd)
-  include_directories (${ASIO3_ROOT_DIR}/3rd/openssl/include)
-  include_directories (${ASIO3_ROOT_DIR}/include)
-  
-  #link_directories    (/usr/local/lib)     # for boost library file include
-  #link_directories    (D:/boost/stage/lib) # for boost library file include
-  
-  add_subdirectory (example)
-endif(BUILD_EXAMPLES)
+if(BUILD_TESTS)
+    message(STATUS "asio3: BUILD_TESTS is ON, but tests directory not found")
+endif()

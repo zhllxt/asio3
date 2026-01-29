@@ -11,7 +11,9 @@
 #pragma once
 
 // define this to use standalone asio, otherwise use boost::asio.
+#ifndef ASIO3_DISABLE_HEADER_ONLY
 #define ASIO3_HEADER_ONLY
+#endif
 
 // If you want to use the ssl, you need to define ASIO3_ENABLE_SSL.
 // When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 

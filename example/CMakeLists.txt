@@ -14,6 +14,10 @@
 # cmake -G "Visual Studio 15 Win64" .
 #
 
+cmake_minimum_required(VERSION 3.11)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.cmake)
+
 add_subdirectory (icmp         )
 add_subdirectory (http         )
 add_subdirectory (rpc          )
