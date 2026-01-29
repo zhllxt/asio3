@@ -23,6 +23,9 @@ if(NOT ASIO3_ROOT_DIR)
 endif()
 message(STATUS "ASIO3_ROOT_DIR = ${ASIO3_ROOT_DIR}")
 
+set(ASIO3_OPENSSL_INCS_DIR "" CACHE STRING "asio3 openssl include dir" FORCE)
+set(ASIO3_OPENSSL_LIBS_DIR "" CACHE STRING "asio3 openssl lib dir" FORCE)
+
 #-------------------------------------------------------------------------------
 function (DoGroupSources curdir rootdir foldername folder)
     file (GLOB children RELATIVE ${ASIO3_ROOT_DIR}/${curdir} ${ASIO3_ROOT_DIR}/${curdir}/*)
@@ -68,8 +71,6 @@ set(ASIO3_ENABLE_SSL OFF CACHE BOOL "asio3: Enable SSL/TLS support (link prebuil
 set(NEED_STDCPPFS "")
 set(OPENSSL_LIBS "")
 set(GENERAL_LIBS "")
-set(ASIO3_OPENSSL_INCS_DIR "" CACHE STRING "asio3 openssl include dir" FORCE)
-set(ASIO3_OPENSSL_LIBS_DIR "" CACHE STRING "asio3 openssl lib dir" FORCE)
 
 if(NOT CMAKE_INSTALL_INCLUDEDIR)
     set(CMAKE_INSTALL_INCLUDEDIR "include" CACHE STRING "cmake_install_includedir" FORCE)
