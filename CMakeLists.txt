@@ -23,9 +23,6 @@ if(NOT ASIO3_ROOT_DIR)
 endif()
 message(STATUS "ASIO3_ROOT_DIR = ${ASIO3_ROOT_DIR}")
 
-set(ASIO3_OPENSSL_INCS_DIR "" CACHE STRING "asio3 openssl include dir" FORCE)
-set(ASIO3_OPENSSL_LIBS_DIR "" CACHE STRING "asio3 openssl lib dir" FORCE)
-
 #-------------------------------------------------------------------------------
 function (DoGroupSources curdir rootdir foldername folder)
     file (GLOB children RELATIVE ${ASIO3_ROOT_DIR}/${curdir} ${ASIO3_ROOT_DIR}/${curdir}/*)
@@ -68,9 +65,10 @@ option(BUILD_TESTS "asio3: Build tests" OFF)
 set(ASIO3_DISABLE_HEADER_ONLY OFF CACHE BOOL "asio3: Disable standalone asio (use boost::asio instead)")
 set(ASIO3_ENABLE_SSL OFF CACHE BOOL "asio3: Enable SSL/TLS support (link prebuilt OpenSSL)")
 
-set(NEED_STDCPPFS "")
-set(OPENSSL_LIBS "")
-set(GENERAL_LIBS "")
+set(OPENSSL_LIBS_FILE "")
+set(GENERAL_LIBS_FILE "")
+set(OPENSSL_INCS_DIR "")
+set(OPENSSL_LIBS_DIR "")
 
 if(NOT CMAKE_INSTALL_INCLUDEDIR)
     set(CMAKE_INSTALL_INCLUDEDIR "include" CACHE STRING "cmake_install_includedir" FORCE)
@@ -80,44 +78,43 @@ if(NOT CMAKE_INSTALL_LIBDIR)
     set(CMAKE_INSTALL_LIBDIR "lib" CACHE STRING "cmake_install_libdir" FORCE)
 endif()
 
-set(ASIO3_ARCH "x64" CACHE STRING "asio3: Target architecture (x64/x86)")
+set(ASIO3_ARCH "x64")
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(ASIO3_ARCH "x86" FORCE)
+    set(ASIO3_ARCH "x86")
 endif()
 message(STATUS "asio3: target architecture = ${ASIO3_ARCH}")
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0)
-    set(NEED_STDCPPFS stdc++fs)
-endif()
-
-set(ASIO3_OPENSSL_INCS_DIR /3rd/openssl/include)
+set(OPENSSL_INCS_DIR /3rd/openssl/include)
 
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(OPENSSL_LIBS libssl.a libcrypto.a)
-    set(GENERAL_LIBS -lpthread -lrt -ldl ${NEED_STDCPPFS})
-    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/linux/${ASIO3_ARCH})
+    set(OPENSSL_LIBS_FILE libssl.a libcrypto.a)
+    set(GENERAL_LIBS_FILE -lpthread -lrt -ldl)
+    set(OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/linux/${ASIO3_ARCH})
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(OPENSSL_LIBS libssl.lib libcrypto.lib Crypt32.lib)
-    set(GENERAL_LIBS ws2_32 mswsock)
-    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/windows/${ASIO3_ARCH})
+    set(OPENSSL_LIBS_FILE libssl.lib libcrypto.lib Crypt32.lib)
+    set(GENERAL_LIBS_FILE ws2_32 mswsock)
+    set(OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/windows/${ASIO3_ARCH})
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-    set(OPENSSL_LIBS libssl.a libcrypto.a)
-    set(GENERAL_LIBS -lpthread -lrt -ldl ${NEED_STDCPPFS})
-    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/freebsd/${ASIO3_ARCH})
+    set(OPENSSL_LIBS_FILE libssl.a libcrypto.a)
+    set(GENERAL_LIBS_FILE -lpthread -lrt -ldl)
+    set(OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/freebsd/${ASIO3_ARCH})
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    set(OPENSSL_LIBS libssl.a libcrypto.a)
-    set(GENERAL_LIBS -lpthread -ldl)
-    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/mac)
+    set(OPENSSL_LIBS_FILE libssl.a libcrypto.a)
+    set(GENERAL_LIBS_FILE -lpthread -ldl)
+    set(OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/mac)
 ELSE ()
-    set(OPENSSL_LIBS libssl.a libcrypto.a)
-    set(GENERAL_LIBS -lpthread -lrt -ldl ${NEED_STDCPPFS})
-    set(ASIO3_OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/default)
+    set(OPENSSL_LIBS_FILE libssl.a libcrypto.a)
+    set(GENERAL_LIBS_FILE -lpthread -lrt -ldl)
+    set(OPENSSL_LIBS_DIR /3rd/openssl/prebuilt/default)
 ENDIF ()
 
-message(STATUS "ASIO3_OPENSSL_INCS_DIR = ${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_INCS_DIR}")
-message(STATUS "ASIO3_OPENSSL_LIBS_DIR = ${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_LIBS_DIR}")
-message(STATUS "OPENSSL_LIBS = ${OPENSSL_LIBS}")
-message(STATUS "GENERAL_LIBS = ${GENERAL_LIBS}")
+set(ASIO3_OPENSSL_INCS_DIR ${OPENSSL_INCS_DIR} CACHE PATH "asio3 openssl include dir" FORCE)
+set(ASIO3_OPENSSL_LIBS_DIR ${OPENSSL_LIBS_DIR} CACHE PATH "asio3 openssl lib dir" FORCE)
+
+message(STATUS "ASIO3_OPENSSL_INCS_DIR = ${ASIO3_OPENSSL_INCS_DIR}")
+message(STATUS "ASIO3_OPENSSL_LIBS_DIR = ${ASIO3_OPENSSL_LIBS_DIR}")
+message(STATUS "OPENSSL_LIBS_FILE = ${OPENSSL_LIBS_FILE}")
+message(STATUS "GENERAL_LIBS_FILE = ${GENERAL_LIBS_FILE}")
 message(STATUS "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}")
 message(STATUS "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}")
 
@@ -152,14 +149,14 @@ endif()
 if(ASIO3_ENABLE_SSL)
     target_compile_definitions(asio3 INTERFACE ASIO3_ENABLE_SSL)
     target_include_directories(asio3 INTERFACE
-        $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/3rd/openssl/include/>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/3rd/openssl/include/>
+        $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_INCS_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/${ASIO3_OPENSSL_INCS_DIR}>
     )
     target_link_directories(asio3 INTERFACE
         $<BUILD_INTERFACE:${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_LIBS_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/asio3/${ASIO3_OPENSSL_LIBS_DIR}>
     )
-    target_link_libraries(asio3 INTERFACE ${OPENSSL_LIBS})
+    target_link_libraries(asio3 INTERFACE ${OPENSSL_LIBS_FILE})
     message(STATUS "asio3: ASIO3_ENABLE_SSL macro will defined")
     message(STATUS "asio3: SSL/TLS support enabled (linked with prebuilt OpenSSL)")
 endif()
@@ -167,7 +164,7 @@ endif()
 find_package(Threads REQUIRED)
 target_link_libraries(asio3 INTERFACE
     Threads::Threads
-    ${GENERAL_LIBS}
+    ${GENERAL_LIBS_FILE}
 )
 
 set_target_properties(asio3 PROPERTIES

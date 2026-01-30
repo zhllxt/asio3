@@ -25,7 +25,7 @@ function(configure TARGET_NAME)
     set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "example")
 
     target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
-    target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
+    target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS_FILE})
 
     if(${ENABLE_SSL})
         if (MSVC)
@@ -35,7 +35,7 @@ function(configure TARGET_NAME)
             ${ASIO3_ROOT_DIR}/3rd/openssl/include
         )
         target_link_directories(${TARGET_NAME} PRIVATE ${ASIO3_ROOT_DIR}/${ASIO3_OPENSSL_LIBS_DIR})
-        target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBS})
+        target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBS_FILE})
     endif()
 
     if(MSVC)
