@@ -81,9 +81,12 @@ namespace boost::asio
 	 * refrenced from beast stream.hpp
 	 */
 	// udp MTU : https://zhuanlan.zhihu.com/p/301276548
-	constexpr ::std::size_t  tcp_frame_size = 1480;
+	// boost_1_90_0/boost/beast/websocket/stream.hpp
+    //   static std::size_t constexpr max_control_frame_size = 2 + 8 + 4 + 125;
+    //   static std::size_t constexpr tcp_frame_size = 1536;
+	constexpr ::std::size_t  tcp_frame_size = 1536;
 	constexpr ::std::size_t  udp_frame_size = 548; // LAN:1472 WAN:548
-	constexpr ::std::size_t http_frame_size = 1480;
+	constexpr ::std::size_t http_frame_size = 1536;
 }
 
 #ifdef ASIO_STANDALONE

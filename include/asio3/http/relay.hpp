@@ -102,8 +102,6 @@ namespace boost::beast::http::detail
 					if (e3)
 						co_return{ e3, pin, readed_bytes, written_bytes };
 
-					assert(n3 == buf.size() - p.get().body().size);
-
 					// Set up the body for reading.
 					// This is how much was parsed:
 					p.get().body().size = buf.size() - p.get().body().size;
@@ -274,8 +272,6 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 			if (e3)
 				co_return std::tuple{ e3, pin, readed_bytes, written_bytes };
 
-			assert(n3 == buf.size() - p.get().body().size);
-
 			// Set up the body for reading.
 			// This is how much was parsed:
 			p.get().body().size = buf.size() - p.get().body().size;
@@ -364,8 +360,6 @@ net::awaitable<std::tuple<asio::error_code, std::uintptr_t, std::size_t, std::si
 				e3 = {};
 			if (e3)
 				co_return std::tuple{ e3, pin, readed_bytes, written_bytes };
-
-			assert(n3 == buf.size() - p.get().body().size);
 
 			// Set up the body for reading.
 			// This is how much was parsed:
