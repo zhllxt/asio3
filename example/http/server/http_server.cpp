@@ -107,9 +107,14 @@ int main()
 
 	net::http_server server(ctx.get_executor());
 
-	std::filesystem::path root = std::filesystem::current_path(); // /asio3/build/example/http/server
-	root = root.parent_path().parent_path().parent_path().parent_path();
-	root = root.append("example/wwwroot"); // /asio3/example/wwwroot
+	// root = /asio3/build/example/http/server/Debug
+	std::filesystem::path root = std::filesystem::current_path();
+
+	root = root.parent_path().parent_path().parent_path().parent_path().parent_path();
+
+	// root = /asio3/example/wwwroot
+	root = root.append("example/wwwroot");
+
 	server.webroot = std::move(root);
 
 	server.router.add("/", [&server](http::web_request& req, http::web_response& rep) -> net::awaitable<bool>

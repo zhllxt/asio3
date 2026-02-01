@@ -135,9 +135,14 @@ int main()
 
 	http_server_ex server(ctx.get_executor());
 
-	std::filesystem::path root = std::filesystem::current_path(); // /asio3/build/example/http/inherit_server
-	root = root.parent_path().parent_path().parent_path().parent_path();
-	root = root.append("example/wwwroot"); // /asio3/example/wwwroot
+	// root = /asio3/build/example/http/inherit_server/Debug
+	std::filesystem::path root = std::filesystem::current_path();
+
+	root = root.parent_path().parent_path().parent_path().parent_path().parent_path();
+
+	// root = /asio3/example/wwwroot
+	root = root.append("example/wwwroot");
+
 	server.webroot = std::move(root);
 
 	server.router.add("/", [&server](web_request_ex& req, http::web_response& rep) -> net::awaitable<bool>

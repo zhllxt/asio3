@@ -54,6 +54,16 @@ function(configure TARGET_NAME)
 
         target_link_options(${TARGET_NAME} PRIVATE /SAFESEH:NO)
 
+        get_target_property(TARGET_EXE_OUTPUT_DIR ${TARGET_NAME} RUNTIME_OUTPUT_DIRECTORY)
+        if(NOT TARGET_EXE_OUTPUT_DIR)
+            set(TARGET_EXE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>")
+        endif()
+        if(TARGET_EXE_OUTPUT_DIR)
+            set_target_properties(${TARGET_NAME} PROPERTIES
+                VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+            )
+        endif()
+
         if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
             target_compile_options(${TARGET_NAME} PRIVATE
                 $<$<CONFIG:Debug>:/MTd>
